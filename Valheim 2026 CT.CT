@@ -7,6 +7,8 @@
 if ValheimInventoryStop then pcall(ValheimInventoryStop) end
 if ValheimPlayerCheatsStop then pcall(ValheimPlayerCheatsStop) end
 if ValheimAutoRefillStop then ValheimAutoRefillStop() end
+if ValheimItemFlagsStop then ValheimItemFlagsStop() end
+if ValheimSpawnStop then ValheimSpawnStop(); ValheimSpawnStop=nil end
 if ValheimInventoryWindow then pcall(function() ValheimInventoryWindow.destroy() end) end
 local form = createForm(false)
 ValheimInventoryWindow = form
@@ -40,10 +42,10 @@ listbox.Left = 12; listbox.Top = 125; listbox.Width = 715; listbox.Height = 350
 listbox.Font.Name = 'Consolas'
 local header = createLabel(form)
 header.Left = 12; header.Top = 105; header.Font.Name = 'Consolas'
-header.Caption = ' X   #   Item                               Quantity / Limit'
+header.Caption = ' X  Flag  #   Item                               Quantity / Limit'
 local note = createLabel(form)
 note.Left = 12; note.Top = 485
-note.Caption = 'X = frozen. Freeze all captures current stacks; new stacks are not frozen automatically.'
+note.Caption = 'X = frozen. Flag: Y = marked, - = clear, ? = unreadable. New stacks start unfrozen.'
 local maxSkills = createButton(form)
 maxSkills.Caption = 'Max skills to 100'
 maxSkills.Left = 12; maxSkills.Top = 515; maxSkills.Width = 200
@@ -71,6 +73,10 @@ local depositButton = createButton(form)
 depositButton.Caption = 'Auto refill: OFF'
 local craftingButton = createButton(form)
 craftingButton.Caption = 'Free crafting: OFF'
+local clearFlagButton=createButton(form)
+clearFlagButton.Caption='Clear selected item flag'
+local keepFlagsButton=createButton(form)
+keepFlagsButton.Caption='Keep item flags off: OFF'
 -- Organized layout: inventory operations together; skills and player toggles below.
 form.BorderStyle = 'bsSizeable'
 form.Width = 1120; form.Height = 920
@@ -137,7 +143,7 @@ local function layoutWindow()
     local lowerH=math.max(206,buttonH*2+line*3+64)
     local footerH=line*2
     local estimatedColumns=(w-margin*2-4)&gt;=1060 and 5 or 3
-    local inventoryMinimum=26+12+math.ceil(9/estimatedColumns)*(buttonH+8)+4
+    local inventoryMinimum=26+12+math.ceil(11/estimatedColumns)*(buttonH+8)+4
       +line+6+100+10+line*4+8+12
     local minimumH=inventoryTop+inventoryMinimum+gap+lowerH+gap+footerH+margin
     if h&lt;minimumH then form.Height=form.Height+(minimumH-h); h=minimumH end
@@ -150,7 +156,7 @@ local function layoutWindow()
     local columns=iw&gt;=1060 and 5 or 3
     local bw=math.floor((iw-28-(columns-1)*gap)/columns)
     local controls={refresh,edit,cloneButton,maxStacksButton,depositButton,
-      freeze,unfreezeSelected,freezeAll,unfreeze}
+      freeze,unfreezeSelected,freezeAll,unfreeze,clearFlagButton,keepFlagsButton}
     for i,control in ipairs(controls) do
       place(control,inventoryGroup,14+((i-1)%columns)*(bw+gap),
         12+math.floor((i-1)/columns)*(buttonH+8),bw,buttonH)
@@ -312,8 +318,13 @@ local function itemInfo(item)
   local quantity = integer(item + stackOffset, 'quantity')
   assert(maximum &gt;= 1 and maximum &lt;= maxQuantity and quantity &gt;= 1 and quantity &lt;= maxQuantity,
     'Unexpected item quantity or stack limit')
+  local flagField=fields(class).m_cheated
+  local cheated
+  if flagField and not flagField.isStatic and flagField.typename=='System.Boolean' then
+    cheated=readBytes(item+flagField.offset,1)
+  end
   return {item=item, class=class, shared=shared, namePointer=namePointer,
-    name=name, maximum=maximum, quantity=quantity, address=item+stackOffset}
+    name=name, maximum=maximum, quantity=quantity, address=item+stackOffset,cheated=cheated}
 end
 drawRows = function(selectedItem)
   local selected = rows[listbox.ItemIndex + 1]
@@ -321,8 +332,9 @@ drawRows = function(selectedItem)
   listbox.Items.clear()
   listbox.ItemIndex = -1
   for i, row in ipairs(rows) do
-    listbox.Items.add(string.format(' %s  %02d   %-34s %d / %d',
-      frozen[row.item] and 'X' or ' ', i, row.name, row.quantity, row.maximum))
+    listbox.Items.add(string.format(' %s   %s   %02d   %-34s %d / %d',
+      frozen[row.item] and 'X' or ' ', row.cheated==1 and 'Y' or (row.cheated==0 and '-' or '?'),
+      i, row.name, row.quantity, row.maximum))
     if row.item == selectedItem then listbox.ItemIndex = i-1 end
   end
 end
@@ -1093,6 +1105,116 @@ dealloc(vhRefill)
   end
 end
 
+local flagTimer=createTimer(form,false)
+flagTimer.Interval=500
+local flagTypes={}
+local flagSession
+local function stopItemFlags()
+  flagTimer.Enabled=false
+  flagSession=nil
+  keepFlagsButton.Caption='Keep item flags off: OFF'
+end
+ValheimItemFlagsStop=stopItemFlags
+local flagClose,flagDestroy=form.OnClose,form.OnDestroy
+form.OnClose=function() stopItemFlags(); return flagClose() end
+form.OnDestroy=function() stopItemFlags(); flagDestroy() end
+local function clearItemFlags(onlyRow)
+  local snap=snapshot()
+  if flagSession then
+    assert(flagSession.pid==session and flagSession.player==snap.player
+      and flagSession.inventory==snap.inventory,'Player changed; enable the item flag toggle again.')
+  end
+  if onlyRow then
+    assert(snap.player==onlyRow.player and snap.inventory==onlyRow.inventory,'Player changed. Refresh first.')
+    local present=false
+    for _,item in ipairs(snap.items) do if item==onlyRow.item then present=true end end
+    assert(present,'Selected item left your inventory.')
+    local info=itemInfo(onlyRow.item)
+    assert(info.shared==onlyRow.shared and info.namePointer==onlyRow.namePointer
+      and info.class==onlyRow.class,'Selected item changed. Refresh first.')
+  end
+  local lc=objectClass(snap.collection)
+  local versionAddress=snap.collection+offset(lc,'_version')
+  local storage=localField.staticAddress
+  if not storage or storage&lt;=localField.offset then
+    storage=pointer(mono_class_getStaticFieldAddress(playerClass),'Player storage')+localField.offset
+  end
+  local function unchanged()
+    return getOpenedProcessID()==session and readPointer(storage)==snap.player
+      and readPointer(snap.player+inventoryOffset)==snap.inventory
+      and readPointer(snap.inventory+itemsOffset)==snap.collection
+      and readInteger(versionAddress)==snap.version
+  end
+  local cleared=0
+  local flags={}
+  for _,item in ipairs(snap.items) do
+    if not onlyRow or item==onlyRow.item then
+      if not unchanged() then return cleared,false,snap end
+      local vtable=pointer(readPointer(item),'Item type')
+      local off=flagTypes[vtable]
+      if not off then
+        local c=objectClass(item)
+        local f=field(c,'m_cheated')
+        assert(not f.isStatic and f.typename=='System.Boolean','Unexpected m_cheated field type')
+        off=offset(c,'m_cheated'); flagTypes[vtable]=off
+      end
+      local value=readBytes(item+off,1)
+      assert(value==0 or value==1,'Invalid item flag value')
+      if not unchanged() or readPointer(item)~=vtable then return cleared,false,snap end
+      if value==1 then
+        assert(writeBytes(item+off,0),'Could not clear item flag')
+        assert(readBytes(item+off,1)==0,'Item flag clear verification failed')
+        cleared=cleared+1
+      end
+      flags[item]=0
+    end
+  end
+  for _,row in ipairs(rows) do if flags[row.item]~=nil then row.cheated=flags[row.item] end end
+  drawRows()
+  return cleared,true,snap
+end
+clearFlagButton.OnClick=function()
+  local ok,err=pcall(function()
+    local row=rows[listbox.ItemIndex+1]
+    assert(row,'Select an item first.')
+    flagTypes={}
+    local count,complete=clearItemFlags(row)
+    assert(complete,'Inventory changed during the check. Refresh and retry.')
+    status.Caption=count&gt;0 and 'Selected item flag cleared. Flag column now shows -.' or 'Selected item flag was already clear.'
+  end)
+  if not ok then showMessage('Valheim item flags: '..tostring(err)) end
+end
+keepFlagsButton.OnClick=function()
+  if flagTimer.Enabled then
+    stopItemFlags(); status.Caption='Automatic item flag clearing stopped. Already-cleared flags stay cleared.'; return
+  end
+  local ok,err=pcall(function()
+    if not session or session~=getProcessIDFromProcessName('valheim.exe') then initialize() end
+    flagTypes={}
+    local snap=snapshot()
+    flagSession={pid=session,player=snap.player,inventory=snap.inventory,version=snap.version}
+    clearItemFlags()
+    populate()
+    flagTimer.Enabled=true
+    keepFlagsButton.Caption='Keep item flags off: ON'
+    status.Caption='Clearing flags in your inventory every 0.5 seconds, including newly crafted/upgraded items.'
+  end)
+  if not ok then stopItemFlags(); showMessage('Valheim item flags: '..tostring(err)) end
+end
+flagTimer.OnTimer=function()
+  local ok,err=pcall(function()
+    assert(flagSession and getProcessIDFromProcessName('valheim.exe')==flagSession.pid,'Game process changed')
+    local _,complete,snap=clearItemFlags()
+    if complete and snap.version~=flagSession.version then
+      populate(); flagSession.version=snap.version
+    end
+  end)
+  if not ok then
+    stopItemFlags()
+    status.Caption='Automatic item flag clearing stopped: player changed or memory unavailable.'
+    print('Valheim item flags: '..tostring(err))
+  end
+end
 form.show()
 </LuaScript>
 </CheatTable>
