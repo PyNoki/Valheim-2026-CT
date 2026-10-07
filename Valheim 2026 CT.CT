@@ -69,6 +69,8 @@ local maxStacksButton = createButton(form)
 maxStacksButton.Caption = 'Max all stacks'
 local depositButton = createButton(form)
 depositButton.Caption = 'Auto refill: OFF'
+local craftingButton = createButton(form)
+craftingButton.Caption = 'Free crafting: OFF'
 -- Organized layout: inventory operations together; skills and player toggles below.
 form.BorderStyle = 'bsSizeable'
 form.Width = 1120; form.Height = 920
@@ -132,7 +134,7 @@ local function layoutWindow()
     local top=title.Top+(title.Height or 30)+10
     subtitle.Top=top
     local inventoryTop=top+line+14
-    local lowerH=math.max(166,buttonH+line*3+52)
+    local lowerH=math.max(206,buttonH*2+line*3+64)
     local footerH=line*2
     local estimatedColumns=(w-margin*2-4)&gt;=1060 and 5 or 3
     local inventoryMinimum=26+12+math.ceil(9/estimatedColumns)*(buttonH+8)+4
@@ -176,7 +178,12 @@ local function layoutWindow()
       local size=math.floor((cw-28-gap)/2)
       place(a,group,14,16,size,buttonH)
       place(b,group,14+size+gap,16,cw-28-gap-size,buttonH)
-      place(label,group,14,buttonH+30,cw-28,ch-buttonH-42)
+      local labelY=buttonH+30
+      if group==playerGroup then
+        place(craftingButton,group,14,buttonH+24,cw-28,buttonH)
+        labelY=buttonH*2+38
+      end
+      place(label,group,14,labelY,cw-28,ch-labelY-12)
     end
     footer.AutoSize=false; footer.WordWrap=true
     place(footer,form,margin,h-margin-footerH,w-margin*2,footerH)
@@ -643,7 +650,7 @@ customSkills.OnClick = function()
 end
 local playerTimer = createTimer(form, false)
 playerTimer.Interval = 100
-local godState, staminaState
+local godState, staminaState, craftingState
 local function playerIdentity(s)
   return s and getOpenedProcessID() == s.pid
     and getProcessIDFromProcessName('valheim.exe') == s.pid
@@ -652,7 +659,8 @@ end
 local function playerLabels()
   godButton.Caption = godState and 'God mode: ON' or 'God mode: OFF'
   staminaButton.Caption = staminaState and 'Unlimited stamina: ON' or 'Unlimited stamina: OFF'
-  playerTimer.Enabled = godState ~= nil or staminaState ~= nil
+  craftingButton.Caption = craftingState and 'Free crafting: ON' or 'Free crafting: OFF'
+  playerTimer.Enabled = godState ~= nil or staminaState ~= nil or craftingState ~= nil
 end
 local function installDamageBlock(s)
   local class = pointer(mono_findClass('', 'Character'), 'Character class')
@@ -724,12 +732,22 @@ local function stopGod()
     assert(readBytes(s.address,1) == s.original, 'God-mode restore verification failed')
   end
 end
+local function stopCrafting()
+  local s=craftingState
+  craftingState=nil
+  if playerIdentity(s) and readBytes(s.address,1)==1 then
+    assert(writeBytes(s.address,s.original),'Could not restore no-cost crafting flag')
+    assert(readBytes(s.address,1)==s.original,'No-cost crafting restore verification failed')
+  end
+end
 local function stopPlayerCheats()
   playerTimer.Enabled = false
   staminaState = nil
   local ok, err = pcall(stopGod)
+  local craftingOK, craftingError = pcall(stopCrafting)
   playerLabels()
   if not ok then print('Valheim player toggle restore: ' .. tostring(err)) end
+  if not craftingOK then print('Valheim crafting restore: '..tostring(craftingError)) end
 end
 ValheimPlayerCheatsStop = stopPlayerCheats
 form.OnClose = function() stopPlayerCheats(); stopFreeze(); return caHide end
@@ -791,6 +809,24 @@ staminaButton.OnClick = function()
     playerStatus.Caption='Stamina refills to the current maximum every 100 ms.'
   end)
 end
+craftingButton.OnClick=function()
+  playerAction(function()
+    if craftingState then
+      stopCrafting()
+      playerStatus.Caption='Free crafting restored to its previous setting. Reopen the crafting menu.'
+      return
+    end
+    local s=playerContext()
+    s.address=s.player+typedPlayerOffset('m_noPlacementCost','System.Boolean')
+    s.original=readBytes(s.address,1)
+    assert(s.original==0 or s.original==1,'Invalid no-cost crafting flag')
+    assert(playerIdentity(s),'Player changed')
+    assert(writeBytes(s.address,1),'No-cost crafting write failed')
+    craftingState=s
+    assert(readBytes(s.address,1)==1,'No-cost crafting verification failed')
+    playerStatus.Caption='Free crafting enabled. Reopen crafting/build menus to refresh requirements.'
+  end)
+end
 playerTimer.OnTimer = function()
   if godState then
     local ok, err = pcall(function()
@@ -817,6 +853,19 @@ playerTimer.OnTimer = function()
       staminaState=nil
       playerStatus.Caption='Stamina refill stopped: player changed or memory unavailable.'
       print('Valheim stamina stopped: ' .. tostring(err))
+    end
+  end
+  if craftingState then
+    local ok,err=pcall(function()
+      assert(playerIdentity(craftingState),'Player changed or world unloaded')
+      local value=readBytes(craftingState.address,1)
+      assert(value==0 or value==1,'Invalid no-cost flag')
+      if value==0 then assert(writeBytes(craftingState.address,1),'No-cost write failed') end
+    end)
+    if not ok then
+      pcall(stopCrafting)
+      playerStatus.Caption='Free crafting stopped: player changed or memory unavailable.'
+      print('Valheim free crafting stopped: '..tostring(err))
     end
   end
   playerLabels()
