@@ -8,6 +8,7 @@ if ValheimInventoryStop then pcall(ValheimInventoryStop) end
 if ValheimPlayerCheatsStop then pcall(ValheimPlayerCheatsStop) end
 if ValheimAutoRefillStop then ValheimAutoRefillStop() end
 if ValheimItemFlagsStop then ValheimItemFlagsStop() end
+if ValheimMovementStop then ValheimMovementStop() end
 if ValheimSpawnStop then ValheimSpawnStop(); ValheimSpawnStop=nil end
 if ValheimInventoryWindow then pcall(function() ValheimInventoryWindow.destroy() end) end
 local form = createForm(false)
@@ -77,6 +78,12 @@ local clearFlagButton=createButton(form)
 clearFlagButton.Caption='Clear selected item flag'
 local keepFlagsButton=createButton(form)
 keepFlagsButton.Caption='Keep item flags off: OFF'
+local speedButton=createButton(form)
+speedButton.Caption='Movement speed: 1x'
+local jumpButton=createButton(form)
+jumpButton.Caption='Jump force: 1x'
+local resetMovementButton=createButton(form)
+resetMovementButton.Caption='Reset speed and jump'
 -- Organized layout: inventory operations together; skills and player toggles below.
 form.BorderStyle = 'bsSizeable'
 form.Width = 1120; form.Height = 920
@@ -88,7 +95,7 @@ local inventoryGroup = createGroupBox(form)
 inventoryGroup.Caption='Inventory'; inventoryGroup.Left=16; inventoryGroup.Top=74
 inventoryGroup.Width=950; inventoryGroup.Height=465
 local skillsGroup = createGroupBox(form)
-skillsGroup.Caption='Skills'; skillsGroup.Left=16; skillsGroup.Top=552
+skillsGroup.Caption='Skills and movement'; skillsGroup.Left=16; skillsGroup.Top=552
 skillsGroup.Width=465; skillsGroup.Height=160
 local playerGroup = createGroupBox(form)
 playerGroup.Caption='Player'; playerGroup.Left=497; playerGroup.Top=552
@@ -140,7 +147,7 @@ local function layoutWindow()
     local top=title.Top+(title.Height or 30)+10
     subtitle.Top=top
     local inventoryTop=top+line+14
-    local lowerH=math.max(206,buttonH*2+line*3+64)
+    local lowerH=math.max(245,buttonH*3+line*3+72)
     local footerH=line*2
     local estimatedColumns=(w-margin*2-4)&gt;=1060 and 5 or 3
     local inventoryMinimum=26+12+math.ceil(11/estimatedColumns)*(buttonH+8)+4
@@ -188,6 +195,11 @@ local function layoutWindow()
       if group==playerGroup then
         place(craftingButton,group,14,buttonH+24,cw-28,buttonH)
         labelY=buttonH*2+38
+      else
+        place(speedButton,group,14,buttonH+24,size,buttonH)
+        place(jumpButton,group,14+size+gap,buttonH+24,cw-28-gap-size,buttonH)
+        place(resetMovementButton,group,14,buttonH*2+32,cw-28,buttonH)
+        labelY=buttonH*3+46
       end
       place(label,group,14,labelY,cw-28,ch-labelY-12)
     end
@@ -1214,6 +1226,93 @@ flagTimer.OnTimer=function()
     status.Caption='Automatic item flag clearing stopped: player changed or memory unavailable.'
     print('Valheim item flags: '..tostring(err))
   end
+end
+local movementState
+local function movementLabels()
+  speedButton.Caption=string.format('Movement speed: %gx',movementState and movementState.speed or 1)
+  jumpButton.Caption=string.format('Jump force: %gx',movementState and movementState.jump or 1)
+end
+local function resetMovement()
+  local s=movementState
+  if s and playerIdentity(s) then
+    for _,p in pairs(s.values) do
+      assert(playerIdentity(s),'Player changed while restoring movement')
+      assert(writeFloat(p.address,p.original),'Could not restore '..p.name)
+      assert(readFloat(p.address)==p.original,'Restore verification failed: '..p.name)
+    end
+  end
+  movementState=nil
+  movementLabels()
+end
+ValheimMovementStop=resetMovement
+local movementClose,movementDestroy=form.OnClose,form.OnDestroy
+form.OnClose=function() resetMovement(); return movementClose() end
+form.OnDestroy=function() resetMovement(); movementDestroy() end
+local function setMovement(kind,multiplier)
+  local limit=kind=='speed' and 20 or 10
+  assert(multiplier and multiplier==multiplier and multiplier&gt;=0.1 and multiplier&lt;=limit,
+    'Enter a multiplier from 0.1 to '..limit..'.')
+  if movementState and not playerIdentity(movementState) then movementState=nil end
+  if not movementState then
+    local s=playerContext()
+    s.values={}; s.speed=1; s.jump=1
+    movementState=s
+  end
+  local s=movementState
+  local names=kind=='speed' and {'m_speed','m_walkSpeed','m_runSpeed','m_crouchSpeed','m_swimSpeed'}
+    or {'m_jumpForce'}
+  local pending={}
+  for _,name in ipairs(names) do
+    local p=s.values[name]
+    if not p then
+      local address=s.player+typedPlayerOffset(name,'System.Single')
+      local original=readFloat(address)
+      assert(original and original==original and original&gt;0 and original&lt;=10000,'Invalid normal value for '..name)
+      p={name=name,address=address,original=original}; s.values[name]=p
+    end
+    local prior=readFloat(p.address)
+    assert(prior and prior==prior and prior&gt;0 and prior&lt;=1000000,'Invalid current movement value')
+    pending[#pending+1]={field=p,prior=prior,value=p.original*multiplier}
+  end
+  assert(playerIdentity(s),'Player changed; try again.')
+  local changed={}
+  local ok,err=pcall(function()
+    for _,p in ipairs(pending) do
+      assert(playerIdentity(s),'Player changed during movement update')
+      changed[#changed+1]=p
+      assert(writeFloat(p.field.address,p.value),'Write failed: '..p.field.name)
+      local actual=readFloat(p.field.address)
+      assert(actual and math.abs(actual-p.value)&lt;=math.max(0.0001,math.abs(p.value)*0.000001),
+        'Movement verification failed: '..p.field.name)
+    end
+  end)
+  if not ok then
+    local restored=0
+    for _,p in ipairs(changed) do
+      if playerIdentity(s) and writeFloat(p.field.address,p.prior) and readFloat(p.field.address)==p.prior then restored=restored+1 end
+    end
+    error(tostring(err)..string.format(' Restored %d/%d attempted fields.',restored,#changed))
+  end
+  s[kind]=multiplier
+  movementLabels()
+  skillStatus.Caption=kind=='speed' and 'Speed multiplier applied to walking, running, crouching and swimming.'
+    or 'Jump-force multiplier applied. Jump height does not scale linearly with force.'
+end
+local function movementAction(kind)
+  local current=movementState and movementState[kind] or 1
+  local maximum=kind=='speed' and 20 or 10
+  local answer=inputQuery(kind=='speed' and 'Movement speed' or 'Jump force',
+    'Multiplier (0.1-'..maximum..'). 1 = normal; try 2 first:',tostring(current))
+  if answer==nil then return end
+  local ok,err=pcall(function() setMovement(kind,tonumber(answer)) end)
+  if not ok then showMessage('Valheim movement: '..tostring(err)) end
+end
+speedButton.OnClick=function() movementAction('speed') end
+jumpButton.OnClick=function() movementAction('jump') end
+resetMovementButton.OnClick=function()
+  local ok,err=pcall(resetMovement)
+  if ok then skillStatus.Caption='Original movement speed and jump force restored.'
+  else showMessage('Valheim movement: '..tostring(err)) end
 end
 form.show()
 </LuaScript>
