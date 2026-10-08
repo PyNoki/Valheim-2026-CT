@@ -6,14 +6,14 @@ using UnityEngine;
 
 namespace ValheimSoloToolkit
 {
-    public static class EnemyFormV3
+    public static class EnemyFormV4
     {
         public static int Enabled;
         public static string Status, LastError;
         internal static Player Owner;
         internal static int Generation, Choice;
         internal static bool CycleRequested;
-        internal static EnemyFormDriverV3 Driver;
+        internal static EnemyFormDriverV4 Driver;
         internal const BindingFlags Flags=BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic;
         internal static readonly MethodInfo CameraLook=typeof(PlayerController).GetMethod("LateUpdate",Flags);
         internal static readonly MethodInfo EyeRotation=typeof(Player).GetMethod("UpdateEyeRotation",Flags);
@@ -21,7 +21,7 @@ namespace ValheimSoloToolkit
         internal static readonly FieldInfo SkipTarget=typeof(Character).GetField("m_aiSkipTarget",Flags);
         public static void Configure(Player player,int form)
         {
-            if(form<0||form>4)throw new ArgumentException("Choose an enemy form from 1 to 5.");
+            if(form<0||form>5)throw new ArgumentException("Choose an enemy form from 1 to 6.");
             if(CameraLook==null||EyeRotation==null||CanInput==null||SkipTarget==null)throw new MissingMemberException("Enemy form control methods unavailable.");
             Owner=player;Choice=form;Generation++;CycleRequested=false;LastError=null;Enabled=1;Status="Queued. Return to the game and unpause to transform.";
         }
@@ -40,7 +40,7 @@ namespace ValheimSoloToolkit
                 if(Driver&&(Driver.Owner!=Owner||Driver.Generation!=Generation)){Driver.Restore();UnityEngine.Object.Destroy(Driver.gameObject);Driver=null;}
                 if(!Driver)
                 {
-                    Driver=new GameObject("SoloToolkit_EnemyForm").AddComponent<EnemyFormDriverV3>();
+                    Driver=new GameObject("SoloToolkit_EnemyForm").AddComponent<EnemyFormDriverV4>();
                     Driver.Owner=Owner;Driver.Generation=Generation;Driver.Setup(Choice);
                 }
                 Driver.Step();
@@ -49,11 +49,11 @@ namespace ValheimSoloToolkit
         }
     }
 
-    public sealed class EnemyFormDriverV3:MonoBehaviour
+    public sealed class EnemyFormDriverV4:MonoBehaviour
     {
         public Player Owner;
         internal int Generation;
-        private static readonly string[] Forms={"Greydwarf","Skeleton","Draugr","Wolf","Troll"};
+        private static readonly string[] Forms={"Greydwarf","Skeleton","Draugr","Wolf","Troll","Serpent"};
         private GameObject bodyObject;
         private Humanoid body;
         private PlayerController controller;
@@ -74,8 +74,8 @@ namespace ValheimSoloToolkit
         private ZNetView playerView;
         private ZDO playerZdo;
         private string originalName;
-        private static readonly FieldInfo PublicPosition=typeof(ZNet).GetField("m_publicReferencePosition",EnemyFormV3.Flags);
-        private static readonly FieldInfo Huds=typeof(EnemyHud).GetField("m_huds",EnemyFormV3.Flags);
+        private static readonly FieldInfo PublicPosition=typeof(ZNet).GetField("m_publicReferencePosition",EnemyFormV4.Flags);
+        private static readonly FieldInfo Huds=typeof(EnemyHud).GetField("m_huds",EnemyFormV4.Flags);
         private static readonly string[] MapMarkers={"m_smallMarker","m_largeMarker","m_smallShipMarker","m_largeShipMarker"};
         private void HideUi(GameObject obj)
         {
@@ -104,7 +104,7 @@ namespace ValheimSoloToolkit
             var map=Minimap.instance;
             if(map)foreach(var name in MapMarkers)
             {
-                var field=typeof(Minimap).GetField(name,EnemyFormV3.Flags);
+                var field=typeof(Minimap).GetField(name,EnemyFormV4.Flags);
                 if(field==null)throw new MissingFieldException("Minimap."+name);
                 var marker=field.GetValue(map) as Component;if(marker)HideUi(marker.gameObject);
             }
@@ -114,7 +114,7 @@ namespace ValheimSoloToolkit
                 var entries=Huds.GetValue(hud) as IDictionary;
                 if(entries!=null && entries.Contains(Owner))
                 {
-                    var entry=entries[Owner];var field=entry.GetType().GetField("m_gui",EnemyFormV3.Flags);
+                    var entry=entries[Owner];var field=entry.GetType().GetField("m_gui",EnemyFormV4.Flags);
                     if(field!=null)HideUi(field.GetValue(entry) as GameObject);
                 }
             }
@@ -151,7 +151,7 @@ namespace ValheimSoloToolkit
             // Humanoid.Start gives default/random equipment AFTER Instantiate returns.
             // Keep the real player active until Unity has initialized the new body.
             spawnFrame=Time.frameCount;initializationDeadline=Time.time+3f;formChoice=choice;
-            EnemyFormV3.Status="Waiting for "+Forms[choice]+" native weapons to initialize...";
+            EnemyFormV4.Status="Waiting for "+Forms[choice]+" native weapons to initialize...";
         }
         private bool FinishSetup()
         {
@@ -172,12 +172,12 @@ namespace ValheimSoloToolkit
             weaponIndex=weapons.IndexOf(body.GetCurrentWeapon());
             if(weaponIndex<0){weaponIndex=0;if(!body.EquipItem(weapons[0],false))throw new InvalidOperationException("Could not equip the enemy's native weapon.");}
             playerEnabled=Owner.enabled;controllerEnabled=controller.enabled;kinematic=playerBody.isKinematic;
-            skipTarget=(bool)EnemyFormV3.SkipTarget.GetValue(Owner);eyeLocal=Owner.m_eye.localPosition;saved=true;
-            controller.enabled=false;Owner.enabled=false;EnemyFormV3.SkipTarget.SetValue(Owner,true);
+            skipTarget=(bool)EnemyFormV4.SkipTarget.GetValue(Owner);eyeLocal=Owner.m_eye.localPosition;saved=true;
+            controller.enabled=false;Owner.enabled=false;EnemyFormV4.SkipTarget.SetValue(Owner,true);
             playerBody.linearVelocity=Vector3.zero;playerBody.angularVelocity=Vector3.zero;playerBody.isKinematic=true;
             HidePlayer();
             HideIdentity();
-            EnemyFormV3.Status=Forms[formChoice]+" form. Move/run/jump normally; Attack = native attack; Block = secondary; Use = cycle weapon; F8 = return.";
+            EnemyFormV4.Status=Forms[formChoice]+" form. Move/run/jump normally; Attack = native attack; Block = secondary; Use = cycle weapon; F8 = return.";
             return true;
         }
         private void HidePlayer()
@@ -189,17 +189,17 @@ namespace ValheimSoloToolkit
         }
         private bool InputAllowed()
         {
-            return Application.isFocused && (bool)EnemyFormV3.CanInput.Invoke(Owner,null)
+            return Application.isFocused && (bool)EnemyFormV4.CanInput.Invoke(Owner,null)
                 && !InventoryGui.IsVisible() && !Menu.IsVisible() && !Console.IsVisible() && !Minimap.IsOpen()
                 && !Hud.IsPieceSelectionVisible() && !Hud.InRadial() && !(Chat.instance&&Chat.instance.HasFocus());
         }
         public void Step()
         {
             if(restored)return;
-            if(!EnemyFormV3.Owns(Owner)||Generation!=EnemyFormV3.Generation){Restore();return;}
+            if(!EnemyFormV4.Owns(Owner)||Generation!=EnemyFormV4.Generation){Restore();return;}
             if(!body||body.IsDead()||Owner.IsDead())
-            {EnemyFormV3.Disable();Restore();EnemyFormV3.Status="Enemy body ended. Your player has been restored.";return;}
-            if(Input.GetKeyDown(KeyCode.F8)){EnemyFormV3.Disable();Restore();return;}
+            {EnemyFormV4.Disable();Restore();EnemyFormV4.Status="Enemy body ended. Your player has been restored.";return;}
+            if(Input.GetKeyDown(KeyCode.F8)){EnemyFormV4.Disable();Restore();return;}
             if(!saved && !FinishSetup())return;
             // Stream/save around the controlled body's location; do not replace the local-player singleton.
             returnPosition=body.transform.position;Owner.transform.position=returnPosition;
@@ -208,7 +208,7 @@ namespace ValheimSoloToolkit
             if(input)
             {
                 // Reuse the game's camera input preferences, including gamepad sensitivity/inversion.
-                EnemyFormV3.CameraLook.Invoke(controller,null);EnemyFormV3.EyeRotation.Invoke(Owner,null);
+                EnemyFormV4.CameraLook.Invoke(controller,null);EnemyFormV4.EyeRotation.Invoke(Owner,null);
                 Vector3 forward=Owner.m_eye.forward;forward.y=0;forward.Normalize();Vector3 right=Vector3.Cross(Vector3.up,forward);
                 var stick=ZInput.GetJoyLeftStick();
                 float x=(ZInput.GetButton("Right")?1:0)-(ZInput.GetButton("Left")?1:0)+stick.x;
@@ -216,10 +216,10 @@ namespace ValheimSoloToolkit
                 body.SetMoveDir(Vector3.ClampMagnitude(forward*z+right*x,1));
                 body.SetLookDir(Owner.m_eye.forward,Time.deltaTime);body.SetRun(ZInput.GetButton("Run")||ZInput.GetButton("JoyRun"));body.SetWalk(false);
                 if(ZInput.GetButtonDown("Jump")||ZInput.GetButtonDown("JoyJump"))body.Jump(false);
-                if(ZInput.GetButtonDown("Use")||ZInput.GetButtonDown("JoyUse"))EnemyFormV3.CycleRequested=true;
-                if(EnemyFormV3.CycleRequested&&!body.InAttack())
+                if(ZInput.GetButtonDown("Use")||ZInput.GetButtonDown("JoyUse"))EnemyFormV4.CycleRequested=true;
+                if(EnemyFormV4.CycleRequested&&!body.InAttack())
                 {
-                    EnemyFormV3.CycleRequested=false;int next=(weaponIndex+1)%weapons.Count;
+                    EnemyFormV4.CycleRequested=false;int next=(weaponIndex+1)%weapons.Count;
                     if(body.EquipItem(weapons[next],false))weaponIndex=next;
                 }
                 bool primary=ZInput.GetButton("Attack")||ZInput.GetButton("JoyAttack"),secondary=ZInput.GetButton("SecondaryAttack")||ZInput.GetButton("JoySecondaryAttack")||ZInput.GetButton("Block")||ZInput.GetButton("JoyBlock");
@@ -233,7 +233,7 @@ namespace ValheimSoloToolkit
             if(Time.time>=nextStatus)
             {
                 nextStatus=Time.time+0.5f;
-                EnemyFormV3.Status="Enemy health: "+Mathf.CeilToInt(body.GetHealth())+" / "+Mathf.CeilToInt(body.GetMaxHealth())+
+                EnemyFormV4.Status="Enemy health: "+Mathf.CeilToInt(body.GetHealth())+" / "+Mathf.CeilToInt(body.GetMaxHealth())+
                     ". Weapon "+(weaponIndex+1)+"/"+weapons.Count+": "+weapons[weaponIndex].m_shared.m_name+". Use cycles attacks; F8 returns.";
             }
         }
@@ -248,7 +248,7 @@ namespace ValheimSoloToolkit
                 Owner.transform.position=returnPosition;Owner.m_eye.localPosition=eyeLocal;
                 foreach(var entry in renderers)if(entry.Key)entry.Key.forceRenderingOff=entry.Value;
                 foreach(var entry in colliders)if(entry.Key)entry.Key.enabled=entry.Value;
-                EnemyFormV3.SkipTarget.SetValue(Owner,skipTarget);
+                EnemyFormV4.SkipTarget.SetValue(Owner,skipTarget);
                 if(playerBody){playerBody.isKinematic=kinematic;if(!kinematic){playerBody.linearVelocity=Vector3.zero;playerBody.angularVelocity=Vector3.zero;}}
                 Owner.SetMoveDir(Vector3.zero);Owner.SetRun(false);
                 Owner.enabled=playerEnabled;if(controller)controller.enabled=controllerEnabled;
@@ -259,7 +259,7 @@ namespace ValheimSoloToolkit
         }
         private void Update()
         {
-            if(!EnemyFormV3.Owns(Owner)||Generation!=EnemyFormV3.Generation)
+            if(!EnemyFormV4.Owns(Owner)||Generation!=EnemyFormV4.Generation)
             {Restore();Destroy(gameObject);}
         }
         private void OnDestroy(){Restore();}

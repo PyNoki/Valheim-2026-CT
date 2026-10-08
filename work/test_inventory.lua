@@ -801,7 +801,7 @@ print('PASS: rapid hoe toggle, local-player guard, world unload, independent min
 end
 
 do
-classes.EnemyFormV3=42;classes.GameCamera=43;vtDword=2
+classes.EnemyFormV4=42;classes.GameCamera=43;vtDword=2
 mem[0x90008]=0xa0000;mem[0xa0010]=10
 defs[42]={{name='Enabled',offset=0,isStatic=true,staticAddress=0x90000,typename='System.Int32'},{name='Status',offset=8,isStatic=true,staticAddress=0x90008,typename='System.String'}}
 local methodsBefore=mono_class_enumMethods
@@ -837,11 +837,11 @@ function autoAssemble(script,self,disable)
 end
 function inputQuery() return nil end
 buttons[27].OnClick();assert(not active and not selected,'Cancel enabled transformation')
-function inputQuery() return '6' end
+function inputQuery() return '7' end
 buttons[27].OnClick();assert(not active and not selected,'Invalid form enabled transformation')
-function inputQuery() return '5' end
+function inputQuery() return '6' end
 buttons[27].OnClick();local morphTimer=timers[#timers]
-assert(active and selected==4 and buttons[27].Caption=='Enemy form: ON','Enemy form toggle failed: '..tostring(errors[#errors]))
+assert(active and selected==5 and buttons[27].Caption=='Enemy form: ON','Enemy form toggle failed: '..tostring(errors[#errors]))
 morphTimer.OnTimer();assert(active,'Status polling failed')
 buttons[27].OnClick();assert(not active and mem[0x90000]==0 and not morphTimer.Enabled,'Toggle did not request restoration/remove hook')
 buttons[27].OnClick();mem[0x90000]=0;morphTimer.OnTimer();assert(not active and buttons[27].Caption=='Enemy form: OFF','F8/death/fault did not retire hook')

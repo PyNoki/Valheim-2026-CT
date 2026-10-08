@@ -32,7 +32,7 @@ public class Player:Humanoid {public static Player m_localPlayer;public bool inp
 public class PlayerController:MonoBehaviour {public static int cameraUpdates;private void LateUpdate(){cameraUpdates++;}}
 public class BaseAI:MonoBehaviour {}public class MonsterAI:BaseAI {}
 public class ZNetView:MonoBehaviour {public ZDO data=new ZDO();public ZDO GetZDO(){return data;}public static bool owned=true;public bool IsValid(){return true;}public bool IsOwner(){return owned;}}
-public class ZNetScene:UnityEngine.Object {public static ZNetScene instance=new ZNetScene();public GameObject prefab;public int removed;public GameObject GetPrefab(string name){return prefab;}public void Destroy(GameObject g){removed++;UnityEngine.Object.Destroy(g);}}
+public class ZNetScene:UnityEngine.Object {public static ZNetScene instance=new ZNetScene();public GameObject prefab;public string requestedPrefab;public int removed;public GameObject GetPrefab(string name){requestedPrefab=name;return prefab;}public void Destroy(GameObject g){removed++;UnityEngine.Object.Destroy(g);}}
 public class GameCamera:MonoBehaviour {}
 public class ZDO {public string Name="Noki";public string GetString(int key,string fallback){return Name;}public void Set(int key,string value){Name=value;}}
 public static class ZDOVars {public static int s_playerName=12;}
@@ -44,8 +44,8 @@ public static class InventoryGui {public static bool visible;public static bool 
 public class Chat:UnityEngine.Object {public static Chat instance;public bool HasFocus(){return false;}}
 class Tests {
  static void Check(bool value,string label){if(!value)throw new Exception(label);}
- static Humanoid Body(){var f=typeof(EnemyFormDriverV3).GetField("body",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance);return (Humanoid)f.GetValue(EnemyFormV3.Driver);}
- static void Transform(Player p,int form){EnemyFormV3.Configure(p,form);EnemyFormV3.Tick(null);Check(p.enabled,"Suspended before Start");Time.frameCount++;UnityEngine.Object.RunStarts();EnemyFormV3.Tick(null);}
+ static Humanoid Body(){var f=typeof(EnemyFormDriverV4).GetField("body",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance);return (Humanoid)f.GetValue(EnemyFormV4.Driver);}
+ static void Transform(Player p,int form){EnemyFormV4.Configure(p,form);EnemyFormV4.Tick(null);Check(p.enabled,"Suspended before Start");Time.frameCount++;UnityEngine.Object.RunStarts();EnemyFormV4.Tick(null);}
  static void Main(){
   var g=new GameObject("player");var p=g.AddComponent<Player>();Player.m_localPlayer=p;p.inventory.items.Add(new ItemDrop.ItemData("player sword"));var control=g.AddComponent<PlayerController>();var rigid=g.AddComponent<Rigidbody>();var renderer=g.AddComponent<Renderer>();var collider=g.AddComponent<Collider>();p.m_eye.localPosition=new Vector3(0,1.6f,0);
   var playerView=g.AddComponent<ZNetView>();
@@ -56,29 +56,36 @@ class Tests {
   var otherPlayer=new GameObject("otherPlayer").AddComponent<Player>();var otherHud=new GameObject("otherHud");EnemyHud.instance.m_huds[otherPlayer]=new EnemyHud.HudData{m_gui=otherHud};
   var prefab=new GameObject("enemy");prefab.AddComponent<Humanoid>();prefab.AddComponent<MonsterAI>();ZNetScene.instance.prefab=prefab;
   Transform(p,0);var body=Body();
-  Check(EnemyFormV3.Enabled==1&&!p.enabled&&!control.enabled&&rigid.isKinematic&&renderer.forceRenderingOff&&!collider.enabled&&p.m_aiSkipTarget,"Original player suspension");
+  Check(EnemyFormV4.Enabled==1&&!p.enabled&&!control.enabled&&rigid.isKinematic&&renderer.forceRenderingOff&&!collider.enabled&&p.m_aiSkipTarget,"Original player suspension");
   Check(!ZNet.instance.m_publicReferencePosition && playerView.data.Name=="" && largeGroup.alpha==0 && nameplate.GetComponent<CanvasGroup>().alpha==0,"Disguise visibility");
   Check(otherHud.GetComponent<CanvasGroup>()==null,"Other player HUD changed");
-  ZNet.instance.m_publicReferencePosition=true;largeGroup.alpha=1;EnemyFormV3.Tick(null);Check(!ZNet.instance.m_publicReferencePosition&&largeGroup.alpha==0,"Disguise not maintained");
+  ZNet.instance.m_publicReferencePosition=true;largeGroup.alpha=1;EnemyFormV4.Tick(null);Check(!ZNet.instance.m_publicReferencePosition&&largeGroup.alpha==0,"Disguise not maintained");
   Check(!body.GetComponent<MonsterAI>().enabled&&body.m_faction==Character.Faction.Players,"Only body AI disabled/faction");
-  ZInput.pressed.Add("Forward");ZInput.pressed.Add("Run");ZInput.pressed.Add("Attack");Time.time=1;EnemyFormV3.Tick(null);Check(body.move.z==1&&body.run&&body.attacks==1,"Native move/attack");
-  InventoryGui.visible=true;Time.time=2;EnemyFormV3.Tick(null);Check(body.move.z==0&&body.attacks==1,"Menu guard");InventoryGui.visible=false;
-  Application.isFocused=false;Time.time=3;EnemyFormV3.Tick(null);Check(body.attacks==1,"Focus guard");Application.isFocused=true;
-  ZInput.pressed.Clear();ZInput.pressed.Add("Use");EnemyFormV3.Tick(null);Check(body.weapon.m_shared.m_name=="bite","Weapon cycle");ZInput.pressed.Clear();ZInput.pressed.Add("Block");Time.time=4;EnemyFormV3.Tick(null);Check(body.usedSecondary,"Native secondary");
-  body.transform.position=new Vector3(5,2,3);EnemyFormV3.Tick(null);Input.exit=true;EnemyFormV3.Tick(null);Input.exit=false;
-  Check(EnemyFormV3.Enabled==0&&p.enabled&&control.enabled&&!rigid.isKinematic&&!renderer.forceRenderingOff&&collider.enabled&&!p.m_aiSkipTarget,"Return restoration");
+  ZInput.pressed.Add("Forward");ZInput.pressed.Add("Run");ZInput.pressed.Add("Attack");Time.time=1;EnemyFormV4.Tick(null);Check(body.move.z==1&&body.run&&body.attacks==1,"Native move/attack");
+  InventoryGui.visible=true;Time.time=2;EnemyFormV4.Tick(null);Check(body.move.z==0&&body.attacks==1,"Menu guard");InventoryGui.visible=false;
+  Application.isFocused=false;Time.time=3;EnemyFormV4.Tick(null);Check(body.attacks==1,"Focus guard");Application.isFocused=true;
+  ZInput.pressed.Clear();ZInput.pressed.Add("Use");EnemyFormV4.Tick(null);Check(body.weapon.m_shared.m_name=="bite","Weapon cycle");ZInput.pressed.Clear();ZInput.pressed.Add("Block");Time.time=4;EnemyFormV4.Tick(null);Check(body.usedSecondary,"Native secondary");
+  body.transform.position=new Vector3(5,2,3);EnemyFormV4.Tick(null);Input.exit=true;EnemyFormV4.Tick(null);Input.exit=false;
+  Check(EnemyFormV4.Enabled==0&&p.enabled&&control.enabled&&!rigid.isKinematic&&!renderer.forceRenderingOff&&collider.enabled&&!p.m_aiSkipTarget,"Return restoration");
   Check(p.transform.position.x==5&&p.m_eye.localPosition.y==1.6f&&p.inventory.items.Count==1,"Return position/eye/inventory");
   Check(ZNet.instance.m_publicReferencePosition && playerView.data.Name=="Noki" && largeGroup.alpha==0.4f && nameplate.GetComponent<CanvasGroup>()==null,"Identity restoration");
   ZNet.instance.m_publicReferencePosition=false;
-  Transform(p,1);body=Body();body.dead=true;EnemyFormV3.Tick(null);Check(p.enabled&&EnemyFormV3.Enabled==0&&!ZNet.instance.m_publicReferencePosition&&playerView.data.Name=="Noki","Death return and prior private setting");
-  Transform(p,2);var old=EnemyFormV3.Driver;EnemyFormV3.Disable();Transform(p,3);Check(EnemyFormV3.Driver!=old&&!p.enabled,"Fast reenable lifecycle");
-  EnemyFormV3.Disable();EnemyFormV3.Driver.Restore();Check(p.enabled,"Explicit cleanup");
-  int removed=ZNetScene.instance.removed;ZNetView.owned=false;EnemyFormV3.Configure(p,4);EnemyFormV3.Tick(null);Check(EnemyFormV3.Enabled==0&&p.enabled&&control.enabled&&ZNetScene.instance.removed==removed+1,"Partial setup cleanup");ZNetView.owned=true;
-  Transform(p,0);Player.m_localPlayer=null;EnemyFormV3.Tick(null);EnemyFormV3.Driver.Restore();Check(p.enabled,"World unload restoration");
-  Player.m_localPlayer=p;UnityEngine.Object.unarmedOnly=true;Transform(p,3);Check(EnemyFormV3.Enabled==1&&!p.enabled&&Body().GetInventory().GetAllItems().Count==0,"Built-in unarmed weapon unsupported");EnemyFormV3.Disable();EnemyFormV3.Driver.Restore();UnityEngine.Object.unarmedOnly=false;
-  EnemyFormV3.Configure(p,0);EnemyFormV3.Tick(null);Check(p.enabled,"Pending setup modified player");EnemyFormV3.Disable();EnemyFormV3.Driver.Restore();Check(p.enabled,"Pending cancellation");
-  UnityEngine.Object.noWeapons=true;EnemyFormV3.Configure(p,0);EnemyFormV3.Tick(null);Time.frameCount++;UnityEngine.Object.RunStarts();EnemyFormV3.Tick(null);Check(p.enabled&&EnemyFormV3.Enabled==1,"Empty inventory should wait");Time.time+=4;EnemyFormV3.Tick(null);Check(p.enabled&&EnemyFormV3.Enabled==0&&EnemyFormV3.LastError.Contains("3 seconds"),"Initialization timeout cleanup");
-  UnityEngine.Object.noWeapons=false;Transform(p,0);playerView.data=new ZDO();playerView.data.Name="Replacement identity";ZNet.instance=new ZNet();EnemyFormV3.Disable();EnemyFormV3.Driver.Restore();Check(playerView.data.Name=="Replacement identity"&&ZNet.instance.m_publicReferencePosition,"Restore overwrote replacement world/name storage");
-  System.Console.WriteLine("PASS: name/map/minimap/shared-position hide/restore and other-player isolation, deferred Unity Start, unarmed fallback, pending cancel/timeout, native body controls/attacks, menu/focus guards, weapon cycling, return/death, original inventory/camera/collision, fast reenable and partial failure cleanup");
+  Transform(p,1);body=Body();body.dead=true;EnemyFormV4.Tick(null);Check(p.enabled&&EnemyFormV4.Enabled==0&&!ZNet.instance.m_publicReferencePosition&&playerView.data.Name=="Noki","Death return and prior private setting");
+  Transform(p,2);var old=EnemyFormV4.Driver;EnemyFormV4.Disable();Transform(p,3);Check(EnemyFormV4.Driver!=old&&!p.enabled,"Fast reenable lifecycle");
+  EnemyFormV4.Disable();EnemyFormV4.Driver.Restore();Check(p.enabled,"Explicit cleanup");
+  int removed=ZNetScene.instance.removed;ZNetView.owned=false;EnemyFormV4.Configure(p,4);EnemyFormV4.Tick(null);Check(EnemyFormV4.Enabled==0&&p.enabled&&control.enabled&&ZNetScene.instance.removed==removed+1,"Partial setup cleanup");ZNetView.owned=true;
+  Transform(p,0);Player.m_localPlayer=null;EnemyFormV4.Tick(null);EnemyFormV4.Driver.Restore();Check(p.enabled,"World unload restoration");
+  Player.m_localPlayer=p;UnityEngine.Object.unarmedOnly=true;Transform(p,3);Check(EnemyFormV4.Enabled==1&&!p.enabled&&Body().GetInventory().GetAllItems().Count==0,"Built-in unarmed weapon unsupported");EnemyFormV4.Disable();EnemyFormV4.Driver.Restore();UnityEngine.Object.unarmedOnly=false;
+  EnemyFormV4.Configure(p,0);EnemyFormV4.Tick(null);Check(p.enabled,"Pending setup modified player");EnemyFormV4.Disable();EnemyFormV4.Driver.Restore();Check(p.enabled,"Pending cancellation");
+  UnityEngine.Object.noWeapons=true;EnemyFormV4.Configure(p,0);EnemyFormV4.Tick(null);Time.frameCount++;UnityEngine.Object.RunStarts();EnemyFormV4.Tick(null);Check(p.enabled&&EnemyFormV4.Enabled==1,"Empty inventory should wait");Time.time+=4;EnemyFormV4.Tick(null);Check(p.enabled&&EnemyFormV4.Enabled==0&&EnemyFormV4.LastError.Contains("3 seconds"),"Initialization timeout cleanup");
+  UnityEngine.Object.noWeapons=false;Transform(p,0);playerView.data=new ZDO();playerView.data.Name="Replacement identity";ZNet.instance=new ZNet();EnemyFormV4.Disable();EnemyFormV4.Driver.Restore();Check(playerView.data.Name=="Replacement identity"&&ZNet.instance.m_publicReferencePosition,"Restore overwrote replacement world/name storage");
+  ZInput.pressed.Clear();Transform(p,5);body=Body();
+  Check(ZNetScene.instance.requestedPrefab=="Serpent"&&EnemyFormV4.Enabled==1&&!p.enabled,"Serpent prefab selection/setup");
+  ZInput.pressed.Add("Forward");ZInput.pressed.Add("Attack");Time.time+=1;EnemyFormV4.Tick(null);
+  Check(body.move.z==1&&body.move.y==0&&body.attacks==1,"Serpent native movement/attack input");
+  body.transform.position=new Vector3(25,-1,30);EnemyFormV4.Tick(null);Input.exit=true;EnemyFormV4.Tick(null);Input.exit=false;
+  Check(p.enabled&&p.transform.position.x==25&&p.transform.position.y==-1&&playerView.data.Name=="Replacement identity","Serpent return position/identity");
+  bool rejected=false;try{EnemyFormV4.Configure(p,6);}catch(ArgumentException){rejected=true;}Check(rejected&&EnemyFormV4.Enabled==0,"Invalid form bounds");
+  System.Console.WriteLine("PASS: serpent prefab/native control/return, selection bounds, name/map/minimap/shared-position hide/restore and other-player isolation, deferred Unity Start, unarmed fallback, pending cancel/timeout, native body controls/attacks, menu/focus guards, weapon cycling, return/death, original inventory/camera/collision, fast reenable and partial failure cleanup");
  }
 }
