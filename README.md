@@ -125,6 +125,23 @@ Return to the game and unpause after queuing a teleport. Give the destination ti
 
 ## A few useful details
 
+### Pocket raid, building precision and mass farming
+
+Open **World tools…** in **Skills and movement**. Queue an action, then return to Valheim and unpause. The window reports progress and errors.
+
+| Tool | How to use it |
+| :--- | :--- |
+| **Pocket raid** | Choose Greydwarfs, Skeletons or Draugr; spawn 1–20 enemies with 0–2 stars on nearby dry, open ground. They target you and can damage buildings. **End pocket raid** removes enemies spawned by this tool. |
+| **Building precision** | Equip a hammer. Set world-axis X/Y/Z offsets from −3 to +3 metres and an exact whole-degree heading from 0–359°. Y is height. Use the game's alternate-placement control to avoid snapping. **Reset building precision** restores the original rotation settings. |
+| **Mass farming** | Equip a cultivator, select a crop and aim its preview at the ground. **Preview crop grid** creates local dots for a 1×1 to 7×7 grid, with 1–5 metre spacing. **Plant previewed grid** plants one point at a time while you keep that crop selected and aim at ground. |
+| **Harvest nearby crops** | Harvest up to 100 mature crops within a chosen 1–10 metre radius. Respects ward access and leaves the normal harvest drops in the world. Wild berry bushes and trees are excluded. |
+
+Grid planting consumes normal seeds/materials, stamina and cultivator durability; **Free crafting** still applies when enabled. Invalid or out-of-reach positions are skipped. Missing resources or a broken cultivator stops planting; menus pause it. Switching tools or crops cancels it. Choose spacing suitable for the crop; preview dots do not guarantee healthy growth.
+
+Precision offsets are applied before the game's placement validation. Normal range, terrain, support and snapping rules can still constrain placement. **Cancel grid / planting** removes preview dots and stops future planting; already planted crops remain.
+
+Closing World tools or the toolkit ends its raid, resets precision and cancels pending farming on the next game update. Return to the game and unpause for cleanup to finish. These features compile against the installed game and pass mocked tests; live gameplay and window appearance still need an in-game check.
+
 <details>
 <summary><strong>What do the inventory indicators mean?</strong></summary>
 
@@ -168,6 +185,8 @@ The table contains its Lua script and embedded helpers. Use **Valheim 2026 CT.CT
 Source lives in `outputs/`. From the repository root, build the mining helper with `pwsh -File work/build-miner.ps1` (use `-Managed` for a different Valheim managed-assembly folder), run `python work/run-lua-tests.py`, then package with `python work/package.py`. The Lua tests use Cheat Engine's Lua DLL; the C# behavior tests use mocks. Live mining speed and animation still require an in-game check.
 
 Build and test the hoe helper with `pwsh -File work/build-hoe.ps1`, then run the same Lua tests and packaging command. Its cooldown, input guards and cleanup have automated coverage; live terrain behavior still requires an in-game check.
+
+Build and test Pocket raid, building precision and mass farming with `pwsh -File work/build-world-tools.ps1`. Run the Lua suite and package afterward. Helper source is `outputs/ValheimWorldTools.cs`; the table embeds its DLL, so players only need the `.CT` file.
 
 </details>
 

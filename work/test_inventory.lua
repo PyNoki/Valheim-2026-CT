@@ -62,7 +62,7 @@ box.ItemIndex=0;timers[4].OnTimer()
 assert(box.ItemIndex==0 and not timers[4].Enabled,'Successful startup must stop refreshing')
 print('PASS: quiet startup retries for missing game/world, successful load and stop-after-success')
 do
-  for i=1,26 do assert(buttons[i].ShowHint and #buttons[i].Hint>20,'Missing action tooltip '..i) end
+  for i=1,27 do assert(buttons[i].ShowHint and #buttons[i].Hint>20,'Missing action tooltip '..i) end
   for _,label in ipairs(labels) do if label.Caption=='? Help & tips' then label.OnClick();break end end
   assert(helpMemo and helpMemo.ReadOnly and helpMemo.Lines.Text:find('BOTTOM LEFT',1,true),'Help popout missing')
   assert(helpMemo.Lines.Text:find('cheated',1,true) and helpMemo.Lines.Text:find('ping',1,true),'Help content missing')
@@ -192,20 +192,20 @@ function mono_class_getStaticFieldValue(c,f) assert(c==99);return f end
 buttons[8].OnClick()
 assert(#checkboxes==3 and checkboxes[2].Caption:find('Knives',1,true),'Named skill list missing')
 edits[1].Text='250'
-local before=#errors;buttons[27].OnClick()
+local before=#errors;buttons[28].OnClick()
 assert(#errors==before+1 and mem[0xd018]==100,'Empty selection wrote levels')
 mem[0xd01c]=0.75
 checkboxes[2].Checked=true -- Knives only, alphabetically first.
-buttons[27].OnClick()
+buttons[28].OnClick()
 assert(mem[0xd018]==100 and mem[0xd01c]==0.75 and mem[0xd118]==250,'Individual selection changed unchecked skill/progress')
 checkboxes[1].Checked=true;checkboxes[1].OnChange()
-buttons[27].OnClick()
+buttons[28].OnClick()
 assert(mem[0xd018]==250 and mem[0xd118]==250,'Select all failed')
-edits[1].Text='not a level';before=#errors;buttons[27].OnClick()
+edits[1].Text='not a level';before=#errors;buttons[28].OnClick()
 assert(#errors==before+1 and mem[0xd018]==250,'Invalid level accepted')
-edits[1].Text='300';mem[0x1030]=0;before=#errors;buttons[27].OnClick()
+edits[1].Text='300';mem[0x1030]=0;before=#errors;buttons[28].OnClick()
 assert(#errors==before+1 and mem[0xd018]==250,'Missing player accepted')
-mem[0x1030]=0x3000;mem[0x3758]=0xa000;before=#errors;buttons[27].OnClick()
+mem[0x1030]=0x3000;mem[0x3758]=0xa000;before=#errors;buttons[28].OnClick()
 assert(#errors==before+1 and mem[0xd018]==250,'Stale player selection accepted')
 mem[0x1030]=0x2000
 print('PASS: named skill picker, selected-only writes, select all, empty/invalid input and missing-player rejection')
@@ -479,42 +479,42 @@ function getAddressSafe() return buffer end
 buttons[1].OnClick()
 buttons[20].OnClick()
 assert(#box.values()==1 and box.values()[1]:find('Home',1,true),'Map pin missing: '..tostring(errors[#errors]))
-mem[0x27028]=12;buttons[29].OnClick()
+mem[0x27028]=12;buttons[30].OnClick()
 assert(box.values()[1]:find('Ping',1,true),'Ping destination not labeled')
-mem[0x27028]=10;buttons[29].OnClick()
+mem[0x27028]=10;buttons[30].OnClick()
 assert(#box.values()==0,'Player map pin bypassed roster filtering')
-mem[0x27028]=0;buttons[29].OnClick()
-for i=29,35 do assert(buttons[i].ShowHint and #buttons[i].Hint>20,'Missing teleport tooltip') end
+mem[0x27028]=0;buttons[30].OnClick()
+for i=30,36 do assert(buttons[i].ShowHint and #buttons[i].Hint>20,'Missing teleport tooltip') end
 print('PASS: ping labels, player-pin filtering and teleport hints')
 
 function inputQuery() return 'My base' end
-buttons[30].OnClick()
+buttons[31].OnClick()
 assert(#box.values()==2 and store.world_0100000000000000:find('10|20|30',1,true),'Current-position save failed')
-buttons[29].OnClick()
+buttons[30].OnClick()
 assert(#box.values()==2,'Saved location did not persist across refresh')
-box.ItemIndex=1;buttons[31].OnClick()
+box.ItemIndex=1;buttons[32].OnClick()
 assert(active and mem[buffer]==1 and mem[buffer+8]==0x2000,'Teleport not queued: '..tostring(errors[#errors]))
 assert(mem[buffer+0x20]==100 and mem[buffer+0x28]==300 and mem[buffer+0x3c]==1,'Wrong position or quaternion')
 local beforeErrors=#errors
-buttons[31].OnClick();assert(#errors==beforeErrors+1,'Must reject concurrent requests')
+buttons[32].OnClick();assert(#errors==beforeErrors+1,'Must reject concurrent requests')
 mem[buffer]=3;mem[0x2908]=1;timers[5].OnTimer()
 assert(timers[5].Enabled,'Must wait for terrain loading')
 mem[0x23010]=100;mem[0x23018]=300;mem[0x2908]=0;timers[5].OnTimer()
 assert(not timers[5].Enabled,'Arrival did not finish request')
-buttons[31].OnClick();buttons[34].OnClick()
+buttons[32].OnClick();buttons[35].OnClick()
 assert(not active and not timers[5].Enabled,'Cancel must retire hook and stop polling')
-buttons[31].OnClick();mem[buffer]=4;timers[5].OnTimer()
+buttons[32].OnClick();mem[buffer]=4;timers[5].OnTimer()
 assert(not timers[5].Enabled,'Declined teleport must finish request')
 function inputQuery() return 'invalid 2 3' end
-local previous=mem[buffer];buttons[32].OnClick();assert(mem[buffer]==previous,'Invalid coordinates published')
+local previous=mem[buffer];buttons[33].OnClick();assert(mem[buffer]==previous,'Invalid coordinates published')
 function inputQuery() return '-50 35 80' end
-buttons[32].OnClick();assert(mem[buffer]==1 and mem[buffer+0x20]==-50,'Coordinate request failed')
+buttons[33].OnClick();assert(mem[buffer]==1 and mem[buffer+0x20]==-50,'Coordinate request failed')
 worldID=2;timers[5].OnTimer()
 assert(not timers[5].Enabled and mem[buffer+8]==0,'World change must cancel pending request')
-buttons[29].OnClick();assert(#box.values()==1,'Saved locations leaked between worlds')
-worldID=1;buttons[29].OnClick();assert(#box.values()==2,'Original world locations missing')
-box.ItemIndex=0;buttons[33].OnClick();assert(#box.values()==1 and store.world_0100000000000000=='','Delete saved location failed')
-box.ItemIndex=0;buttons[31].OnClick();ValheimInventoryWindow.OnClose()
+buttons[30].OnClick();assert(#box.values()==1,'Saved locations leaked between worlds')
+worldID=1;buttons[30].OnClick();assert(#box.values()==2,'Original world locations missing')
+box.ItemIndex=0;buttons[34].OnClick();assert(#box.values()==1 and store.world_0100000000000000=='','Delete saved location failed')
+box.ItemIndex=0;buttons[32].OnClick();ValheimInventoryWindow.OnClose()
 assert(not active and not timers[5].Enabled,'Main window close must stop teleport tools')
 print('PASS: pins, persistent per-world saves/deletion, coordinates, request lifecycle, duplicate guard, cancellation and world-change cleanup')
 classes.ZDOID=28
@@ -554,17 +554,17 @@ end
 buttons[1].OnClick();buttons[20].OnClick()
 assert(#box.values()==2 and box.values()[2]:find('Player',1,true),'Shared player missing or self/private player included')
 box.ItemIndex=1;mem[0x43074]=900
-buttons[31].OnClick()
+buttons[32].OnClick()
 assert(mem[buffer+0x20]==903 and mem[buffer+0x24]==41,'Player teleport did not reread latest position with offset')
-buttons[34].OnClick()
+buttons[35].OnClick()
 mem[0x43070]=0
-local errorCount=#errors;buttons[31].OnClick()
+local errorCount=#errors;buttons[32].OnClick()
 assert(#errors==errorCount+1 and not active,'Hidden player must not reuse stale position')
 mem[0x43070]=1;ids[0x43068]=4
-errorCount=#errors;buttons[31].OnClick()
+errorCount=#errors;buttons[32].OnClick()
 assert(#errors==errorCount+1 and not active,'Same-name replacement player must not match old character ID')
-buttons[35].OnClick();assert(#box.values()==2,'Refresh players failed')
-mem[0x42018]=0;buttons[35].OnClick()
+buttons[36].OnClick();assert(#box.values()==2,'Refresh players failed')
+mem[0x42018]=0;buttons[36].OnClick()
 assert(#box.values()==1,'Disconnected player was not removed')
 print('PASS: shared players, self/private filtering, fresh position, offset, character-ID matching, hidden/disconnected rejection')
 end
@@ -798,4 +798,68 @@ assert(buttons[26].Caption=='Rapid hoe: ON' and active and mem[0x80000]==1,'Disa
 ValheimInventoryWindow.OnClose()
 assert(not active and mem[0x70000]==0 and mem[0x80000]==0,'Combined cleanup failed')
 print('PASS: rapid hoe toggle, local-player guard, world unload, independent miner/hoe toggles and cleanup')
+end
+
+do
+classes.WorldToolsV1=42
+vtDword=2;vtSingle=4
+mem[0x90008]=0xa0000;mem[0xa0010]=10
+defs[42]={{name='Enabled',offset=0,isStatic=true,staticAddress=0x90000,typename='System.Int32'}, {name='Status',offset=8,isStatic=true,staticAddress=0x90008,typename='System.String'}}
+local methodsBefore=mono_class_enumMethods
+function mono_class_enumMethods(c)
+ if c==42 then return {{name='Configure',method=601},{name='Disable',method=602},{name='Tick',method=603},{name='Command',method=605},{name='AdjustRay',method=606}} end
+ if c==1 then local list=methodsBefore(c);list[#list+1]={name='LateUpdate',method=604};list[#list+1]={name='PieceRayTest',method=607};return list end
+ return methodsBefore(c)
+end
+local paramsBefore=mono_method_get_parameters
+function mono_method_get_parameters(m)
+ if m==601 or m==603 then return {returntype=1,parameters={{type=18}}} end
+ if m==602 or m==604 then return {returntype=1,parameters={}} end
+ if m==605 then return {returntype=1,parameters={{type=8},{type=12},{type=12},{type=12}}} end
+ if m==606 then return {returntype=2,parameters={{},{},{},{},{},{},{}}} end
+ if m==607 then return {returntype=2,parameters={{},{},{},{},{},{}}} end
+ return paramsBefore(m)
+end
+local invokeBefore=mono_invoke_method
+local command
+function mono_invoke_method(d,m,obj,args)
+ if m==601 then assert(args[1].value==0x2000);mem[0x90000]=1;return nil end
+ if m==602 then mem[0x90000]=0;return nil end
+ if m==605 then command=args;return nil end
+ return invokeBefore(d,m,obj,args)
+end
+local assembleBefore=autoAssemble
+local active=false
+function autoAssemble(script,self,disable)
+ if script:find('alloc(vhWorldTools,',1,true) then
+  assert(script:find('alloc(vhWorldRay,',1,true),'Both world-tool hooks must install together')
+  assert(script:find('call vhWorldRayOriginal',1,true) and script:find('jz vhWorldRayReturn',1,true),'Ray must call original and preserve failure')
+  assert(script:find('mov rax,[rsp+C0]',1,true) and script:find('mov rax,[rsp+C8]',1,true) and script:find('mov rax,[rsp+D0]',1,true),'Missing original stack arguments')
+  assert(script:find('mov [rsp+20],rax',1,true) and script:find('mov [rsp+28],rax',1,true) and script:find('mov [rsp+30],rax',1,true),'Ray stack arguments not forwarded')
+  assert(not script:find('dealloc(',1,true),'In-flight hook allocations must remain valid')
+  active=not disable;return true,{}
+ end
+ return assembleBefore(script,self,disable)
+end
+local function byCaption(c) for _,b in ipairs(buttons) do if b.Caption==c then return b end end error('Missing button '..c) end
+buttons[27].OnClick();local worldTimer=timers[#timers]
+assert(active and mem[0x90000]==1,'World tools failed to enable: '..tostring(errors[#errors]))
+local count=#buttons;buttons[27].OnClick();assert(#buttons==count,'Reopening duplicated controls/hooks')
+function inputQuery() return '2 7 1' end
+byCaption('Start pocket raid...').OnClick();assert(command[1].value==1 and command[2].value==1 and command[3].value==7 and command[4].value==1,'Raid command wrong')
+command=nil;function inputQuery() return '1 bad 3 0' end
+byCaption('Start pocket raid...').OnClick();assert(not command,'Malformed input sent a raid')
+function inputQuery() return '21 2' end
+byCaption('Preview crop grid...').OnClick();assert(not command,'Oversized grid accepted')
+function inputQuery() return '3 2' end
+byCaption('Preview crop grid...').OnClick();assert(command[1].value==5 and command[2].value==3 and command[3].value==2,'Grid command wrong')
+byCaption('Plant previewed grid').OnClick();assert(command[1].value==6,'Plant command missing')
+byCaption('Cancel grid / planting').OnClick();assert(command[1].value==9,'Cancel command missing')
+function inputQuery() return '0 0.1 0' end
+byCaption('Position offsets...').OnClick();assert(command[1].value==3 and command[3].value==0.1,'Precision offset command wrong')
+worldTimer.OnTimer();assert(active,'Status poll disabled world tools')
+byCaption('Stop all and close').OnClick();assert(not active and not worldTimer.Enabled and mem[0x90000]==0,'World tools did not stop')
+buttons[27].OnClick();mem[0x1030]=0;worldTimer.OnTimer();assert(not active and mem[0x90000]==0,'Stale player did not stop both hooks')
+mem[0x1030]=0x2000;buttons[27].OnClick();ValheimInventoryWindow.OnClose();assert(not active and mem[0x90000]==0,'Main close did not stop world tools')
+print('PASS: World tools dual-hook ABI structure, configuration commands, bounds, reopen, status, stop and world-unload cleanup')
 end
