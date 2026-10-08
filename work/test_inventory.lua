@@ -593,7 +593,9 @@ buttons[21].OnClick()
 assert(mem[0x2910]==0 and buttons[21].Caption=='Flight: OFF','Failed flight enable must roll back')
 print('PASS: flight enable/disable, maintain flag, preserve prior setting, close cleanup, world unload and failed write')
 do
-classes.BowBeamV2=30
+classes.BowBeamV3=30;vtDword=2
+local beamChoice="1"
+function inputQuery() return beamChoice end
 defs[30]={{name='Enabled',offset=0,isStatic=true,staticAddress=0x60000,typename='System.Int32'}}
 local methodsBefore=mono_class_enumMethods
 function mono_class_enumMethods(c)
@@ -603,7 +605,7 @@ function mono_class_enumMethods(c)
 end
 local paramsBefore=mono_method_get_parameters
 function mono_method_get_parameters(m)
- if m==201 then return {returntype=1,parameters={{type=18}}} end
+ if m==201 then return {returntype=1,parameters={{type=18},{type=8}}} end
  if m==202 then return {returntype=1,parameters={}} end
  if m==203 then return {returntype=2,parameters={{type=18},{type=18},{type=12}}} end
  if m==204 then return {returntype=1,parameters={{type=18},{type=12}}} end
@@ -611,7 +613,7 @@ function mono_method_get_parameters(m)
 end
 local invokeBefore=mono_invoke_method
 function mono_invoke_method(d,m,obj,args)
- if m==201 then assert(args[1].value==0x2000,'Wrong beam owner');mem[0x60000]=1;return nil end
+ if m==201 then assert(args[1].value==0x2000,'Wrong beam owner');assert(args[2].value==tonumber(beamChoice)-1,'Wrong beam mode');mem[0x60000]=1;return nil end
  if m==202 then mem[0x60000]=0;return nil end
  return invokeBefore(d,m,obj,args)
 end
@@ -629,12 +631,12 @@ function autoAssemble(script,self,disable)
 end
 buttons[22].OnClick()
 local beamTimer=timers[#timers]
-assert(active and mem[0x60000]==1 and buttons[22].Caption=='Bow beam: ON','BowBeam toggle failed: '..tostring(errors[#errors]))
+assert(active and mem[0x60000]==1 and buttons[22].Caption=='Kameha: ON','BowBeam toggle failed: '..tostring(errors[#errors]))
 buttons[22].OnClick();assert(not active and mem[0x60000]==0 and not beamTimer.Enabled,'Toggle disable did not clean up')
-buttons[22].OnClick();mem[0x1030]=0;beamTimer.OnTimer()
+beamChoice='2';buttons[22].OnClick();assert(buttons[22].Caption=='Death beam: ON','Death beam selection failed');mem[0x1030]=0;beamTimer.OnTimer()
 assert(not active and mem[0x60000]==0,'World unload must disable callbacks and remove hook')
 mem[0x1030]=0x2000;buttons[22].OnClick();mem[0x60000]=0;beamTimer.OnTimer()
-assert(not active and buttons[22].Caption=='Bow beam: OFF','Helper fault must remove hook')
+assert(not active and buttons[22].Caption=='Kameha / Death beam: OFF','Helper fault must remove hook')
 buttons[22].OnClick();ValheimInventoryWindow.OnClose()
 assert(not active and mem[0x60000]==0 and not beamTimer.Enabled,'Closing toolkit must remove beam effect')
 print('PASS: beam toggle, hook guards, original argument preservation, disable, world unload, callback fault and close cleanup')

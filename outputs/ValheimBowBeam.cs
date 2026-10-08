@@ -5,16 +5,17 @@ using UnityEngine.Rendering;
 
 namespace ValheimSoloToolkit
 {
-    public static class BowBeamV2
+    public static class BowBeamV3
     {
         public static int Enabled;
+        public static int Mode;
         public static string LastError;
         private static Player owner;
-        private static BowBeamVisualV2 visual;
+        private static BowBeamVisualV3 visual;
         internal static readonly FieldInfo DrawTime = typeof(Humanoid).GetField("m_attackDrawTime", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         private static readonly MethodInfo TakeInput = typeof(Player).GetMethod("TakeInput", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         internal static bool CanInput(Player player) { return TakeInput != null && (bool)TakeInput.Invoke(player, null); }
-        public static void Configure(Player player) { owner = player; LastError = null; Enabled = 1; }
+        public static void Configure(Player player, int mode) { if(mode<0||mode>1)throw new ArgumentException("Invalid beam mode"); Mode=mode; owner = player; LastError = null; Enabled = 1; }
         // Called from CE's Mono thread: Unity cleanup is left to the driver's Update.
         public static void Disable() { Enabled = 0; owner = null; }
         internal static bool Owns(Player player) { return Enabled == 1 && player && player == owner && player == Player.m_localPlayer; }
@@ -29,11 +30,11 @@ namespace ValheimSoloToolkit
             {
                 if (DrawTime == null) throw new MissingFieldException("Humanoid.m_attackDrawTime");
                 DrawTime.SetValue(player, -1f); // No queued arrow on release or after disabling.
-                if (!visual || visual.Owner != player)
+                if (!visual || visual.Owner != player || visual.ModeChanged)
                 {
                     if (visual) UnityEngine.Object.Destroy(visual.gameObject);
                     GameObject root = new GameObject("SoloToolkit_BowBeamDriver");
-                    visual = root.AddComponent<BowBeamVisualV2>();
+                    visual = root.AddComponent<BowBeamVisualV3>();
                     visual.Setup(player);
                 }
                 visual.Step(weapon);
@@ -43,9 +44,10 @@ namespace ValheimSoloToolkit
         }
     }
 
-    public sealed class BowBeamVisualV2 : MonoBehaviour
+    public sealed class BowBeamVisualV3 : MonoBehaviour
     {
         public Player Owner;
+        public bool ModeChanged { get { return mode!=BowBeamV3.Mode; } }
         private GameObject effects;
         private Material material;
         private Material particleMaterial;
@@ -53,6 +55,8 @@ namespace ValheimSoloToolkit
         private readonly LineRenderer[] gusts = new LineRenderer[12];
         private ParticleSystem vortex;
         private float nextParticles;
+        private int mode, terrainCursor;
+        private Color Tint(Color c) { return mode==1 ? new Color(c.b,c.r*0.12f,c.g*0.25f,c.a) : c; }
         private LineRenderer halo, sheath, core, coilA, coilB, muzzleA, muzzleB, impactRing;
         private ParticleSystem sparks;
         private Light muzzleLight, endLight;
@@ -66,7 +70,7 @@ namespace ValheimSoloToolkit
 
         public void Setup(Player player)
         {
-            Owner = player;
+            Owner = player;mode=BowBeamV3.Mode;
             animation = player.GetComponent<ZSyncAnimation>();
             Shader shader = Shader.Find("Legacy Shaders/Particles/Additive") ?? Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Sprites/Default");
             if (!shader) throw new InvalidOperationException("No compatible beam shader found");
@@ -123,7 +127,7 @@ namespace ValheimSoloToolkit
             sparks.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             ParticleSystem.MainModule main = sparks.main;
             main.loop = true; main.startLifetime = 0.4f; main.startSpeed = 12f;
-            main.startSize = 0.2f; main.startColor = new Color(0.4f, 3f, 5f, 1f);
+            main.startSize = 0.2f; main.startColor = Tint(new Color(0.4f, 3f, 5f, 1f));
             main.maxParticles = 160; main.simulationSpace = ParticleSystemSimulationSpace.World;
             ParticleSystem.EmissionModule emission = sparks.emission; emission.rateOverTime = 220f;
             ParticleSystem.ShapeModule shape = sparks.shape; shape.shapeType = ParticleSystemShapeType.Sphere; shape.radius = 0.35f;
@@ -137,7 +141,7 @@ namespace ValheimSoloToolkit
             LineRenderer line = go.AddComponent<LineRenderer>();
             line.sharedMaterial = material; line.useWorldSpace = true; line.positionCount = count;
             line.startWidth = width; line.endWidth = width * 0.8f;
-            line.startColor = color; line.endColor = color;
+            line.startColor = Tint(color); line.endColor = Tint(color);
             line.numCapVertices = 6; line.alignment = LineAlignment.View;
             line.shadowCastingMode = ShadowCastingMode.Off; line.receiveShadows = false;
             return line;
@@ -145,7 +149,7 @@ namespace ValheimSoloToolkit
         private Light MakeLight(string name, float range)
         {
             GameObject go = new GameObject(name);go.transform.SetParent(effects.transform, false);
-            Light light = go.AddComponent<Light>();light.color = new Color(0.1f,0.65f,1f);
+            Light light = go.AddComponent<Light>();light.color = Tint(new Color(0.1f,0.65f,1f));
             light.range = range;light.intensity = 3f;light.shadows = LightShadows.None;return light;
         }
         public void Hide()
@@ -156,15 +160,15 @@ namespace ValheimSoloToolkit
         }
         private void Update()
         {
-            if (!BowBeamV2.Owns(Owner)) { Hide(); Destroy(gameObject); return; }
+            if (!BowBeamV3.Owns(Owner)) { Hide(); Destroy(gameObject); return; }
             if (Time.time-lastStep > 0.12f || !Application.isFocused || !Input.GetMouseButton(0)
-                || !BowBeamV2.CanInput(Owner) || !BowBeamV2.IsBow(Owner.GetCurrentWeapon())) Hide();
+                || !BowBeamV3.CanInput(Owner) || !BowBeamV3.IsBow(Owner.GetCurrentWeapon())) Hide();
         }
         private void OnDestroy() { Hide(); if (material) Destroy(material); if(particleMaterial) Destroy(particleMaterial);if(softTexture) Destroy(softTexture); }
         public void Step(ItemDrop.ItemData weapon)
         {
             lastStep = Time.time;
-            if (!Application.isFocused || !Input.GetMouseButton(0) || !BowBeamV2.CanInput(Owner)
+            if (!Application.isFocused || !Input.GetMouseButton(0) || !BowBeamV3.CanInput(Owner)
                 || Owner.IsDead() || Owner.IsTeleporting()) { Hide(); return; }
             if (!firing) { firing = true;started = Time.time;nextDamage = Time.time;nextParticles=Time.time;effects.SetActive(true);sparks.Play();vortex.Play(); }
             drawAnimation = weapon.m_shared.m_attack.m_drawAnimationState;
@@ -174,7 +178,7 @@ namespace ValheimSoloToolkit
             Vector3 origin = anchor + direction * 0.65f;
             float length = Range;
             int mask = LayerMask.GetMask("Default", "static_solid", "Default_small", "piece", "terrain", "vehicle");
-            foreach (RaycastHit hit in Physics.RaycastAll(anchor, direction, Range+0.65f, mask, QueryTriggerInteraction.Ignore))
+            if(mode==0) foreach (RaycastHit hit in Physics.RaycastAll(anchor, direction, Range+0.65f, mask, QueryTriggerInteraction.Ignore))
             {
                 if (!hit.collider || hit.collider.GetComponentInParent<Character>()) continue;
                 if (hit.distance-0.65f < length) length = Mathf.Max(0f, hit.distance-0.65f);
@@ -229,12 +233,12 @@ namespace ValheimSoloToolkit
                     ep.position=origin+radial*r+direction*UnityEngine.Random.Range(0f,Mathf.Min(length,6f));
                     ep.velocity=tangent*UnityEngine.Random.Range(6f,12f)-radial*2f+direction*UnityEngine.Random.Range(8f,18f);
                     ep.startLifetime=0.55f;ep.startSize=UnityEngine.Random.Range(0.06f,0.24f);
-                    ep.startColor=new Color(0.3f,1.3f,2f,0.65f);vortex.Emit(ep,1);
+                    ep.startColor=Tint(new Color(0.3f,1.3f,2f,0.65f));vortex.Emit(ep,1);
                 }
             }
             muzzleLight.intensity=3f*pulse;endLight.intensity=4f*pulse;
             sparks.transform.position=end;muzzleLight.transform.position=origin;endLight.transform.position=end;
-            if (Time.time>=nextDamage) { nextDamage=Time.time+0.1f; DamageMonsters(origin,direction,length); }
+            if (Time.time>=nextDamage) { nextDamage=Time.time+0.1f; if(mode==1) { BeamDamage.Death(Owner,origin,direction,length,Radius); BeamTerrain.Excavate(origin,direction,length,Radius,ref terrainCursor); } else DamageMonsters(origin,direction,length); }
         }
         private static void Ring(LineRenderer line,Vector3 center,Vector3 side,Vector3 up,float radius)
         {

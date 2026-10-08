@@ -75,9 +75,14 @@ Freezing captures the stacks you have now. New items and newly split stacks star
 | **Enemy form** | Choose from 26 creature forms with native movement and attack weapons, including Sea Serpent, Fuling Berserker, Cultist, Abomination and Asksvin. |
 | **Free crafting** | Bypasses crafting and building material requirements. |
 | **Unlimited carry** | Prevents encumbrance, even when you exceed the normal weight limit. |
-| **Bow beam** | Hold attack with a bow to unleash an energy beam with swirling particles, wind ribbons and bright impact effects. |
+| **Kameha** | The original cyan bow beam, with swirling particles, wind ribbons and bright impact effects. Targets hostile monsters. |
+| **Death Beam** | Evil crimson/purple bow beam that penetrates terrain, excavates trenches and damages creatures, buildings, trees and rocks along its full 80m path. |
 
-The bow beam damages hostile monsters along its path. Players, pets and buildings are excluded from its damage targets.
+Click **Kameha / Death beam**, choose **1 Kameha** or **2 Death Beam**, equip a bow and hold Mouse 1. Release to stop; toggle off before changing modes. Both replace ordinary bow shots and have local visuals. Kameha retains its original hostile-monster-only targeting and stops at terrain/buildings.
+
+Death Beam applies 500 generic damage plus chopping/pickaxe damage every 0.1 seconds to destructible objects along its full 80m path. The caster is excluded, but pets, structures and other creatures are included; normal game damage rules, immunities and PvP rules still apply. Multiple colliders on the same destructible receive one hit per tick.
+
+**Death Beam excavates terrain permanently.** It sends native terrain-lowering operations along the beam in bounded sweeps while firing. Valheim's heightmap creates open trenches, not enclosed underground tunnels, and normal terrain depth limits remain. Releasing stops new operations; already submitted edits remain. Terrain edits and damage affect the world even though the beam visuals are local. Compilation and automated damage/excavation tests pass; live visuals, terrain editing and multiplayer behavior still need an in-game check.
 
 Enable **Rapid miner** in **Skills and movement**, equip a pickaxe, and hold attack. Switching to another tool stops its effects. Normal mining range, hit detection and pickaxe tier requirements still apply. Disable it to restore normal animation speed; refilled stamina and durability remain. The separate Unlimited stamina toggle works independently. The 10× setting controls animation speed, not a guaranteed tenfold ore yield.
 
