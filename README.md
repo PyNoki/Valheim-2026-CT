@@ -72,6 +72,7 @@ Freezing captures the stacks you have now. New items and newly split stacks star
 | **Unlimited stamina** | Replenishes stamina while enabled. |
 | **Rapid miner** | Speeds up pickaxe swing animations to 10×, refills stamina and keeps the equipped pickaxe at full durability. |
 | **Rapid hoe** | Hold use to repeat hoe terrain actions up to 20 times per second, with stamina refill and full hoe durability. |
+| **Enemy form** | Temporarily control a Greydwarf, Skeleton, Draugr, Wolf or Troll using its native movement and attack weapons. |
 | **Free crafting** | Bypasses crafting and building material requirements. |
 | **Unlimited carry** | Prevents encumbrance, even when you exceed the normal weight limit. |
 | **Bow beam** | Hold attack with a bow to unleash an energy beam with swirling particles, wind ribbons and bright impact effects. |
@@ -81,6 +82,20 @@ The bow beam damages hostile monsters along its path. Players, pets and building
 Enable **Rapid miner** in **Skills and movement**, equip a pickaxe, and hold attack. Switching to another tool stops its effects. Normal mining range, hit detection and pickaxe tier requirements still apply. Disable it to restore normal animation speed; refilled stamina and durability remain. The separate Unlimited stamina toggle works independently. The 10× setting controls animation speed, not a guaranteed tenfold ore yield.
 
 Enable **Rapid hoe** beside Rapid miner, equip the hoe, choose its terrain action and hold the use button (mouse attack or controller place). Release to stop repeating. Normal terrain restrictions and material costs still apply, including stone for raising ground. Switching tools or disabling restores the original placement cooldown. Refilled stamina and durability remain. It can run alongside Rapid miner; each affects only its own tool.
+
+**Enemy form** is under **Skills and movement**. Finish any attack or teleport, click the toggle, choose a form, then return to Valheim and unpause. Your original player is hidden and suspended while you control a newly spawned enemy body. This is an experimental solo feature; compilation and mocked tests pass, but live camera, animations and combat still need an in-game check.
+
+| Enemy-form control | Action |
+| :--- | :--- |
+| Normal movement, run and jump bindings | Use the enemy's native movement; keyboard and controller inputs are supported. |
+| Attack | Use its currently equipped native attack weapon. |
+| Secondary attack or Block | Use the weapon's secondary attack, or its primary if none exists. |
+| Use / interact | Cycle the enemy's available native weapons. Different forms have different attack sets. |
+| **F8** or click the toggle again | Return to your player at the enemy body's last position. |
+
+The enemy body belongs to the player faction and uses its own health. Its death returns you to your original player. Inventory, skills and original health stay with your player; the ordinary HUD still represents that player, so check the toolkit status for enemy health and the selected weapon. Menus or lost game focus stop movement and new attacks. Normal building and interaction controls are unavailable while transformed.
+
+Returning restores the original camera anchor, visibility, collision and controls, and removes the spawned body. Closing the toolkit also queues restoration: **return to Valheim and unpause for cleanup to finish**. Choose another form by returning first, then enabling the toggle again.
 
 > [!IMPORTANT]
 > **God mode and Free crafting can affect item flags.**
@@ -168,6 +183,8 @@ The table contains its Lua script and embedded helpers. Use **Valheim 2026 CT.CT
 Source lives in `outputs/`. From the repository root, build the mining helper with `pwsh -File work/build-miner.ps1` (use `-Managed` for a different Valheim managed-assembly folder), run `python work/run-lua-tests.py`, then package with `python work/package.py`. The Lua tests use Cheat Engine's Lua DLL; the C# behavior tests use mocks. Live mining speed and animation still require an in-game check.
 
 Build and test the hoe helper with `pwsh -File work/build-hoe.ps1`, then run the same Lua tests and packaging command. Its cooldown, input guards and cleanup have automated coverage; live terrain behavior still requires an in-game check.
+
+Build and test enemy transformation with `pwsh -File work/build-enemy-form.ps1`, then run the Lua suite and packaging command. Its C# source is `outputs/ValheimEnemyForm.cs`; the table embeds the helper DLL, so players still only need the `.CT` file.
 
 </details>
 
