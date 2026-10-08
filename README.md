@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="Valheim 2026 CT.CT"><strong>Download the table</strong></a>
+  <a href="Valheim%202026%20CT.CT"><strong>Download the table</strong></a>
   &nbsp; · &nbsp;
   <a href="#quick-start">Quick start</a>
   &nbsp; · &nbsp;
@@ -23,7 +23,7 @@
 
 **You need:** Windows, Cheat Engine 7.6 and Valheim running with Mono support.
 
-1. Download **[Valheim 2026 CT.CT](Valheim 2026 CT.CT)**. On GitHub's file page, use **Download raw file**.
+1. Download **[Valheim 2026 CT.CT](Valheim%202026%20CT.CT)**. On GitHub's file page, use **Download raw file**.
 2. Start Valheim and load your world.
 3. Open the table in Cheat Engine and allow its Lua script to run.
 4. The toolkit finds Valheim and loads your inventory automatically.
@@ -157,7 +157,7 @@ Closing the toolkit stops its active toggles and quantity freezes. It does not u
 <details>
 <summary><strong>Do I need the separate DLL files?</strong></summary>
 
-The table contains its Lua script and embedded helpers. Use **ValheimInventory.CT** to run the toolkit. The separate Lua and C# files are available for reviewing or modifying its implementation.
+The table contains its Lua script and embedded helpers. Use **Valheim 2026 CT.CT** to run the toolkit. The separate Lua and C# files are available for reviewing or modifying its implementation.
 
 </details>
 
