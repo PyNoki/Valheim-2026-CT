@@ -104,7 +104,7 @@ assert(timer.Enabled, 'Freeze did not enable')
 mem[0x6038]=20
 timer.OnTimer()
 assert(mem[0x6038]==25 and writes==2, 'Freeze did not restore quantity')
-buttons[4].OnClick()
+buttons[5].OnClick()
 assert(not timer.Enabled, 'Unfreeze failed')
 buttons[3].OnClick()
 mem[0x401c]=4
@@ -135,7 +135,7 @@ buttons[3].OnClick()
 assert(timer.Enabled, 'Overstack freeze rejected')
 mem[0x6038]=499; timer.OnTimer()
 assert(mem[0x6038]==500, 'Overstack freeze failed')
-buttons[4].OnClick()
+buttons[5].OnClick()
 local before=writes
 function inputQuery() return '2147483648' end
 buttons[2].OnClick()
@@ -150,7 +150,7 @@ mem[0x6038]=400; mem[0x9038]=5; timer.OnTimer()
 assert(mem[0x6038]==500 and mem[0x9038]==12, 'Both stacks must freeze')
 buttons[1].OnClick()
 assert(timer.Enabled and box.values()[1]:sub(2,2)=='X', 'Refresh lost freezes')
-box.ItemIndex=0; buttons[6].OnClick()
+box.ItemIndex=0; buttons[3].OnClick()
 assert(box.values()[1]:sub(2,2)==' ' and box.values()[2]:sub(2,2)=='X', 'Unfreeze selected indicator failed')
 mem[0x6038]=400; mem[0x9038]=5; timer.OnTimer()
 assert(mem[0x6038]==400 and mem[0x9038]==12, 'Unfreeze selected affected wrong stack')
@@ -159,7 +159,7 @@ mem[0x4018]=1; mem[0x401c]=7; mem[0x5020]=0x9000; mem[0x9038]=5
 timer.OnTimer()
 assert(timer.Enabled and mem[0x9038]==12, 'Removing one stack stopped others')
 assert(box.values()[1]:sub(2,2)==' ' and box.values()[2]:sub(2,2)=='X', 'Removed stack X not cleared')
-buttons[4].OnClick()
+buttons[5].OnClick()
 assert(not timer.Enabled and box.values()[2]:sub(2,2)==' ', 'Unfreeze all failed')
 print('PASS: freeze all, X indicators, refresh retention, selective unfreeze, per-item removal')
 print('PASS: static player reference, inventory refresh, edit, stale-item rejection, null-player diagnostic')
@@ -376,9 +376,9 @@ defs[5][#defs[5]+1]={name='m_cheated',offset=0x64,typename='System.Boolean'}
 mem[0x9064]=1; mem[0xa264]=1
 buttons[1].OnClick(); box.ItemIndex=0
 assert(box.values()[1]:find('Y',1,true),'Flag indicator missing')
-buttons[15].OnClick()
-assert(mem[0x9064]==0 and mem[0xa264]==1,'Selected clear affected wrong items')
+assert(buttons[15].Visible==false and buttons[4].Visible==false and buttons[6].Visible==false,'Redundant controls must be hidden')
 buttons[16].OnClick()
+assert(mem[0x9064]==0 and mem[0xa264]==0,'Combined toggle must clear the whole inventory')
 assert(mem[0xa264]==0 and timers[3].Enabled,'Automatic flag clearing failed')
 mem[0xa264]=1; timers[3].OnTimer()
 assert(mem[0xa264]==0,'In-place upgrade reflag was not cleared')
@@ -394,7 +394,7 @@ buttons[16].OnClick(); mem[0x1030]=0; mem[0xa364]=1; timers[3].OnTimer()
 assert(not timers[3].Enabled and mem[0xa364]==1,'World unload must stop item flag writes')
 mem[0x1030]=0x2000; buttons[16].OnClick(); ValheimInventoryWindow.OnClose()
 assert(not timers[3].Enabled,'Window close must stop flag timer')
-print('PASS: flag display, selected-only clearing, repeated upgrade flags, new crafted items, disable and cleanup')
+print('PASS: flag display, inventory-wide toggle clearing, repeated upgrade flags, new crafted items, disable and cleanup')
 local movementNames={'m_speed','m_walkSpeed','m_runSpeed','m_crouchSpeed','m_swimSpeed','m_jumpForce'}
 local movementDefaults={4,2,7,2,2,10}
 for i,name in ipairs(movementNames) do
@@ -872,11 +872,11 @@ print('PASS: enemy selection/cancel/bounds, camera hook guard/argument preservat
 end
 
 do
-classes.DragBuildV3=44
+classes.DragBuildV4=44
 defs[44]={{name='Enabled',offset=0,isStatic=true,staticAddress=0xb0000,typename='System.Int32'},{name='Status',offset=8,isStatic=true,staticAddress=0xb0008,typename='System.String'}}
 local methodsBefore=mono_class_enumMethods
 function mono_class_enumMethods(c)
- if c==44 then return {{name='Configure',method=701},{name='Disable',method=702},{name='Tick',method=703}} end
+ if c==44 then return {{name='Configure',method=701},{name='Disable',method=702},{name='Tick',method=703},{name='ConfigureBlueprint',method=705},{name='Request',method=706},{name='SavedNames',method=707}} end
  if c==1 then local entries={};for _,m in ipairs(methodsBefore(c)) do if m.name~='UpdatePlacement' then entries[#entries+1]=m end end;entries[#entries+1]={name='UpdatePlacement',method=704};return entries end
  return methodsBefore(c)
 end
@@ -884,13 +884,18 @@ local paramsBefore=mono_method_get_parameters
 function mono_method_get_parameters(m)
  if m==703 then return {returntype=2,parameters={{type=18},{type=2},{type=12}}} end
  if m==704 then return {returntype=1,parameters={{type=2},{type=12}}} end
- if m==701 then return {returntype=1,parameters={{type=18}}} end
+ if m==706 then return {returntype=1,parameters={{type=8},{type=14}}} end
+ if m==707 then return {returntype=14,parameters={}} end
+ if m==701 or m==705 then return {returntype=1,parameters={{type=18}}} end
  if m==702 or m==704 then return {returntype=1,parameters={}} end
  return paramsBefore(m)
 end
+local queued={}
 local invokeBefore=mono_invoke_method
 function mono_invoke_method(d,m,obj,args)
- if m==701 then assert(args[1].value==0x2000);mem[0xb0000]=1;return nil end
+ if m==706 then queued[#queued+1]={code=args[1].value,text=args[2].value};return nil end
+ if m==707 then return 'Test house' end
+ if m==701 or m==705 then assert(args[1].value==0x2000);mem[0xb0000]=1;return nil end
  if m==702 then mem[0xb0000]=0;return nil end
  return invokeBefore(d,m,obj,args)
 end
@@ -904,22 +909,47 @@ function autoAssemble(script,self,disable)
  end
  return assembleBefore(script,self,disable)
 end
-buttons[28].OnClick();local deleteTimer=timers[#timers]
-assert(active and buttons[28].Caption=='Drag build: ON','Drag build enable failed: '..tostring(errors[#errors]))
-buttons[28].OnClick();assert(not active and mem[0xb0000]==0 and not deleteTimer.Enabled,'Drag build disable failed')
-buttons[28].OnClick();mem[0x1030]=0;deleteTimer.OnTimer()
-assert(not active and mem[0xb0000]==0,'World unload did not disable drag build')
-mem[0x1030]=0x2000;buttons[28].OnClick();ValheimInventoryWindow.OnClose()
-assert(not active and not deleteTimer.Enabled,'Close did not stop drag build')
-buttons[25].OnClick();buttons[28].OnClick()
-assert(buttons[25].Caption=='Rapid miner: ON' and buttons[28].Caption=='Drag build: ON','Both tool toggles must enable together')
 buttons[28].OnClick()
+local rowButton,captureButton,loadButton,undoButton,cancelButton,disableButton
+for _,b in ipairs(buttons) do
+ if b.Caption=='Auto rows: OFF' then rowButton=b end
+ if b.Caption=='Capture furnished blueprint...' then captureButton=b end
+ if b.Caption=='Load blueprint / preview...' then loadButton=b end
+ if b.Caption=='Undo last blueprint paste' then undoButton=b end
+ if b.Caption=='Cancel preview / queued building' then cancelButton=b end
+ if b.Caption=='Disable building tools' then disableButton=b end
+end
+assert(rowButton and captureButton and loadButton and undoButton and cancelButton and disableButton,'Building section controls missing')
+rowButton.OnClick();local deleteTimer=timers[#timers]
+assert(active and rowButton.Caption=='Auto rows: ON','Drag build enable failed: '..tostring(errors[#errors]))
+rowButton.OnClick();assert(not active and mem[0xb0000]==0 and not deleteTimer.Enabled,'Drag build disable failed')
+rowButton.OnClick();mem[0x1030]=0;deleteTimer.OnTimer()
+assert(not active and mem[0xb0000]==0,'World unload did not disable drag build')
+mem[0x1030]=0x2000;rowButton.OnClick();ValheimInventoryWindow.OnClose()
+assert(not active and not deleteTimer.Enabled,'Close did not stop drag build')
+buttons[25].OnClick();rowButton.OnClick()
+assert(buttons[25].Caption=='Rapid miner: ON' and rowButton.Caption=='Auto rows: ON','Both tool toggles must enable together')
+rowButton.OnClick()
 assert(buttons[25].Caption=='Rapid miner: ON' and mem[0x70000]==1,'Disabling hoe disturbed miner')
-buttons[28].OnClick();buttons[25].OnClick()
-assert(buttons[28].Caption=='Drag build: ON' and active and mem[0xb0000]==1,'Disabling miner disturbed hoe')
+rowButton.OnClick();buttons[25].OnClick()
+assert(rowButton.Caption=='Auto rows: ON' and active and mem[0xb0000]==1,'Disabling miner disturbed hoe')
 ValheimInventoryWindow.OnClose()
 assert(not active and mem[0x70000]==0 and mem[0xb0000]==0,'Combined cleanup failed')
-buttons[26].OnClick();buttons[28].OnClick();assert(buttons[26].Caption=='Rapid hoe: OFF' and active,'Drag did not retire hoe hook')
-buttons[26].OnClick();assert(not active and buttons[28].Caption=='Drag build: OFF','Hoe did not retire drag hook');ValheimInventoryWindow.OnClose()
+buttons[26].OnClick();rowButton.OnClick();assert(buttons[26].Caption=='Rapid hoe: OFF' and active,'Drag did not retire hoe hook')
+buttons[26].OnClick();assert(not active and rowButton.Caption=='Auto rows: OFF','Hoe did not retire drag hook');ValheimInventoryWindow.OnClose()
 print('PASS: drag build toggle, local-player guard, world unload, independent miner/hoe toggles and cleanup')
+local captures={'Test house','20 12 20'}
+function inputQuery() return table.remove(captures,1) end
+captureButton.OnClick()
+assert(active and queued[#queued].code==1 and queued[#queued].text=='Test house|20|12|20','Capture command not queued')
+local before=#queued
+function inputQuery() return nil end
+captureButton.OnClick();assert(#queued==before,'Cancelled capture must not queue')
+function inputQuery() return 'Test house' end
+loadButton.OnClick();assert(queued[#queued].code==2 and queued[#queued].text=='Test house','Load command not queued')
+undoButton.OnClick();assert(queued[#queued].code==4,'Undo command not queued')
+cancelButton.OnClick();assert(queued[#queued].code==3,'Cancel command not queued')
+disableButton.OnClick();assert(not active and mem[0xb0000]==0,'Building disable failed')
+print('PASS: Building section, capture/load/cancel/undo commands and cleanup')
+
 end

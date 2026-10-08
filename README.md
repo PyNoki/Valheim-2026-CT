@@ -58,9 +58,9 @@ Select an item, choose an action and get back to playing.
 | **Freeze quantities** | Hold one stack or all current stacks at their chosen quantities. An **X** shows what is frozen. |
 | **Auto refill** | Ctrl + left-click a stack into an open chest. A copy transfers while the original stays in your slot. |
 | **Delete items** | Enable the bottom-left in-game menu, drag a full stack from your inventory, then destroy and confirm. |
-| **Item flags** | Clear a selected item's cheated flag once, or keep carried-item flags off automatically. |
+| **Item flags** | One **Clear all flags** toggle clears the entire inventory immediately and keeps carried-item flags clear while enabled. |
 
-Freezing captures the stacks you have now. New items and newly split stacks start unfrozen. Use **Auto refill** when you want to deposit an entire stack and keep the original.
+**Freeze selected** toggles the selected stack; **Freeze inventory** becomes **Unfreeze inventory** while any lock is active. Freezing captures the stacks you have now. New items and newly split stacks start unfrozen. Use **Auto refill** when you want to deposit an entire stack and keep the original.
 
 <br>
 
@@ -72,7 +72,7 @@ Freezing captures the stacks you have now. New items and newly split stacks star
 | **Unlimited stamina** | Replenishes stamina while enabled. |
 | **Rapid miner** | Speeds up pickaxe swing animations to 10×, refills stamina and keeps the equipped pickaxe at full durability. |
 | **Rapid hoe** | Hold use to repeat hoe terrain actions up to 20 times per second, with stamina refill and full hoe durability. |
-| **Drag build** | Preview and place straight snapped rows of floors, walls and horizontal beams with Ctrl + left-drag. |
+| **Building tools** | Auto-build snapped rows, capture furnished blueprints, preview/rotate/paste saved structures, and undo the last paste. |
 | **Enemy form** | Choose from 26 creature forms with native movement and attack weapons, including Sea Serpent, Fuling Berserker, Cultist, Abomination and Asksvin. |
 | **Free crafting** | Bypasses crafting and building material requirements. |
 | **Unlimited carry** | Prevents encumbrance, even when you exceed the normal weight limit. |
@@ -99,13 +99,21 @@ Enable **Rapid miner** in **Skills and movement**, equip a pickaxe, and hold att
 
 Enable **Rapid hoe** beside Rapid miner, equip the hoe, choose its terrain action and hold the use button (mouse attack or controller place). Release to stop repeating. Normal terrain restrictions and material costs still apply, including stone for raising ground. Switching tools or disabling restores the original placement cooldown. Refilled stamina and durability remain. It can run alongside Rapid miner; each affects only its own tool.
 
-**Drag build v3** is beside **Refresh** in the inventory actions. Enable it, equip the hammer and select a straight floor, wall or horizontal beam. Start from a valid placement preview, hold **Ctrl + left mouse**, and aim along the row. Release **left mouse while still holding Ctrl** to place it. Right-click or Escape cancels; releasing Ctrl before the mouse also cancels. Tool/selection changes, menus and loss of focus cancel pending work. Already placed pieces remain.
+**Building v1** has its own row in the toolkit. Open **Building tools**, enable **Auto rows**, equip the hammer and select a straight floor, wall or horizontal beam. Start from a valid placement preview, hold **Ctrl + left mouse**, and aim along the row. Release **left mouse while still holding Ctrl** to place it. Right-click or Escape cancels; releasing Ctrl before the mouse also cancels. Tool/selection changes, menus and loss of focus cancel pending work. Already placed pieces remain.
 
 The translucent previews use the piece's meshes and aligned snap points, lock to its horizontal X/Z axes, and cap each row at 24 pieces. Release to automatically build at those exact positions, four pieces per frame. Once the starting placement is valid, the row does not recheck line of sight, player reach, snapping, collision or hammer cooldown, so you can stay where you started. The preview is the placement plan: avoid running it through existing structures. Native piece creation retains creator/network setup, placement effects and structural support; unsupported pieces can still collapse. Direct row placement uses the game's cheat marking unless its bypass setting is active.
 
 With **Free Crafting ON**, rows consume no materials, stamina or hammer durability. With it off, each piece checks the normal materials/station, stamina and hammer requirements and pays the normal costs; the row stops if these run out. World free-build material settings are respected. Drag build does not enable Free Crafting automatically. Irregular/sloped pieces and vertical stacking remain unsupported.
 
-Drag build and Rapid Hoe share the game's placement callback, so enabling either turns the other off. The toolkit title includes **Drag build v3**. Compilation, row geometry and UI/hook lifecycle tests pass; live snapping, previews and placement still need an in-game check.
+Drag build and Rapid Hoe share the game's placement callback, so enabling either turns the other off. The toolkit title includes **Building v1**. Compilation, row geometry and UI/hook lifecycle tests pass; live snapping, previews and placement still need an in-game check.
+
+**Furnished blueprints:** In **Building tools**, choose **Capture furnished blueprint**, supply a new name and box dimensions (width, height, depth; 2-80m each), then return to the game with your hammer. Aim at the building's foundation level. The box extends upward and highlights loaded player-built pieces whose origins lie inside it; F6 locks/unlocks the selection and F7 saves. Use a unique name; existing saves are not overwritten. Up to 512 pieces are supported.
+
+Choose **Load blueprint / preview**, enter a saved name, and return to the game. The preview follows the hammer placement ghost for anchoring/snapping, with an aimed-surface fallback. Q/E rotate in 15-degree steps, Page Up/Down adjust height by 0.5m, F6 locks/unlocks the preview, and F7 builds it. Saved pieces retain their relative positions and rotations. They are placed from lower to higher positions in batches without chasing or line-of-sight checks. Free Crafting skips materials, stamina and hammer wear. Otherwise the full material bill is checked before starting, each piece pays costs, and depleted stamina/durability or lost requirements stop the remaining work. Unsupported pieces may collapse, and overlaps are not prevented.
+
+Blueprints include furniture, beds, containers, lights, crafting stations, decorations and sign text. Containers start empty, beds unclaimed, portals unlinked, and item/armor stands empty. Terrain, loose items, creatures, stored inventory, fuel state, displayed equipment and other object-specific settings are not copied. The tools reconstruct registered piece prefabs rather than duplicating world-object data. These direct placements retain the game's cheat marking unless its bypass setting is active.
+
+**Undo last blueprint paste** removes only the exact network objects created by the most recent paste, including a partial paste. It does not delete the original building or other nearby pieces, and does not refund materials. Empty any pasted containers and remove newly displayed equipment before undoing them. Return to the pasted structure if a piece has left the loaded area. Cancelling previews preserves Undo; starting another paste replaces it. Disabling Building, switching to Auto rows/Rapid Hoe, closing the toolkit or changing worlds clears Undo history. Blueprint files remain in `%LOCALAPPDATA%\ValheimSoloToolkit\Blueprints` as `.vbp` files. Capture/load previews, placement, sign restoration and Undo are experimental and still need live game verification; compiler, persistence validation and mocked UI/lifecycle tests cover the offline checks.
 
 **Enemy form** is under **Skills and movement**. Finish any attack or teleport, click the toggle, choose a form, then return to Valheim and unpause. Your original player is hidden and suspended while you control a newly spawned enemy body. This is an experimental solo feature; compilation and mocked tests pass, but live camera, animations and combat still need an in-game check.
 

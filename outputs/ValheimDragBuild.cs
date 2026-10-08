@@ -6,13 +6,20 @@ using UnityEngine.Rendering;
 
 namespace ValheimSoloToolkit
 {
-    public static class DragBuildV3
+    public static class DragBuildV4
     {
         public static int Enabled;
+        internal static int Mode;
+        internal sealed class RequestData {internal int Code;internal string Text;}
+        private static readonly Queue<RequestData> requests=new Queue<RequestData>();
+        public static void Request(int code,string text){lock(requests){if(requests.Count>=8)throw new InvalidOperationException("Wait for the queued building command.");requests.Enqueue(new RequestData{Code=code,Text=text});}}
+        internal static RequestData TakeRequest(){lock(requests){return requests.Count==0?null:requests.Dequeue();}}
+        public static string SavedNames(){return BlueprintWorkshop.Catalog();}
+        public static void ConfigureBlueprint(Player p){Configure(p);Mode=1;Status="Blueprint tools ready. Use Capture or Load in the Building window, then return to the game with your hammer.";}
         public static string Status;
         internal static Player Owner;
         internal static int Generation;
-        private static DragBuildDriverV3 driver;
+        private static DragBuildDriverV4 driver;
         internal const BindingFlags Flags=BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic;
         internal static readonly FieldInfo Ghost=typeof(Player).GetField("m_placementGhost",Flags);
         internal static readonly FieldInfo PlacementStatus=typeof(Player).GetField("m_placementStatus",Flags);
@@ -28,9 +35,9 @@ namespace ValheimSoloToolkit
         {
             if(Ghost==null||PlacementStatus==null||Pressed==null||LastUse==null||Place==null||BuildStamina==null||BuildDurability==null||UpdateGhost==null||Selected==null||RightItem==null)
                 throw new MissingMemberException("Drag-build placement metadata unavailable.");
-            Generation++;Owner=p;Enabled=1;Status="Hammer: Ctrl + left-drag previews a row; release left click to build. Right click cancels.";
+            Generation++;Owner=p;Enabled=1;Mode=0;lock(requests){requests.Clear();}Status="Hammer: Ctrl + left-drag previews a row; release left click to build. Right click cancels.";
         }
-        public static void Disable(){Enabled=0;Owner=null;}
+        public static void Disable(){Enabled=0;Owner=null;lock(requests){requests.Clear();}}
         internal static bool Owns(Player p){return Enabled==1&&p&&p==Owner&&p==Player.m_localPlayer;}
         // True consumes placement input; false runs the unmodified placement method.
         public static bool Tick(Player p,bool input,float dt)
@@ -39,17 +46,18 @@ namespace ValheimSoloToolkit
             try
             {
                 if(driver&&(driver.Owner!=p||driver.Generation!=Generation)){driver.Cancel();UnityEngine.Object.Destroy(driver.gameObject);driver=null;}
-                if(!driver){driver=new GameObject("SoloToolkit_DragBuild").AddComponent<DragBuildDriverV3>();driver.Owner=p;driver.Generation=Generation;}
+                if(!driver){driver=new GameObject("SoloToolkit_DragBuild").AddComponent<DragBuildDriverV4>();driver.Owner=p;driver.Generation=Generation;}
                 return driver.Step(input,dt);
             }
             catch(Exception e){Status="Drag build stopped: "+e.GetBaseException().Message;if(driver)driver.Cancel();Disable();return true;}
         }
     }
-    public sealed class DragBuildDriverV3:MonoBehaviour
+    public sealed class DragBuildDriverV4:MonoBehaviour
     {
         public Player Owner;
         internal int Generation;
         private bool dragging,committing,releaseGuard;
+        private readonly BlueprintWorkshop blueprint=new BlueprintWorkshop();
         private Piece selected;
         private Vector3 anchor,step;
         private Quaternion rotation;
@@ -61,13 +69,13 @@ namespace ValheimSoloToolkit
         public void Cancel()
         {
             dragging=false;committing=false;selected=null;
-            if(Owner)DragBuildV3.Pressed.SetValue(Owner,-9999f);
+            if(Owner)DragBuildV4.Pressed.SetValue(Owner,-9999f);
             foreach(var p in previews)if(p)Destroy(p);previews.Clear();
             if(previewMaterial)Destroy(previewMaterial);previewMaterial=null;
         }
         private bool Allowed(bool input)
         {
-            var item=(ItemDrop.ItemData)DragBuildV3.RightItem.Invoke(Owner,null);
+            var item=(ItemDrop.ItemData)DragBuildV4.RightItem.Invoke(Owner,null);
             return input&&Application.isFocused&&Owner.enabled&&!Owner.IsDead()&&!Owner.IsTeleporting()&&Owner.InPlaceMode()
                 &&item!=null&&item.m_shared.m_name=="$item_hammer"&&!InventoryGui.IsVisible()&&!Menu.IsVisible()
                 &&!Console.IsVisible()&&!Minimap.IsOpen()&&!Hud.IsPieceSelectionVisible()&&!Hud.InRadial()
@@ -75,10 +83,10 @@ namespace ValheimSoloToolkit
         }
         private bool Begin()
         {
-            DragBuildV3.UpdateGhost.Invoke(Owner,new object[]{false});
-            var ghost=DragBuildV3.Ghost.GetValue(Owner) as GameObject;
-            selected=DragBuildV3.Selected.Invoke(Owner,null) as Piece;
-            if(!ghost||!selected||Convert.ToInt32(DragBuildV3.PlacementStatus.GetValue(Owner))!=0)return false;
+            DragBuildV4.UpdateGhost.Invoke(Owner,new object[]{false});
+            var ghost=DragBuildV4.Ghost.GetValue(Owner) as GameObject;
+            selected=DragBuildV4.Selected.Invoke(Owner,null) as Piece;
+            if(!ghost||!selected||Convert.ToInt32(DragBuildV4.PlacementStatus.GetValue(Owner))!=0)return false;
             string name=selected.gameObject.name.ToLowerInvariant();
             if(!(name.Contains("floor")||name.Contains("wall")||name.Contains("beam"))||name.Contains("roof")||name.Contains("26")||name.Contains("45"))return false;
             anchor=ghost.transform.position;rotation=ghost.transform.rotation;
@@ -122,7 +130,7 @@ namespace ValheimSoloToolkit
             // re-raycast, move the camera/player, or re-enter hammer input/cooldown.
             for(int batch=0;batch<4&&committing;batch++)
             {
-                var tool=(ItemDrop.ItemData)DragBuildV3.RightItem.Invoke(Owner,null);
+                var tool=(ItemDrop.ItemData)DragBuildV4.RightItem.Invoke(Owner,null);
                 bool free=Owner.NoCostCheat();
                 bool freeMaterials=free||ZoneSystem.instance.GetGlobalKey(selected.FreeBuildKey());
                 if(!free)
@@ -138,7 +146,7 @@ namespace ValheimSoloToolkit
                 // callbacks and effects are initialized by Player.PlacePiece.
                 // Direct placement is a toolkit override, so retain cheat marking.
                 bool cheated=!PlayerProfile.s_bypassCheatChecks;
-                DragBuildV3.Place.Invoke(Owner,new object[]{selected,anchor+step*index,rotation,false,cheated});
+                DragBuildV4.Place.Invoke(Owner,new object[]{selected,anchor+step*index,rotation,false,cheated});
                 // Advance immediately after creation so a later bookkeeping failure
                 // can never retry and duplicate an already placed piece.
                 index++;
@@ -146,37 +154,38 @@ namespace ValheimSoloToolkit
                 if(!freeMaterials)Owner.ConsumeResources(selected.m_resources,0,-1,1);
                 if(!free)
                 {
-                    Owner.UseStamina((float)DragBuildV3.BuildStamina.Invoke(Owner,null));
+                    Owner.UseStamina((float)DragBuildV4.BuildStamina.Invoke(Owner,null));
                     if(tool.m_shared.m_useDurability)
-                        tool.m_durability=Mathf.Max(0,tool.m_durability-(float)DragBuildV3.BuildDurability.Invoke(Owner,new object[]{tool})*Game.m_durabilityRate);
+                        tool.m_durability=Mathf.Max(0,tool.m_durability-(float)DragBuildV4.BuildDurability.Invoke(Owner,new object[]{tool})*Game.m_durabilityRate);
                 }
-                DragBuildV3.LastUse.SetValue(Owner,Time.time);
-                DragBuildV3.Status="Auto-built "+index+"/"+count+" pieces.";
+                DragBuildV4.LastUse.SetValue(Owner,Time.time);
+                DragBuildV4.Status="Auto-built "+index+"/"+count+" pieces.";
                 if(index>=count)Cancel();
             }
         }
         private void StopRow(string reason)
         {
-            DragBuildV3.Status="Row stopped after "+index+"/"+count+" pieces: "+reason+".";
+            DragBuildV4.Status="Row stopped after "+index+"/"+count+" pieces: "+reason+".";
             Cancel();
         }
         public bool Step(bool input,float dt)
         {
+            if(DragBuildV4.Mode==1)return blueprint.Step(Owner,Allowed(input));
             bool down=Input.GetMouseButton(0),ctrl=Input.GetKey(KeyCode.LeftControl)||Input.GetKey(KeyCode.RightControl);
             bool busy=dragging||committing;
-            if(!Allowed(input)){if(busy){Cancel();releaseGuard=down;DragBuildV3.Status="Row cancelled: controls or tool changed.";}return busy;}
+            if(!Allowed(input)){if(busy){Cancel();releaseGuard=down;DragBuildV4.Status="Row cancelled: controls or tool changed.";}return busy;}
             if(releaseGuard){releaseGuard=down;return true;}
-            if(busy&&((Piece)DragBuildV3.Selected.Invoke(Owner,null)!=selected||Input.GetMouseButtonDown(1)||Input.GetKeyDown(KeyCode.Escape)))
-            {Cancel();releaseGuard=down;DragBuildV3.Status="Row cancelled. Already placed pieces remain.";return true;}
+            if(busy&&((Piece)DragBuildV4.Selected.Invoke(Owner,null)!=selected||Input.GetMouseButtonDown(1)||Input.GetKeyDown(KeyCode.Escape)))
+            {Cancel();releaseGuard=down;DragBuildV4.Status="Row cancelled. Already placed pieces remain.";return true;}
             if(committing){PlaceNext();return true;}
             if(!dragging)
             {
                 if(!ctrl||!Input.GetMouseButtonDown(0))return false;
                 releaseGuard=true;
-                if(!Begin()){Cancel();DragBuildV3.Status="Choose a valid straight floor, wall or horizontal beam with snap points.";return true;}
+                if(!Begin()){Cancel();DragBuildV4.Status="Choose a valid straight floor, wall or horizontal beam with snap points.";return true;}
                 releaseGuard=false;
             }
-            if(!ctrl){Cancel();releaseGuard=down;DragBuildV3.Status="Row cancelled: Ctrl released.";return true;}
+            if(!ctrl){Cancel();releaseGuard=down;DragBuildV4.Status="Row cancelled: Ctrl released.";return true;}
             if(!down){dragging=false;committing=true;index=0;return true;}
             var ray=new Ray(GameCamera.instance.transform.position,GameCamera.instance.transform.forward);
             float distance;
@@ -186,13 +195,13 @@ namespace ValheimSoloToolkit
                 bool x=spanX>=0.5f&&(spanZ<0.5f||Mathf.Abs(local.x)>=Mathf.Abs(local.z));
                 float extent=x?spanX:spanZ,value=x?local.x:local.z;
                 step=rotation*((x?Vector3.right:Vector3.forward)*extent*(value<0?-1:1));
-                count=DragRowPlan.Count(value,extent);ShowPreview((GameObject)DragBuildV3.Ghost.GetValue(Owner));
+                count=DragRowPlan.Count(value,extent);ShowPreview((GameObject)DragBuildV4.Ghost.GetValue(Owner));
             }
-            DragBuildV3.Pressed.SetValue(Owner,-9999f);
-            DragBuildV3.Status="Preview: "+count+" pieces. Release left click (hold Ctrl) to place; right click cancels. Auto-builds at the preview positions; no chasing or line of sight needed.";
+            DragBuildV4.Pressed.SetValue(Owner,-9999f);
+            DragBuildV4.Status="Preview: "+count+" pieces. Release left click (hold Ctrl) to place; right click cancels. Auto-builds at the preview positions; no chasing or line of sight needed.";
             return true;
         }
-        private void Update(){if(!DragBuildV3.Owns(Owner)||Generation!=DragBuildV3.Generation){Cancel();Destroy(gameObject);}}
-        private void OnDestroy(){Cancel();}
+        private void Update(){if(!DragBuildV4.Owns(Owner)||Generation!=DragBuildV4.Generation){Cancel();Destroy(gameObject);}}
+        private void OnDestroy(){Cancel();blueprint.Dispose();}
     }
 }
