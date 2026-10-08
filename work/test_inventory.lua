@@ -593,7 +593,7 @@ buttons[21].OnClick()
 assert(mem[0x2910]==0 and buttons[21].Caption=='Flight: OFF','Failed flight enable must roll back')
 print('PASS: flight enable/disable, maintain flag, preserve prior setting, close cleanup, world unload and failed write')
 do
-classes.BowBeamV3=30;vtDword=2
+classes.BowBeamV4=30;vtDword=2
 local beamChoice="1"
 function inputQuery() return beamChoice end
 defs[30]={{name='Enabled',offset=0,isStatic=true,staticAddress=0x60000,typename='System.Int32'}}
