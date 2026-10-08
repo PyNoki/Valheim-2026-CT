@@ -583,6 +583,42 @@ buttons[37].OnClick();assert(#box.values()==2,'Refresh players failed')
 mem[0x42018]=0;buttons[37].OnClick()
 assert(#box.values()==1,'Disconnected player was not removed')
 print('PASS: shared players, self/private filtering, fresh position, offset, character-ID matching, hidden/disconnected rejection')
+do
+ classes.DeathRecoveryV1=999
+ local methods,params,call=mono_class_enumMethods,mono_method_get_parameters,mono_invoke_method
+ local names={'Queue','Tick','Cancel','GetState','GetStatus'}
+ function mono_class_enumMethods(c)
+  if c==999 then local a={};for i,n in ipairs(names) do a[i]={name=n,method=1900+i} end;return a end
+  return methods(c)
+ end
+ function mono_method_get_parameters(m)
+  if m>1900 and m<=1905 then
+   local types=m==1901 and {18,8,14} or (m==1902 and {18} or {})
+   local p={};for i,t in ipairs(types) do p[i]={type=t} end
+   return {returntype=m==1904 and 8 or (m==1905 and 14 or 1),parameters=p}
+  end
+  return params(m)
+ end
+ local state,mode,cancelled=0,0,0
+ function mono_invoke_method(domain,m,obj,args)
+  if m==1901 then assert(args[1].value==0x2000 and args[3].value=='0100000000000000','Recovery player/world packet');mode=args[2].value;state=1;return end
+  if m==1903 then cancelled=cancelled+1;state=0;return end
+  if m==1904 then return state end
+  if m==1905 then return 'Recovery test status' end
+  return call(domain,m,obj,args)
+ end
+ assert(buttons[38].Caption=='Last death' and buttons[39].Caption=='Teleport to tombstone' and buttons[40].Caption=='Bring tombstone to me','Missing recovery actions')
+ buttons[38].OnClick();assert(mode==1 and active and timers[5].Enabled,'Last death not queued: '..tostring(errors[#errors]))
+ local n=#errors;buttons[40].OnClick();assert(#errors==n+1 and mode==1,'Recovery must reject concurrent request')
+ state=2;timers[5].OnTimer();assert(timers[5].Enabled,'Recovery must await arrival')
+ state=3;timers[5].OnTimer();assert(not timers[5].Enabled,'Recovery completion not polled')
+ buttons[39].OnClick();assert(mode==2,'Tombstone teleport mode');buttons[36].OnClick();assert(not active and state==0,'Recovery cancellation')
+ buttons[40].OnClick();assert(mode==3,'Bring tombstone mode');worldID=2;timers[5].OnTimer();assert(not active and state==0,'Recovery world-change cleanup');worldID=1
+ buttons[40].OnClick();state=4;timers[5].OnTimer();assert(not timers[5].Enabled,'Recovery error stops polling')
+ ValheimInventoryWindow.OnClose();assert(not active and cancelled>=3,'Recovery close cleanup')
+ mono_class_enumMethods,mono_method_get_parameters,mono_invoke_method=methods,params,call
+ print('PASS: recovery actions, request identity/world, duplicate guard, arrival/error polling, cancellation/world/close cleanup')
+end
 end
 defs[1][#defs[1]+1]={name='m_debugFly',offset=0x910,typename='System.Boolean'}
 mem[0x2910]=0

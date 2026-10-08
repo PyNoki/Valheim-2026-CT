@@ -195,10 +195,15 @@ Open **Teleport tools** to choose where you want to go next.
 | **Saved location** | Stand still and click **Save current position**. Name the spot and return whenever you like. |
 | **Coordinates** | Enter **X Y Z**. **Y** is height. |
 | **Another player** | They must enable **Visible to other players** on their map. Click **Refresh players**, select them and teleport. |
+| **Last death** | Teleport to your character's last recorded death in the current world, even after retrieving or moving the tombstone. |
+| **Teleport to tombstone** | Teleport beside your latest remaining tombstone, matched by character ID. |
+| **Bring tombstone to me** | In solo play or as the host, move your latest tombstone beside you with its inventory intact. Stand on open, solid ground. |
 
 Saved locations are local bookmarks for each world; they do not create markers on the in-game map. Map and ping destinations use the coordinates captured when you refresh. Player destinations use the latest shared position when clicked, with a small sideways offset.
 
 Return to the game and unpause after queuing a teleport. Give the destination time to load. **Cancel queued** cancels a waiting request; it does not undo an accepted teleport.
+
+Tombstone recovery moves the existing object and its spawn point; it does not duplicate items or target another character's tombstone. The original death location remains unchanged. An open tombstone cannot be retrieved. Remote clients may not know distant tombstone locations: use **Last death** in that case. **Bring tombstone to me** requires solo play or hosting because it needs authority over the world's stored objects. Searches run in batches while the game is unpaused.
 
 <br>
 
