@@ -801,7 +801,7 @@ print('PASS: rapid hoe toggle, local-player guard, world unload, independent min
 end
 
 do
-classes.EnemyFormV4=42;classes.GameCamera=43;vtDword=2
+classes.EnemyFormV5=42;classes.GameCamera=43;vtDword=2
 mem[0x90008]=0xa0000;mem[0xa0010]=10
 defs[42]={{name='Enabled',offset=0,isStatic=true,staticAddress=0x90000,typename='System.Int32'},{name='Status',offset=8,isStatic=true,staticAddress=0x90008,typename='System.String'}}
 local methodsBefore=mono_class_enumMethods
