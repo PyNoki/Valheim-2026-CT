@@ -85,6 +85,8 @@ Enable **Rapid hoe** beside Rapid miner, equip the hoe, choose its terrain actio
 
 **Enemy form** is under **Skills and movement**. Finish any attack or teleport, click the toggle, choose a form, then return to Valheim and unpause. Your original player is hidden and suspended while you control a newly spawned enemy body. This is an experimental solo feature; compilation and mocked tests pass, but live camera, animations and combat still need an in-game check.
 
+The transformation waits for Valheim to initialize the enemy's native weapons before suspending your player, including built-in unarmed attacks. If no attack becomes available within three seconds of game time, it cancels and leaves your player unchanged. The V2 helper fixes the early “no usable native attack weapons” error; reload the updated table to load the new helper even in an existing game session.
+
 | Enemy-form control | Action |
 | :--- | :--- |
 | Normal movement, run and jump bindings | Use the enemy's native movement; keyboard and controller inputs are supported. |
