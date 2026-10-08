@@ -610,6 +610,11 @@ do
   return call(domain,m,obj,args)
  end
  assert(buttons[38].Caption=='Last death' and buttons[39].Caption=='Teleport to tombstone' and buttons[40].Caption=='Bring tombstone to me','Missing recovery actions')
+ assert(ValheimInventoryWindow.Caption:find('Recovery v2',1,true),'Missing visible recovery version')
+ mem[0x1030]=0
+ buttons[38].OnClick()
+ assert(errors[#errors]:find('Finish respawning',1,true) and not active and mode==0,'Null player must explain respawn and not install a recovery hook')
+ mem[0x1030]=0x2000
  buttons[38].OnClick();assert(mode==1 and active and timers[5].Enabled,'Last death not queued: '..tostring(errors[#errors]))
  local n=#errors;buttons[40].OnClick();assert(#errors==n+1 and mode==1,'Recovery must reject concurrent request')
  state=2;timers[5].OnTimer();assert(timers[5].Enabled,'Recovery must await arrival')

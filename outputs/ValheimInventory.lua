@@ -19,7 +19,7 @@ if ValheimSpawnStop then ValheimSpawnStop(); ValheimSpawnStop=nil end
 if ValheimInventoryWindow then pcall(function() ValheimInventoryWindow.destroy() end) end
 local form = createForm(false)
 ValheimInventoryWindow = form
-form.Caption = 'Valheim Solo Toolkit | Enemy form v6 | DBZ Powers v2 | Building v2'
+form.Caption = 'Valheim Solo Toolkit | Recovery v2 | Enemy form v6 | DBZ Powers v2 | Building v2'
 form.Width = 760
 form.Height = 705
 form.Position = 'poScreenCenter'
@@ -1178,7 +1178,9 @@ local function playerContext()
   if not storage or storage <= localField.offset then
     storage = pointer(mono_class_getStaticFieldAddress(playerClass), 'Static storage') + localField.offset
   end
-  local player = pointer(readPointer(storage), 'Local player')
+  local player = readPointer(storage)
+  assert(type(player)=='number' and player>0,
+    'No active local player. Finish respawning or loading your world, wait until you can move, then Refresh inventory and try again.')
   return {pid=session, storage=storage, player=player, vtable=pointer(readPointer(player),'Player type')}
 end
 local function typedPlayerOffset(name, typename)
@@ -2168,7 +2170,7 @@ local function queueRecovery(mode)
 end
 local function openTeleportWindow()
   if window then window.show();action(refreshLocations);return end
-  window=createForm(false);window.Caption='Valheim | Teleport tools'
+  window=createForm(false);window.Caption='Valheim | Teleport tools | Recovery v2'
   window.Width=960;window.Height=550;window.Position='poScreenCenter';window.BorderStyle='bsSizeable'
   local help=createLabel(window);help.AutoSize=false;help.WordWrap=true
   help.Caption='Map: create a named marker or ping in Valheim, then Refresh locations and Teleport selected. Refresh while pings are visible. Saved positions are local bookmarks, not map markers. Players must share their position. Click Help & tips for the full guide.'
