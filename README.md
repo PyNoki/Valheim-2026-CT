@@ -72,6 +72,7 @@ Freezing captures the stacks you have now. New items and newly split stacks star
 | **Unlimited stamina** | Replenishes stamina while enabled. |
 | **Rapid miner** | Speeds up pickaxe swing animations to 10×, refills stamina and keeps the equipped pickaxe at full durability. |
 | **Rapid hoe** | Hold use to repeat hoe terrain actions up to 20 times per second, with stamina refill and full hoe durability. |
+| **Drag build** | Preview and place straight snapped rows of floors, walls and horizontal beams with Ctrl + left-drag. |
 | **Enemy form** | Choose from 26 creature forms with native movement and attack weapons, including Sea Serpent, Fuling Berserker, Cultist, Abomination and Asksvin. |
 | **Free crafting** | Bypasses crafting and building material requirements. |
 | **Unlimited carry** | Prevents encumbrance, even when you exceed the normal weight limit. |
@@ -97,6 +98,12 @@ Death Beam applies 500 generic damage plus chopping/pickaxe damage every 0.1 sec
 Enable **Rapid miner** in **Skills and movement**, equip a pickaxe, and hold attack. Switching to another tool stops its effects. Normal mining range, hit detection and pickaxe tier requirements still apply. Disable it to restore normal animation speed; refilled stamina and durability remain. The separate Unlimited stamina toggle works independently. The 10× setting controls animation speed, not a guaranteed tenfold ore yield.
 
 Enable **Rapid hoe** beside Rapid miner, equip the hoe, choose its terrain action and hold the use button (mouse attack or controller place). Release to stop repeating. Normal terrain restrictions and material costs still apply, including stone for raising ground. Switching tools or disabling restores the original placement cooldown. Refilled stamina and durability remain. It can run alongside Rapid miner; each affects only its own tool.
+
+**Drag build v1** is beside **Refresh** in the inventory actions. Enable it, equip the hammer and select a straight floor, wall or horizontal beam. Start from a valid placement preview, hold **Ctrl + left mouse**, and aim along the row. Release **left mouse while still holding Ctrl** to place it. Right-click or Escape cancels; releasing Ctrl before the mouse also cancels. Tool/selection changes, menus and loss of focus cancel pending work. Already placed pieces remain.
+
+The translucent previews use the piece's meshes and aligned snap points, lock to its horizontal X/Z axes, and cap each row at 24 pieces. They show the planned row, not a guarantee every position is valid. Placement proceeds at the hammer's normal cooldown and stops at the first invalid placement, changed snap, missing resource/station, or depleted stamina/durability. Native build reach, collision, ward, support and terrain rules apply. Free Crafting works through the normal game path; drag building does not enable it automatically. Irregular/sloped pieces and vertical stacking are outside this first version. Flat, supported rows work best; a native snap that shifts a target by more than 15cm stops the row rather than placing it elsewhere.
+
+Drag build and Rapid Hoe share the game's placement callback, so enabling either turns the other off. The toolkit title includes **Drag build v1**. Compilation, row geometry and UI/hook lifecycle tests pass; live snapping, previews and placement still need an in-game check.
 
 **Enemy form** is under **Skills and movement**. Finish any attack or teleport, click the toggle, choose a form, then return to Valheim and unpause. Your original player is hidden and suspended while you control a newly spawned enemy body. This is an experimental solo feature; compilation and mocked tests pass, but live camera, animations and combat still need an in-game check.
 
