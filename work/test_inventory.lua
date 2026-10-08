@@ -190,15 +190,15 @@ classes['Skills+SkillType']=99
 defs[99]={{name='Swords',isStatic=true,isConst=true,field=1},{name='Knives',isStatic=true,isConst=true,field=2}}
 function mono_class_getStaticFieldValue(c,f) assert(c==99);return f end
 buttons[8].OnClick()
-assert(#checkboxes==3 and checkboxes[2].Caption:find('Knives',1,true),'Named skill list missing')
+assert(#checkboxes==4 and checkboxes[3].Caption:find('Knives',1,true),'Named skill list missing')
 edits[1].Text='250'
 local before=#errors;buttons[29].OnClick()
 assert(#errors==before+1 and mem[0xd018]==100,'Empty selection wrote levels')
 mem[0xd01c]=0.75
-checkboxes[2].Checked=true -- Knives only, alphabetically first.
+checkboxes[3].Checked=true -- Knives only, alphabetically first.
 buttons[29].OnClick()
 assert(mem[0xd018]==100 and mem[0xd01c]==0.75 and mem[0xd118]==250,'Individual selection changed unchecked skill/progress')
-checkboxes[1].Checked=true;checkboxes[1].OnChange()
+checkboxes[2].Checked=true;checkboxes[2].OnChange()
 buttons[29].OnClick()
 assert(mem[0xd018]==250 and mem[0xd118]==250,'Select all failed')
 edits[1].Text='not a level';before=#errors;buttons[29].OnClick()
@@ -609,18 +609,20 @@ buttons[21].OnClick()
 assert(mem[0x2910]==0 and buttons[21].Caption=='Flight: OFF','Failed flight enable must roll back')
 print('PASS: flight enable/disable, maintain flag, preserve prior setting, close cleanup, world unload and failed write')
 do
-classes.BowBeamV5=30;vtDword=2
+classes.BowBeamV6=30;vtDword=2
 local beamChoice="1"
+local boost=0
 function inputQuery() return beamChoice end
 defs[30]={{name='Enabled',offset=0,isStatic=true,staticAddress=0x60000,typename='System.Int32'}}
 local methodsBefore=mono_class_enumMethods
 function mono_class_enumMethods(c)
- if c==30 then return {{name='Configure',method=201},{name='Disable',method=202},{name='OnBowUpdate',method=203}} end
+ if c==30 then return {{name='Configure',method=201},{name='Disable',method=202},{name='OnBowUpdate',method=203},{name='SetKayoken',method=205}} end
  if c==1 then return {{name='UpdateAttackBowDraw',method=204}} end
  return methodsBefore(c)
 end
 local paramsBefore=mono_method_get_parameters
 function mono_method_get_parameters(m)
+ if m==205 then return {returntype=1,parameters={{type=2}}} end
  if m==201 then return {returntype=1,parameters={{type=18},{type=8}}} end
  if m==202 then return {returntype=1,parameters={}} end
  if m==203 then return {returntype=2,parameters={{type=18},{type=18},{type=12}}} end
@@ -630,7 +632,8 @@ end
 local invokeBefore=mono_invoke_method
 function mono_invoke_method(d,m,obj,args)
  if m==201 then assert(args[1].value==0x2000,'Wrong beam owner');assert(args[2].value==tonumber(beamChoice)-1,'Wrong beam mode');mem[0x60000]=1;return nil end
- if m==202 then mem[0x60000]=0;return nil end
+ if m==205 then boost=args[1].value;return nil end
+ if m==202 then boost=0;mem[0x60000]=0;return nil end
  return invokeBefore(d,m,obj,args)
 end
 local assembleBefore=autoAssemble
@@ -648,7 +651,12 @@ end
 buttons[22].OnClick()
 local beamTimer=timers[#timers]
 assert(active and mem[0x60000]==1 and buttons[22].Caption=='Kameha: ON','BowBeam toggle failed: '..tostring(errors[#errors]))
+assert(checkboxes[1].Caption=='Kayoken' and checkboxes[1].Enabled,'Kayoken checkbox missing/disabled')
+checkboxes[1].Checked=true;checkboxes[1].OnChange();assert(boost==1,'Kayoken enable not dispatched')
+checkboxes[1].Checked=false;checkboxes[1].OnChange();assert(boost==0,'Kayoken disable not dispatched')
+checkboxes[1].Checked=true;checkboxes[1].OnChange()
 buttons[22].OnClick();assert(not active and mem[0x60000]==0 and not beamTimer.Enabled,'Toggle disable did not clean up')
+assert(boost==0 and not checkboxes[1].Checked and not checkboxes[1].Enabled,'Kayoken must reset with DBZ Powers')
 for choice=3,4 do beamChoice=tostring(choice);buttons[22].OnClick();assert(active and buttons[22].Caption==(choice==3 and 'Spirit Bomb: ON' or 'Supernova: ON'),'Bomb selection failed');buttons[22].OnClick();assert(not active,'Bomb mode cleanup failed') end
 beamChoice='5';buttons[22].OnClick();assert(not active,'Invalid DBZ power enabled')
 beamChoice=nil;buttons[22].OnClick();assert(not active,'Cancelled DBZ power enabled')

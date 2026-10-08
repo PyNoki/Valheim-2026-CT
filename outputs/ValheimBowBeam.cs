@@ -5,22 +5,25 @@ using UnityEngine.Rendering;
 
 namespace ValheimSoloToolkit
 {
-    public static class BowBeamV5
+    public static class BowBeamV6
     {
         public static int Enabled;
         public static int Mode;
+        public static int Kayoken;
+        private static KayokenAuraV1 aura;
+        public static void SetKayoken(bool enabled){Kayoken=enabled?1:0;}
         public static string LastError;
         public static string Status;
         private static Player owner;
-        private static BowBeamVisualV5 visual;
-        private static DbzBombV1 bomb;
+        private static BowBeamVisualV6 visual;
+        private static DbzBombV2 bomb;
         internal static int Generation;
         internal static readonly FieldInfo DrawTime = typeof(Humanoid).GetField("m_attackDrawTime", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         private static readonly MethodInfo TakeInput = typeof(Player).GetMethod("TakeInput", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         internal static bool CanInput(Player player) { return TakeInput != null && (bool)TakeInput.Invoke(player, null); }
-        public static void Configure(Player player, int mode) { if(mode<0||mode>3)throw new ArgumentException("Invalid DBZ power"); Generation++;Mode=mode; owner = player; LastError = null;Status=null; Enabled = 1; }
+        public static void Configure(Player player, int mode) { if(mode<0||mode>3)throw new ArgumentException("Invalid DBZ power"); Generation++;Kayoken=0;Mode=mode; owner = player; LastError = null;Status=null; Enabled = 1; }
         // Called from CE's Mono thread: Unity cleanup is left to the driver's Update.
-        public static void Disable() { Enabled = 0; owner = null; }
+        public static void Disable() { Enabled = 0; Kayoken=0;owner = null; }
         internal static bool Owns(Player player) { return Enabled == 1 && player && player == owner && player == Player.m_localPlayer; }
         internal static bool IsBow(ItemDrop.ItemData weapon) { return weapon != null && weapon.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Bow; }
         internal static void Fault(Exception e) { Enabled = 0; LastError = e.GetType().Name + ": " + e.Message; if (LastError.Length > 400) LastError = LastError.Substring(0, 400); }
@@ -28,9 +31,15 @@ namespace ValheimSoloToolkit
         // Runs on the game thread in place of the local player's ordinary bow draw.
         public static bool OnBowUpdate(Player player, ItemDrop.ItemData weapon, float dt)
         {
-            if (!Owns(player) || !IsBow(weapon)) return false;
+            if (!Owns(player)) return false;
             try
             {
+                if(Kayoken==1&&!player.IsDead()&&!player.IsTeleporting()&&(!aura||aura.Owner!=player))
+                {
+                    if(aura)UnityEngine.Object.Destroy(aura.gameObject);
+                    aura=new GameObject("SoloToolkit_Kayoken").AddComponent<KayokenAuraV1>();aura.Setup(player);
+                }
+                if(!IsBow(weapon))return false;
                 if (DrawTime == null) throw new MissingFieldException("Humanoid.m_attackDrawTime");
                 DrawTime.SetValue(player, -1f); // No queued arrow on release or after disabling.
                 if(Mode>=2)
@@ -38,7 +47,7 @@ namespace ValheimSoloToolkit
                     if(!bomb||bomb.Owner!=player||bomb.Mode!=Mode||bomb.Generation!=Generation)
                     {
                         if(bomb)UnityEngine.Object.Destroy(bomb.gameObject);
-                        bomb=new GameObject("SoloToolkit_DBZBomb").AddComponent<DbzBombV1>();
+                        bomb=new GameObject("SoloToolkit_DBZBomb").AddComponent<DbzBombV2>();
                         bomb.Owner=player;bomb.Mode=Mode;bomb.Generation=Generation;
                     }
                     if(Input.GetMouseButton(0))bomb.Fire();
@@ -48,7 +57,7 @@ namespace ValheimSoloToolkit
                 {
                     if (visual) UnityEngine.Object.Destroy(visual.gameObject);
                     GameObject root = new GameObject("SoloToolkit_BowBeamDriver");
-                    visual = root.AddComponent<BowBeamVisualV5>();
+                    visual = root.AddComponent<BowBeamVisualV6>();
                     visual.Setup(player);
                 }
                 visual.Step(weapon);
@@ -58,10 +67,10 @@ namespace ValheimSoloToolkit
         }
     }
 
-    public sealed class BowBeamVisualV5 : MonoBehaviour
+    public sealed class BowBeamVisualV6 : MonoBehaviour
     {
         public Player Owner;
-        public bool ModeChanged { get { return mode!=BowBeamV5.Mode; } }
+        public bool ModeChanged { get { return mode!=BowBeamV6.Mode||boosted!=(BowBeamV6.Kayoken==1); } }
         private GameObject effects;
         private Material material;
         private Material particleMaterial;
@@ -70,6 +79,7 @@ namespace ValheimSoloToolkit
         private ParticleSystem vortex;
         private float nextParticles;
         private int mode, terrainCursor;
+        private bool boosted;
         private Color Tint(Color c) { return mode==1 ? new Color(c.b,c.r*0.12f,c.g*0.25f,c.a) : c; }
         private LineRenderer halo, sheath, core, coilA, coilB, muzzleA, muzzleB, impactRing;
         private ParticleSystem sparks;
@@ -78,13 +88,13 @@ namespace ValheimSoloToolkit
         private string drawAnimation;
         private float lastStep, started, nextDamage;
         private bool firing;
-        private const float Range = 80f;
-        private const float Radius = 1.6f;
-        private const float DamagePerTick = 100f;
+        private float Range {get{return DbzPower.Range(boosted);}}
+        private float Radius {get{return 1.6f*DbzPower.Scale(boosted);}}
+        private float DamagePerTick {get{return DbzPower.Damage(0,boosted);}}
 
         public void Setup(Player player)
         {
-            Owner = player;mode=BowBeamV5.Mode;
+            Owner = player;mode=BowBeamV6.Mode;boosted=BowBeamV6.Kayoken==1;
             animation = player.GetComponent<ZSyncAnimation>();
             Shader shader = Shader.Find("Legacy Shaders/Particles/Additive") ?? Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Sprites/Default");
             if (!shader) throw new InvalidOperationException("No compatible beam shader found");
@@ -174,15 +184,15 @@ namespace ValheimSoloToolkit
         }
         private void Update()
         {
-            if (!BowBeamV5.Owns(Owner)) { Hide(); Destroy(gameObject); return; }
+            if (!BowBeamV6.Owns(Owner)||ModeChanged) { Hide(); Destroy(gameObject); return; }
             if (Time.time-lastStep > 0.12f || !Application.isFocused || !Input.GetMouseButton(0)
-                || !BowBeamV5.CanInput(Owner) || !BowBeamV5.IsBow(Owner.GetCurrentWeapon())) Hide();
+                || !BowBeamV6.CanInput(Owner) || !BowBeamV6.IsBow(Owner.GetCurrentWeapon())) Hide();
         }
         private void OnDestroy() { Hide(); if (material) Destroy(material); if(particleMaterial) Destroy(particleMaterial);if(softTexture) Destroy(softTexture); }
         public void Step(ItemDrop.ItemData weapon)
         {
             lastStep = Time.time;
-            if (!Application.isFocused || !Input.GetMouseButton(0) || !BowBeamV5.CanInput(Owner)
+            if (!Application.isFocused || !Input.GetMouseButton(0) || !BowBeamV6.CanInput(Owner)
                 || Owner.IsDead() || Owner.IsTeleporting()) { Hide(); return; }
             if (!firing) { firing = true;started = Time.time;nextDamage = Time.time;nextParticles=Time.time;effects.SetActive(true);sparks.Play();vortex.Play(); }
             drawAnimation = weapon.m_shared.m_attack.m_drawAnimationState;
@@ -202,7 +212,7 @@ namespace ValheimSoloToolkit
             Vector3 side = Vector3.Cross(direction, Vector3.up).normalized;
             if (side.sqrMagnitude < 0.01f) side = Vector3.right;
             Vector3 up = Vector3.Cross(side,direction).normalized;
-            float power = Mathf.Lerp(0.2f,1f,Mathf.Clamp01((Time.time-started)/0.2f));
+            float power = Mathf.Lerp(0.2f,1f,Mathf.Clamp01((Time.time-started)/0.2f))*DbzPower.Scale(boosted);
             float pulse = 1f + 0.16f * Mathf.Sin(Time.time*29f)+0.09f*Mathf.Sin(Time.time*67f);
             halo.startWidth = 2.4f*power*pulse; halo.endWidth=halo.startWidth*0.8f;
             sheath.startWidth=1.05f*power;sheath.endWidth=sheath.startWidth*0.8f;
@@ -230,7 +240,7 @@ namespace ValheimSoloToolkit
                 {
                     float t=i/23f;
                     float a=g*2.4f-Time.time*(7f+g*0.2f)+t*2.7f;
-                    float r=(2.5f-1.4f*travel)*(0.85f+0.15f*Mathf.Sin(a*3f+g));
+                    float r=(2.5f-1.4f*travel)*(0.85f+0.15f*Mathf.Sin(a*3f+g))*DbzPower.Scale(boosted);
                     float along=Mathf.Min(length,travel*9f+t*1.5f);
                     gusts[g].SetPosition(i,origin+direction*along+(side*Mathf.Cos(a)+up*Mathf.Sin(a))*r);
                 }
@@ -252,7 +262,7 @@ namespace ValheimSoloToolkit
             }
             muzzleLight.intensity=3f*pulse;endLight.intensity=4f*pulse;
             sparks.transform.position=end;muzzleLight.transform.position=origin;endLight.transform.position=end;
-            if (Time.time>=nextDamage) { nextDamage=Time.time+0.1f; if(mode==1) { BeamDamage.Death(Owner,origin,direction,length,Radius); BeamTerrain.Excavate(Owner,origin,direction,length,Radius,ref terrainCursor); } else DamageMonsters(origin,direction,length); }
+            if (Time.time>=nextDamage) { nextDamage=Time.time+0.1f; if(mode==1) { BeamDamage.Death(Owner,origin,direction,length,Radius,DbzPower.Damage(1,boosted)); BeamTerrain.Excavate(Owner,origin,direction,length,Radius,ref terrainCursor); } else DamageMonsters(origin,direction,length); }
         }
         private static void Ring(LineRenderer line,Vector3 center,Vector3 side,Vector3 up,float radius)
         {

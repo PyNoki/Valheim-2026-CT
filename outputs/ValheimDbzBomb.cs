@@ -5,12 +5,12 @@ using UnityEngine.Rendering;
 
 namespace ValheimSoloToolkit
 {
-    public sealed class DbzBombV1:MonoBehaviour
+    public sealed class DbzBombV2:MonoBehaviour
     {
         public Player Owner;
         public int Mode;
         public int Generation;
-        private bool held, flying, exploding;
+        private bool held, flying, exploding, boosted;
         private float born, detonated, nextWork;
         private Vector3 position, direction, center;
         private GameObject orb;
@@ -21,22 +21,23 @@ namespace ValheimSoloToolkit
         private int targetCursor, terrainCursor;
         private List<BombPlan.Point> crater;
         private readonly HashSet<IDestructible> hit=new HashSet<IDestructible>();
-        private float Radius {get{return BombPlan.Radius(Mode);}}
+        private float Radius {get{return BombPlan.Radius(Mode)*DbzPower.Scale(boosted);}}
         public void Fire()
         {
             if(held)return;
             held=true;
             if(flying||exploding||!InputAllowed())return;
+            boosted=BowBeamV6.Kayoken==1;
             direction=Owner.GetAimDir(Owner.GetEyePoint()).normalized;
             position=Owner.GetEyePoint()+direction*10f+Vector3.up*4f;
             born=Time.time;flying=true;
             BuildVisual();
-            BowBeamV5.Status=(Mode==3?"Supernova":"Spirit Bomb")+" in flight. Impact or 20 seconds detonates; toggle OFF cancels.";
+            BowBeamV6.Status=(Mode==3?"Supernova":"Spirit Bomb")+" in flight. Impact or 20 seconds detonates; toggle OFF cancels.";
         }
         private bool InputAllowed()
         {
             return Owner&&Owner.enabled&&!Owner.IsDead()&&!Owner.IsTeleporting()&&Application.isFocused
-                &&BowBeamV5.CanInput(Owner)&&!InventoryGui.IsVisible()&&!Menu.IsVisible()&&!Console.IsVisible()
+                &&BowBeamV6.CanInput(Owner)&&!InventoryGui.IsVisible()&&!Menu.IsVisible()&&!Console.IsVisible()
                 &&!Minimap.IsOpen()&&!(Chat.instance&&Chat.instance.HasFocus());
         }
         private Material MakeMaterial(Color color)
@@ -73,7 +74,7 @@ namespace ValheimSoloToolkit
         private void Animate()
         {
             if(!orb)return;
-            float size=Mode==3?18f:12f;
+            float size=(Mode==3?18f:12f)*DbzPower.Scale(boosted);
             if(exploding)size=Mathf.Lerp(size,Radius*2f,Mathf.Clamp01((Time.time-detonated)/3f));
             else size*=1f+0.04f*Mathf.Sin(Time.time*7f);
             orb.transform.position=position;orb.transform.localScale=Vector3.one*size;
@@ -98,7 +99,7 @@ namespace ValheimSoloToolkit
         {
             if(Time.time<nextWork)return;nextWork=Time.time+0.05f;
             for(int i=0;i<BombPlan.DamageBudget&&targetCursor<targets.Length;i++,targetCursor++)
-                BeamDamage.Hit(Owner,targets[targetCursor],center,Vector3.up,Mode==3?20000f:5000f,hit);
+                BeamDamage.Hit(Owner,targets[targetCursor],center,Vector3.up,DbzPower.Damage(Mode,boosted),hit);
             for(int i=0;i<BombPlan.TerrainBudget&&terrainCursor<crater.Count;i++,terrainCursor++)
             {
                 var offset=crater[terrainCursor];var point=center+new Vector3(offset.X,0,offset.Z);
@@ -107,15 +108,15 @@ namespace ValheimSoloToolkit
                 if((height-center.y)*(height-center.y)+offset.X*offset.X+offset.Z*offset.Z>Radius*Radius)continue;
                 point.y=height;BeamTerrain.Dig(Owner,point);
             }
-            BowBeamV5.Status=(Mode==3?"Supernova":"Spirit Bomb")+" blast: objects "+targetCursor+"/"+targets.Length+", terrain "+terrainCursor+"/"+crater.Count+". Toggle OFF cancels remaining work.";
+            BowBeamV6.Status=(Mode==3?"Supernova":"Spirit Bomb")+" blast: objects "+targetCursor+"/"+targets.Length+", terrain "+terrainCursor+"/"+crater.Count+". Toggle OFF cancels remaining work.";
             if(targetCursor>=targets.Length&&terrainCursor>=crater.Count&&Time.time-detonated>6f)
-            {exploding=false;ClearVisual();targets=null;crater=null;hit.Clear();BowBeamV5.Status="Blast complete. Release and click bow attack to launch again.";}
+            {exploding=false;ClearVisual();targets=null;crater=null;hit.Clear();BowBeamV6.Status="Blast complete. Release and click bow attack to launch again.";}
         }
         private void Update()
         {
             try
             {
-                if(!BowBeamV5.Owns(Owner)||BowBeamV5.Mode!=Mode||BowBeamV5.Generation!=Generation||!Owner||Owner.IsDead()||Owner.IsTeleporting())
+                if(!BowBeamV6.Owns(Owner)||BowBeamV6.Mode!=Mode||BowBeamV6.Generation!=Generation||!Owner||Owner.IsDead()||Owner.IsTeleporting())
                 {Destroy(gameObject);return;}
                 if(!Input.GetMouseButton(0))held=false;
                 if(!InputAllowed())return;
@@ -123,21 +124,21 @@ namespace ValheimSoloToolkit
                 {
                     float distance=BombPlan.Speed(Mode)*Mathf.Min(Time.deltaTime,0.1f);
                     float nearest=distance;bool collision=false;
-                    foreach(var contact in Physics.SphereCastAll(position,2f,direction,distance,~0,QueryTriggerInteraction.Ignore))
+                    foreach(var contact in Physics.SphereCastAll(position,2f*DbzPower.Scale(boosted),direction,distance,~0,QueryTriggerInteraction.Ignore))
                     {
                         if(!contact.collider||contact.collider.GetComponentInParent<Character>()==Owner)continue;
                         if(contact.distance<=nearest){nearest=contact.distance;collision=true;}
                     }
                     position+=direction*nearest;
                     // Also detect starting inside a hillside or another solid object.
-                    foreach(var c in Physics.OverlapSphere(position,2f,~0,QueryTriggerInteraction.Ignore))
+                    foreach(var c in Physics.OverlapSphere(position,2f*DbzPower.Scale(boosted),~0,QueryTriggerInteraction.Ignore))
                         if(c&&c.GetComponentInParent<Character>()!=Owner){collision=true;break;}
                     if(collision||Time.time-born>=20f)Detonate();
                 }
                 if(exploding)WorkBlast();
                 Animate();
             }
-            catch(Exception e){BowBeamV5.Fault(e);Destroy(gameObject);}
+            catch(Exception e){BowBeamV6.Fault(e);Destroy(gameObject);}
         }
         private void ClearVisual()
         {

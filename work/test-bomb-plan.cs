@@ -8,11 +8,11 @@ class BombTests
     {
         Check(BombPlan.Radius(2)==40&&BombPlan.Radius(3)==120,"Blast sizes");
         Check(BombPlan.Speed(3)<BombPlan.Speed(2)&&BombPlan.Speed(2)<10,"Slow travel");
-        foreach(int mode in new[]{2,3})
+        foreach(bool boosted in new[]{false,true})foreach(int mode in new[]{2,3})
         {
-            float radius=BombPlan.Radius(mode),previous=-1;
+            float radius=BombPlan.Radius(mode)*DbzPower.Scale(boosted),previous=-1;
             var cells=BombPlan.Crater(radius);var unique=new HashSet<string>();
-            Check(cells.Count>500&&cells.Count<6000,"Bounded loaded-area work");
+            Check(cells.Count>500&&cells.Count<(boosted?24000:6000),"Bounded loaded-area work");
             foreach(var p in cells)
             {
                 float distance=p.X*p.X+p.Z*p.Z;
@@ -24,6 +24,6 @@ class BombTests
             while(processed<cells.Count){int batch=Math.Min(BombPlan.TerrainBudget,cells.Count-processed);Check(batch<=6,"Unbounded terrain batch");processed+=batch;}
             Check(processed==cells.Count&&BombPlan.DamageBudget==48,"Budget completion");
         }
-        Console.WriteLine("PASS: Spirit Bomb/Supernova sizes, slow speeds, bounded unique radial crater coverage, per-update work budgets");
+        Console.WriteLine("PASS: Normal/Kayoken Spirit Bomb/Supernova sizes, slow speeds, bounded unique radial crater coverage, per-update work budgets");
     }
 }

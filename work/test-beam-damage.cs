@@ -9,7 +9,7 @@ namespace UnityEngine {
  public struct Vector3 { public float x,y,z; public Vector3(float a,float b,float c){x=a;y=b;z=c;}public static Vector3 operator+(Vector3 a,Vector3 b){return new Vector3(a.x+b.x,a.y+b.y,a.z+b.z);} public static Vector3 operator*(Vector3 a,float n){return new Vector3(a.x*n,a.y*n,a.z*n);} }
  public class Collider {public Character character;public IDestructible target;public static implicit operator bool(Collider c){return c!=null;}public T GetComponentInParent<T>()where T:class {return typeof(T)==typeof(Character)?character as T:target as T;}public Vector3 ClosestPoint(Vector3 p){return p;}}
  public enum QueryTriggerInteraction {Ignore}
- public static class Physics {public static Collider[] hits;public static int calls;public static Collider[] OverlapCapsule(Vector3 a,Vector3 b,float r,int mask,QueryTriggerInteraction q){if(b.z!=80||r!=1.6f||mask!=-1)throw new Exception("Incomplete beam query");calls++;return hits;}}
+ public static class Physics {public static Collider[] hits;public static int calls;public static float expectedLength=80,expectedRadius=1.6f;public static Collider[] OverlapCapsule(Vector3 a,Vector3 b,float r,int mask,QueryTriggerInteraction q){if(b.z!=expectedLength||r!=expectedRadius||mask!=-1)throw new Exception("Incomplete beam query");calls++;return hits;}}
 }
 public interface IDestructible {void Damage(HitData hit);}
 public class Character:IDestructible {public int hits;public HitData last;public void Damage(HitData hit){hits++;last=hit;}}
@@ -20,7 +20,7 @@ public class Skills {public enum SkillType {None}}
 public class Heightmap {public static bool loaded=true;public static bool GetHeight(Vector3 p,out float h){h=10;return loaded;}}
 public class ItemDrop:UnityEngine.Object {public ItemData m_itemData=new ItemData();public class ItemData {public SharedData m_shared=new SharedData();}public class SharedData {public GameObject m_spawnOnHitTerrain;}}
 public class ZNetScene {public static ZNetScene instance=new ZNetScene();public GameObject prefab;public GameObject GetPrefab(string name){if(name!="PickaxeIron")throw new Exception("Wrong pickaxe");return prefab;}}
-public class Attack {public static GameObject registeredDig;public static int edits;public static float farthest;public static GameObject SpawnOnHitTerrain(Vector3 p,GameObject prefab,Character owner,float noise,ItemDrop.ItemData weapon,ItemDrop.ItemData ammo,bool random){if(prefab!=registeredDig||p.y!=10||owner==null||weapon!=ZNetScene.instance.prefab.item.m_itemData)throw new Exception("Unregistered or incorrect native terrain impact");edits++;farthest=Math.Max(farthest,p.z);return null;}}
+public class Attack {public static GameObject registeredDig;public static int edits;public static float farthest,minX,maxX;public static GameObject SpawnOnHitTerrain(Vector3 p,GameObject prefab,Character owner,float noise,ItemDrop.ItemData weapon,ItemDrop.ItemData ammo,bool random){if(prefab!=registeredDig||p.y!=10||owner==null||weapon!=ZNetScene.instance.prefab.item.m_itemData)throw new Exception("Unregistered or incorrect native terrain impact");edits++;farthest=Math.Max(farthest,p.z);minX=Math.Min(minX,p.x);maxX=Math.Max(maxX,p.x);return null;}}
 class Tests {
  static void Check(bool ok,string message){if(!ok)throw new Exception(message);}
  static void Main(){
@@ -31,6 +31,15 @@ class Tests {
   Check(pet.hits==1&&otherPlayer.hits==1,"All creature damage dispatch failed");
   Check(rock.last.m_hitCollider!=null&&rock.last.m_toolTier==100&&rock.last.m_damage.m_pickaxe==500&&tree.last.m_damage.m_chop==500&&building.last.m_damage.m_damage==500&&building.last.attacker==owner,"Damage metadata missing");
   BeamDamage.Death(owner,new Vector3(),new Vector3(0,0,1),80,1.6f);Check(building.hits==2&&Physics.calls==2,"Damage ticks did not reset dedup");
+  Physics.expectedLength=DbzPower.Range(true);Physics.expectedRadius=1.6f*DbzPower.Scale(true);
+  BeamDamage.Death(owner,new Vector3(),new Vector3(0,0,1),Physics.expectedLength,Physics.expectedRadius,DbzPower.Damage(1,true));
+  Check(building.hits==3&&rock.last.m_damage.m_pickaxe==16000&&tree.last.m_damage.m_chop==16000&&building.last.m_damage.m_damage==16000&&pet.last.m_damage.m_damage==16000&&otherPlayer.last.m_damage.m_damage==16000,"Kayoken must dispatch >=10000 per tick to every destructible category");
+  Check(owner.hits==0,"Kayoken damaged caster");
+  Check(DbzPower.Damage(0,true)==3200&&DbzPower.Damage(2,true)==160000&&DbzPower.Damage(3,true)==640000,"All DBZ attacks must scale 32x");
+  Physics.expectedLength=80;Physics.expectedRadius=1.6f;
+  BeamDamage.Death(owner,new Vector3(),new Vector3(0,0,1),80,1.6f,DbzPower.Damage(1,false));
+  Check(building.last.m_damage.m_damage==500&&DbzPower.Scale(false)==1&&DbzPower.Range(false)==80,"Unboosted power must remain unchanged");
+  System.Console.WriteLine("PASS: Kayoken 32x damage across targets, 120m/2x-width beam, caster exclusion, all four power values and normal damage restoration");
   System.Console.WriteLine("PASS: full-length all-layer death beam query, terrain without damage handler ignored, props/pets/players dispatched, caster excluded, multi-collider dedup, repeat tick and hit metadata");
   var blastSeen=new System.Collections.Generic.HashSet<IDestructible>();int prior=building.hits;
   BeamDamage.Hit(owner,Physics.hits[2],new Vector3(),new Vector3(0,1,0),20000,blastSeen);
@@ -41,6 +50,9 @@ class Tests {
   cursor=0;BeamTerrain.Excavate(owner,new Vector3(0,8,0),new Vector3(0,0,1),80,1.6f,ref cursor);Check(Attack.edits==6&&cursor==6,"Terrain work not bounded");
   for(int i=0;i<6;i++)BeamTerrain.Excavate(owner,new Vector3(0,8,0),new Vector3(0,0,1),80,1.6f,ref cursor);
   Check(Attack.farthest==80,"Full path excavation or cleanup failed");
+  int boostBefore=Attack.edits;cursor=0;Attack.farthest=0;
+  for(int i=0;i<31;i++)BeamTerrain.Excavate(owner,new Vector3(0,8,0),new Vector3(0,0,1),120,3.2f,ref cursor);
+  Check(Attack.edits-boostBefore==31*6&&Attack.farthest==120&&Attack.minX<-2&&Attack.maxX>2,"Kayoken excavation must cover full range and both side lanes within six-edit budget");
   int before=Attack.edits;Heightmap.loaded=false;BeamTerrain.Excavate(owner,new Vector3(),new Vector3(0,0,1),80,1.6f,ref cursor);Check(Attack.edits==before,"Unloaded terrain edited");
   System.Console.WriteLine("PASS: terrain penetration, air/unloaded guards, native lowering operations, full-range bounded sweeps and registered pickaxe prefab dispatch");
  }

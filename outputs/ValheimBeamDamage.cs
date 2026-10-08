@@ -6,12 +6,12 @@ namespace ValheimSoloToolkit
     internal static class BeamDamage
     {
         // Overlap the entire beam instead of stopping at the first wall/terrain hit.
-        internal static void Death(Player owner, Vector3 origin, Vector3 direction, float length, float radius)
+        internal static void Death(Player owner, Vector3 origin, Vector3 direction, float length, float radius, float damage=500f)
         {
             var seen = new HashSet<IDestructible>();
             foreach (var collider in Physics.OverlapCapsule(origin, origin + direction * length, radius, ~0, QueryTriggerInteraction.Ignore))
             {
-                Hit(owner,collider,origin,direction,500f,seen);
+                Hit(owner,collider,origin,direction,damage,seen);
             }
         }
         internal static void Hit(Player owner, Collider collider, Vector3 origin, Vector3 direction, float damage, HashSet<IDestructible> seen)
