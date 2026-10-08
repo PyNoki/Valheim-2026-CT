@@ -13,8 +13,8 @@ namespace ValheimSoloToolkit
         public const int Limit=512;
         public static string SafeName(string name)
         {
-            if(String.IsNullOrWhiteSpace(name)||name.Length>48)throw new InvalidDataException("Use a blueprint name of 1-48 letters, numbers, spaces, hyphens or underscores.");
-            foreach(char c in name)if(!Char.IsLetterOrDigit(c)&&c!=' '&&c!='-'&&c!='_')throw new InvalidDataException("Blueprint name contains an invalid character.");
+            if(String.IsNullOrWhiteSpace(name)||name.Length>48)throw new InvalidDataException("Use a blueprint name of 1-48 letters, numbers, spaces, hyphens, underscores or parentheses.");
+            foreach(char c in name)if(!Char.IsLetterOrDigit(c)&&c!=' '&&c!='-'&&c!='_'&&c!='('&&c!=')')throw new InvalidDataException("Blueprint name contains an invalid character.");
             return name.Trim();
         }
         private static bool Finite(float f){return !Single.IsNaN(f)&&!Single.IsInfinity(f);}

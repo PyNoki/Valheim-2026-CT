@@ -872,11 +872,11 @@ print('PASS: enemy selection/cancel/bounds, camera hook guard/argument preservat
 end
 
 do
-classes.DragBuildV4=44
+classes.DragBuildV5=44
 defs[44]={{name='Enabled',offset=0,isStatic=true,staticAddress=0xb0000,typename='System.Int32'},{name='Status',offset=8,isStatic=true,staticAddress=0xb0008,typename='System.String'}}
 local methodsBefore=mono_class_enumMethods
 function mono_class_enumMethods(c)
- if c==44 then return {{name='Configure',method=701},{name='Disable',method=702},{name='Tick',method=703},{name='ConfigureBlueprint',method=705},{name='Request',method=706},{name='SavedNames',method=707}} end
+ if c==44 then return {{name='Configure',method=701},{name='Disable',method=702},{name='Tick',method=703},{name='ConfigureBlueprint',method=705},{name='Request',method=706},{name='SavedNames',method=707},{name='SaveCaptured',method=708}} end
  if c==1 then local entries={};for _,m in ipairs(methodsBefore(c)) do if m.name~='UpdatePlacement' then entries[#entries+1]=m end end;entries[#entries+1]={name='UpdatePlacement',method=704};return entries end
  return methodsBefore(c)
 end
@@ -885,7 +885,7 @@ function mono_method_get_parameters(m)
  if m==703 then return {returntype=2,parameters={{type=18},{type=2},{type=12}}} end
  if m==704 then return {returntype=1,parameters={{type=2},{type=12}}} end
  if m==706 then return {returntype=1,parameters={{type=8},{type=14}}} end
- if m==707 then return {returntype=14,parameters={}} end
+ if m==707 or m==708 then return {returntype=14,parameters={}} end
  if m==701 or m==705 then return {returntype=1,parameters={{type=18}}} end
  if m==702 or m==704 then return {returntype=1,parameters={}} end
  return paramsBefore(m)
@@ -895,6 +895,7 @@ local invokeBefore=mono_invoke_method
 function mono_invoke_method(d,m,obj,args)
  if m==706 then queued[#queued+1]={code=args[1].value,text=args[2].value};return nil end
  if m==707 then return 'Test house' end
+ if m==708 then return 'C:/Blueprints/Test house.vbp' end
  if m==701 or m==705 then assert(args[1].value==0x2000);mem[0xb0000]=1;return nil end
  if m==702 then mem[0xb0000]=0;return nil end
  return invokeBefore(d,m,obj,args)
@@ -910,7 +911,7 @@ function autoAssemble(script,self,disable)
  return assembleBefore(script,self,disable)
 end
 buttons[28].OnClick()
-local rowButton,captureButton,loadButton,undoButton,cancelButton,disableButton
+local rowButton,captureButton,loadButton,undoButton,cancelButton,disableButton,saveButton
 for _,b in ipairs(buttons) do
  if b.Caption=='Auto rows: OFF' then rowButton=b end
  if b.Caption=='Capture furnished blueprint...' then captureButton=b end
@@ -918,8 +919,9 @@ for _,b in ipairs(buttons) do
  if b.Caption=='Undo last blueprint paste' then undoButton=b end
  if b.Caption=='Cancel preview / queued building' then cancelButton=b end
  if b.Caption=='Disable building tools' then disableButton=b end
+ if b.Caption=='Save captured blueprint' then saveButton=b end
 end
-assert(rowButton and captureButton and loadButton and undoButton and cancelButton and disableButton,'Building section controls missing')
+assert(rowButton and captureButton and loadButton and undoButton and cancelButton and disableButton and saveButton,'Building section controls missing')
 rowButton.OnClick();local deleteTimer=timers[#timers]
 assert(active and rowButton.Caption=='Auto rows: ON','Drag build enable failed: '..tostring(errors[#errors]))
 rowButton.OnClick();assert(not active and mem[0xb0000]==0 and not deleteTimer.Enabled,'Drag build disable failed')
@@ -942,6 +944,7 @@ local captures={'Test house','20 12 20'}
 function inputQuery() return table.remove(captures,1) end
 captureButton.OnClick()
 assert(active and queued[#queued].code==1 and queued[#queued].text=='Test house|20|12|20','Capture command not queued')
+saveButton.OnClick();assert(errors[#errors]:find('C:/Blueprints/Test house.vbp',1,true),'Save must confirm the actual output path')
 local before=#queued
 function inputQuery() return nil end
 captureButton.OnClick();assert(#queued==before,'Cancelled capture must not queue')

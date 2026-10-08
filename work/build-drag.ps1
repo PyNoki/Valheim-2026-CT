@@ -2,7 +2,7 @@ param([string]$Managed = 'D:\SteamLibrary\steamapps\common\Valheim\valheim_Data\
 $ErrorActionPreference='Stop'
 $compiler='C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $references=@('assembly_valheim.dll','assembly_utils.dll','SoftReferenceableAssets.dll','UnityEngine.CoreModule.dll','UnityEngine.PhysicsModule.dll','UnityEngine.InputLegacyModule.dll','UnityEngine.dll','netstandard.dll') | ForEach-Object { '/r:'+(Join-Path $Managed $_) }
-& $compiler /nologo /target:library "/out:$pwd\outputs\ValheimDragBuildV4.dll" $references "$pwd\outputs\ValheimDragBuild.cs" "$pwd\outputs\ValheimDragRowPlan.cs" "$pwd\outputs\ValheimBlueprintData.cs" "$pwd\outputs\ValheimBlueprintWorkshop.cs"
+& $compiler /nologo /target:library "/out:$pwd\outputs\ValheimDragBuildV5.dll" $references "$pwd\outputs\ValheimDragBuild.cs" "$pwd\outputs\ValheimDragRowPlan.cs" "$pwd\outputs\ValheimBlueprintCapture.cs" "$pwd\outputs\ValheimBlueprintData.cs" "$pwd\outputs\ValheimBlueprintWorkshop.cs"
 if($LASTEXITCODE){throw 'Drag build compilation failed'}
 & $compiler /nologo "/out:$pwd\work\test-drag-plan.exe" "$pwd\outputs\ValheimDragRowPlan.cs" "$pwd\work\test-drag-plan.cs"
 if($LASTEXITCODE){throw 'Drag plan test compilation failed'}
@@ -10,7 +10,7 @@ if($LASTEXITCODE){throw 'Drag plan test compilation failed'}
 if($LASTEXITCODE){throw 'Drag plan tests failed'}
 
 
-& $compiler /nologo "/out:$pwd\work\test-blueprint-data.exe" "$pwd\outputs\ValheimBlueprintData.cs" "$pwd\work\test-blueprint-data.cs"
+& $compiler /nologo "/out:$pwd\work\test-blueprint-data.exe" "$pwd\outputs\ValheimBlueprintCapture.cs" "$pwd\outputs\ValheimBlueprintData.cs" "$pwd\work\test-blueprint-data.cs"
 if($LASTEXITCODE){throw 'Blueprint data test compilation failed'}
 & "$pwd\work\test-blueprint-data.exe"
 if($LASTEXITCODE){throw 'Blueprint data tests failed'}

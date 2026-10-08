@@ -11,7 +11,7 @@ namespace ValheimSoloToolkit
         private Player owner;
         private string name;
         private Vector3 origin,size=new Vector3(20,12,20);
-        private float yaw,height,nextScan;
+        private float yaw,height;
         private bool selecting,previewing,locked,building,undoing,haveAim;
         private int index;
         private readonly List<Piece> selection=new List<Piece>();
@@ -25,7 +25,7 @@ namespace ValheimSoloToolkit
         internal static string Catalog(){return Directory.Exists(Folder)?String.Join(", ",Array.ConvertAll(Directory.GetFiles(Folder,"*.vbp"),Path.GetFileNameWithoutExtension)):"No saved blueprints yet";}
         private static Vector3 Position(BlueprintEntry e){return new Vector3(e.X,e.Y,e.Z);}
         private static Quaternion Rotation(BlueprintEntry e){return new Quaternion(e.QX,e.QY,e.QZ,e.QW);}
-        private void Status(string s){bool changed=DragBuildV4.Status!=s;DragBuildV4.Status=s;if(changed&&owner)owner.Message(MessageHud.MessageType.TopLeft,s);}
+        private void Status(string s){bool changed=DragBuildV5.Status!=s;DragBuildV5.Status=s;if(changed&&owner)owner.Message(MessageHud.MessageType.TopLeft,s);}
         private void ClearPreview()
         {
             foreach(var go in meshes)if(go)UnityEngine.Object.Destroy(go);meshes.Clear();
@@ -56,8 +56,8 @@ namespace ValheimSoloToolkit
             point=Vector3.zero;
             if(snap)
             {
-                DragBuildV4.UpdateGhost.Invoke(owner,new object[]{false});
-                var ghost=DragBuildV4.Ghost.GetValue(owner) as GameObject;
+                DragBuildV5.UpdateGhost.Invoke(owner,new object[]{false});
+                var ghost=DragBuildV5.Ghost.GetValue(owner) as GameObject;
                 if(ghost&&ghost.activeSelf){point=ghost.transform.position;return true;}
             }
             RaycastHit hit;var camera=GameCamera.instance.transform;
@@ -86,11 +86,12 @@ namespace ValheimSoloToolkit
             Vector3 a=bounds.min,b=bounds.max;
             Vector3[] corners={new Vector3(a.x,a.y,a.z),new Vector3(b.x,a.y,a.z),new Vector3(b.x,a.y,b.z),new Vector3(a.x,a.y,b.z),new Vector3(a.x,b.y,a.z),new Vector3(b.x,b.y,a.z),new Vector3(b.x,b.y,b.z),new Vector3(a.x,b.y,b.z)};
             int[] path={0,1,2,3,0,4,5,1,5,6,2,6,7,3,7,4};line.positionCount=path.Length;for(int i=0;i<path.Length;i++)line.SetPosition(i,corners[path[i]]);
-            Status("Capture "+name+": "+selection.Count+" pieces highlighted. Aim at foundation level. F6 locks/unlocks box; F7 saves locked selection.");
+            CaptureSnapshot();
+            Status("Captured "+selection.Count+" pieces for "+name+". Selection is fixed. Click Save captured blueprint in Building tools, or press F7.");
         }
-        private void Save()
+        private void CaptureSnapshot()
         {
-            if(!locked||selection.Count==0)throw new InvalidOperationException("Lock a nonempty selection with F6 before saving.");
+            if(selection.Count==0)throw new InvalidOperationException("No player-built pieces in the box. Stand inside the building at floor level and Capture again.");
             var data=new List<BlueprintEntry>();
             foreach(var piece in selection)
             {
@@ -99,10 +100,12 @@ namespace ValheimSoloToolkit
                 data.Add(new BlueprintEntry{Prefab=Utils.GetPrefabName(piece.gameObject),X=p.x,Y=p.y,Z=p.z,QX=q.x,QY=q.y,QZ=q.z,QW=q.w,Sign=sign?sign.GetText():""});
             }
             data.Sort((a,b)=>a.Y.CompareTo(b.Y));BlueprintData.Validate(data);
-            Directory.CreateDirectory(Folder);string path=Path.Combine(Folder,BlueprintData.SafeName(name)+".vbp");
-            // Existing names are never silently overwritten.
-            using(var stream=new FileStream(path,FileMode.CreateNew,FileAccess.Write))BlueprintData.Write(stream,data);
-            Cancel();Status("Saved "+name+" ("+data.Count+" furnished pieces). Use Load blueprint to paste it.");
+            BlueprintCapture.Set(name,data);
+        }
+        private void Save()
+        {
+            string path=DragBuildV5.SaveCaptured();
+            Status("File saved successfully: "+path);
         }
         private void Load(string value)
         {
@@ -136,13 +139,13 @@ namespace ValheimSoloToolkit
             for(int batch=0;batch<4&&building;batch++)
             {
                 var e=entries[index];var prefab=ZNetScene.instance.GetPrefab(e.Prefab).GetComponent<Piece>();
-                var tool=(ItemDrop.ItemData)DragBuildV4.RightItem.Invoke(owner,null);bool free=owner.NoCostCheat();
+                var tool=(ItemDrop.ItemData)DragBuildV5.RightItem.Invoke(owner,null);bool free=owner.NoCostCheat();
                 if(!free&&(!owner.HaveRequirements(prefab,Player.RequirementMode.CanBuild)||!owner.HaveStamina(tool.m_shared.m_attack.m_attackStamina)||(tool.m_shared.m_useDurability&&tool.m_durability<=0)))
                 {Cancel();Status("Blueprint stopped after "+index+" pieces: materials, station, stamina or hammer depleted. Undo can remove placed pieces.");return;}
                 Quaternion rot=Quaternion.Euler(0,yaw,0);Vector3 pos=origin+Vector3.up*height+rot*Position(e);
                 var before=new List<Piece>();Piece.GetAllPiecesInRadius(pos,.1f,before);
                 Piece created=null;
-                try{DragBuildV4.Place.Invoke(owner,new object[]{prefab,pos,rot*Rotation(e),false,!PlayerProfile.s_bypassCheatChecks});}
+                try{DragBuildV5.Place.Invoke(owner,new object[]{prefab,pos,rot*Rotation(e),false,!PlayerProfile.s_bypassCheatChecks});}
                 finally
                 {
                     var after=new List<Piece>();Piece.GetAllPiecesInRadius(pos,.1f,after);
@@ -153,9 +156,9 @@ namespace ValheimSoloToolkit
                 index++;meshes[index-1].SetActive(false);
                 if(!free&&!ZoneSystem.instance.GetGlobalKey(prefab.FreeBuildKey()))owner.ConsumeResources(prefab.m_resources,0,-1,1);
                 if(!free)
-                {owner.UseStamina((float)DragBuildV4.BuildStamina.Invoke(owner,null));if(tool.m_shared.m_useDurability)tool.m_durability=Mathf.Max(0,tool.m_durability-(float)DragBuildV4.BuildDurability.Invoke(owner,new object[]{tool})*Game.m_durabilityRate);}
+                {owner.UseStamina((float)DragBuildV5.BuildStamina.Invoke(owner,null));if(tool.m_shared.m_useDurability)tool.m_durability=Mathf.Max(0,tool.m_durability-(float)DragBuildV5.BuildDurability.Invoke(owner,new object[]{tool})*Game.m_durabilityRate);}
                 var sign=created.GetComponent<Sign>();if(sign&&!String.IsNullOrEmpty(e.Sign))sign.SetText(e.Sign);
-                DragBuildV4.LastUse.SetValue(owner,Time.time);
+                DragBuildV5.LastUse.SetValue(owner,Time.time);
                 Status("Built "+index+"/"+entries.Count+" pieces from "+name+". Undo affects only this paste.");
                 if(index==entries.Count)Cancel();
             }
@@ -190,7 +193,7 @@ namespace ValheimSoloToolkit
             if(!allowed){if(building||undoing){Cancel();Status("Building paused/cancelled: controls or hammer unavailable. Already placed pieces remain; Undo is available.");}return true;}
             try
             {
-                var command=DragBuildV4.TakeRequest();
+                var command=DragBuildV5.TakeRequest();
                 if(command!=null)
                 {
                     if(command.Code==1)
@@ -198,7 +201,9 @@ namespace ValheimSoloToolkit
                         var parts=command.Text.Split('|');if(parts.Length!=4)throw new InvalidDataException("Capture requires name and width, height, depth.");
                         name=BlueprintData.SafeName(parts[0]);float[] values=new float[3];
                         for(int i=0;i<3;i++)if(!Single.TryParse(parts[i+1],System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out values[i])||Single.IsNaN(values[i])||values[i]<2||values[i]>80)throw new InvalidDataException("Box dimensions must be 2-80 metres.");
-                        Cancel();size=new Vector3(values[0],values[1],values[2]);selecting=true;nextScan=0;
+                        Cancel();size=new Vector3(values[0],values[1],values[2]);selecting=true;
+                        // Snapshot the character's world origin once, not its animated camera/eye.
+                        origin=owner.transform.position-Vector3.up;locked=haveAim=true;Scan();
                     }
                     else if(command.Code==2)Load(command.Text);
                     else if(command.Code==3){Cancel();Status("Preview cancelled. Saved blueprints and pasted pieces remain.");}
@@ -207,12 +212,11 @@ namespace ValheimSoloToolkit
                 if(Input.GetKeyDown(KeyCode.Escape)){Cancel();Status("Blueprint operation cancelled.");return true;}
                 if(building){Build();return true;}if(undoing){Undo();return true;}
                 if(!selecting&&!previewing)return true;
-                if(!locked){Vector3 point;haveAim=Aim(out point,previewing);if(haveAim)origin=point;}
-                if(Input.GetKeyDown(KeyCode.F6)&&haveAim){if(selecting&&!locked)Scan();locked=!locked;Status(locked?"Preview locked. F7 saves selection / builds blueprint; F6 unlocks.":"Preview unlocked; aim to reposition.");}
+                if(previewing&&!locked){Vector3 point;haveAim=Aim(out point,previewing);if(haveAim)origin=point;}
+                if(previewing&&Input.GetKeyDown(KeyCode.F6)&&haveAim){locked=!locked;Status(locked?"Preview locked. F7 saves selection / builds blueprint; F6 unlocks.":"Preview unlocked; aim to reposition.");}
                 if(selecting)
                 {
-                    if(!locked&&haveAim&&Time.time>=nextScan){nextScan=Time.time+.25f;Scan();}
-                    if(Input.GetKeyDown(KeyCode.F7))Save();
+                    if(Input.GetKeyDown(KeyCode.F7)){try{Save();}catch(Exception e){Status("Save failed: "+e.GetBaseException().Message);}}
                 }
                 else
                 {
