@@ -21,7 +21,7 @@ if ValheimSpawnStop then ValheimSpawnStop(); ValheimSpawnStop=nil end
 if ValheimInventoryWindow then pcall(function() ValheimInventoryWindow.destroy() end) end
 local form = createForm(false)
 ValheimInventoryWindow = form
-form.Caption = 'Valheim inventory and skills'
+form.Caption = 'Valheim Solo Toolkit | Enemy form v2'
 form.Width = 760
 form.Height = 705
 form.Position = 'poScreenCenter'
