@@ -74,7 +74,6 @@ Freezing captures the stacks you have now. New items and newly split stacks star
 | **Rapid hoe** | Hold use to repeat hoe terrain actions up to 20 times per second, with stamina refill and full hoe durability. |
 | **Enemy form** | Choose from 26 creature forms with native movement and attack weapons, including Sea Serpent, Fuling Berserker, Cultist, Abomination and Asksvin. |
 | **Free crafting** | Bypasses crafting and building material requirements. |
-| **Learn all recipes** | Permanently grants enabled crafting and building recipes to your current character, including forge recipes. |
 | **Unlimited carry** | Prevents encumbrance, even when you exceed the normal weight limit. |
 | **Kameha** | The original cyan bow beam, with swirling particles, wind ribbons and bright impact effects. Targets hostile monsters. |
 | **Death Beam** | Evil crimson/purple bow beam that penetrates terrain, excavates trenches and damages creatures, buildings, trees and rocks along its full 80m path. |
@@ -96,8 +95,6 @@ Death Beam applies 500 generic damage plus chopping/pickaxe damage every 0.1 sec
 **Death Beam v2 excavation fix:** Ground impacts now use the iron pickaxe's registered terrain prefab through the game's normal pickaxe-impact routine. The previous temporary terrain object was discarded because this game version transmits only registered prefab names. Aim at or into the ground and hold fire; repeated sweeps dig down from the current surface. Normal pickaxe depth and area restrictions apply. Disable the old beam before reloading; this fix is included in **DBZ Powers v1**.
 
 Enable **Rapid miner** in **Skills and movement**, equip a pickaxe, and hold attack. Switching to another tool stops its effects. Normal mining range, hit detection and pickaxe tier requirements still apply. Disable it to restore normal animation speed; refilled stamina and durability remain. The separate Unlimited stamina toggle works independently. The 10× setting controls animation speed, not a guaranteed tenfold ore yield.
-
-**Learn all recipes** is beside **Refresh** in the inventory actions. Click once, return to your normal player in Valheim and unpause. The one-shot grant adds enabled item recipes and enabled pieces from registered building-tool tables to your character's known recipes, then reports the number learned. Reopen crafting/build menus afterward. Learning persists through normal character saves; it does not require Free Crafting or a special item. It does not grant materials, station upgrades, boss progress, or disabled/season-gated content. Normal crafting requirements still apply. Clicking the queued button again or closing the toolkit cancels a grant that has not started. Compilation and automated tests pass; live crafting-menu refresh and save/reload still need verification.
 
 Enable **Rapid hoe** beside Rapid miner, equip the hoe, choose its terrain action and hold the use button (mouse attack or controller place). Release to stop repeating. Normal terrain restrictions and material costs still apply, including stone for raising ground. Switching tools or disabling restores the original placement cooldown. Refilled stamina and durability remain. It can run alongside Rapid miner; each affects only its own tool.
 
