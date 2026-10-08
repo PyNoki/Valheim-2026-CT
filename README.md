@@ -72,7 +72,7 @@ Freezing captures the stacks you have now. New items and newly split stacks star
 | **Unlimited stamina** | Replenishes stamina while enabled. |
 | **Rapid miner** | Speeds up pickaxe swing animations to 10×, refills stamina and keeps the equipped pickaxe at full durability. |
 | **Rapid hoe** | Hold use to repeat hoe terrain actions up to 20 times per second, with stamina refill and full hoe durability. |
-| **Enemy form** | Temporarily control a Greydwarf, Skeleton, Draugr, Wolf, Troll or Sea Serpent using its native movement and attack weapons. |
+| **Enemy form** | Choose from 26 creature forms with native movement and attack weapons, including Sea Serpent, Fuling Berserker, Cultist, Abomination and Asksvin. |
 | **Free crafting** | Bypasses crafting and building material requirements. |
 | **Unlimited carry** | Prevents encumbrance, even when you exceed the normal weight limit. |
 | **Bow beam** | Hold attack with a bow to unleash an energy beam with swirling particles, wind ribbons and bright impact effects. |
@@ -85,13 +85,31 @@ Enable **Rapid hoe** beside Rapid miner, equip the hoe, choose its terrain actio
 
 **Enemy form** is under **Skills and movement**. Finish any attack or teleport, click the toggle, choose a form, then return to Valheim and unpause. Your original player is hidden and suspended while you control a newly spawned enemy body. This is an experimental solo feature; compilation and mocked tests pass, but live camera, animations and combat still need an in-game check.
 
-**Turning fix (v5):** All six forms face the movement direction while moving, and follow camera aim while idle or attacking. Facing updates no longer restart an unfinished look transition every frame. The game still applies each creature's native turn speed and attack restrictions. Return from any active form and unpause before reloading the updated table.
+**Turning fix (v5):** Forms face the movement direction while moving, and follow camera aim while idle or attacking. Facing updates no longer restart an unfinished look transition every frame. The game still applies each creature's native turn speed and attack restrictions. Return from any active form and unpause before reloading the updated table.
 
-**Sea Serpent** is option **6** in Enemy form. Transform in deep water with room for the body. Normal movement steers its native surface swimming, and Attack uses its native attack weapon. This transforms you at your current location; it does not teleport you to an existing serpent or automatically find the ocean. F8 returns your player at the serpent’s last position, including in water. Return to your player and unpause before loading the new table; the window title should show **Enemy form v5**. Sea Serpent still needs an in-game check.
+**Expanded roster (v6):** The original six choices keep their numbers. Added forms use the same turning controls, identity hiding and F8 return. Large creatures need open space; native area attacks can affect nearby objects. Added forms are experimental and still need in-game checks. Missing or incompatible prefabs cancel before suspending the player.
+
+| Number | Form | Number | Form |
+| :--- | :--- | :--- | :--- |
+| 1 | Greydwarf | 14 | Blob |
+| 2 | Skeleton | 15 | Oozer |
+| 3 | Draugr | 16 | Surtling |
+| 4 | Wolf | 17 | Fenring |
+| 5 | Troll | 18 | Cultist |
+| 6 | Sea Serpent | 19 | Fuling |
+| 7 | Greyling | 20 | Fuling Berserker |
+| 8 | Neck | 21 | Fuling Shaman |
+| 9 | Greydwarf Brute | 22 | Lox |
+| 10 | Greydwarf Shaman | 23 | Seeker Brood |
+| 11 | Draugr Elite | 24 | Seeker Soldier |
+| 12 | Draugr Archer | 25 | Abomination |
+| 13 | Rancid Remains | 26 | Asksvin |
+
+**Sea Serpent** is option **6** in Enemy form. Transform in deep water with room for the body. Normal movement steers its native surface swimming, and Attack uses its native attack weapon. This transforms you at your current location; it does not teleport you to an existing serpent or automatically find the ocean. F8 returns your player at the serpent’s last position, including in water. Return to your player and unpause before loading the new table; the window title should show **Enemy form v6**. Sea Serpent still needs an in-game check.
 
 The transformation waits for Valheim to initialize the enemy's native weapons before suspending your player, including built-in unarmed attacks. If no attack becomes available within three seconds of game time, it cancels and leaves your player unchanged. The V2 helper fixes the early “no usable native attack weapons” error; reload the updated table to load the new helper even in an existing game session.
 
-**Enemy form v5** also hides your player nameplate and local map/minimap position markers, temporarily blanks the player's network display name, and turns off shared map position. Returning restores your original display name and map-sharing preference. Other players' markers and nameplates are unaffected. This remains a solo-oriented transformation: it does **not** guarantee that other clients see only the enemy model, and shared-map changes depend on normal network updates. Your account and saved character-profile name are not changed.
+**Enemy form v6** also hides your player nameplate and local map/minimap position markers, temporarily blanks the player's network display name, and turns off shared map position. Returning restores your original display name and map-sharing preference. Other players' markers and nameplates are unaffected. This remains a solo-oriented transformation: it does **not** guarantee that other clients see only the enemy model, and shared-map changes depend on normal network updates. Your account and saved character-profile name are not changed.
 
 | Enemy-form control | Action |
 | :--- | :--- |
