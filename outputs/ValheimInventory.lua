@@ -1,7 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
-<CheatTable CheatEngineTableVersion="45">
-  <CheatEntries />
-  <LuaScript>-- Valheim inventory editor prototype for Cheat Engine 7.6, 64-bit Mono.
+-- Valheim inventory editor prototype for Cheat Engine 7.6, 64-bit Mono.
 -- Inventory freeze uses a validated timer; god mode adds a local-player damage hook.
 -- Mono x64 array/string layouts are validated before use.
 if ValheimInventoryStop then pcall(ValheimInventoryStop) end
@@ -195,7 +192,7 @@ local hints={
   {resetMovementButton,'Restore the original movement speeds and jump force.'},
   {flightButton,'Enable flight: Space = up, Left Ctrl = down, Shift = faster. Does not disable collisions.'},
   {beamButton,'Hold attack with a bow to fire the energy beam at hostile monsters. Players, pets and buildings are excluded.'},
-  {teleportButton,'Create a named marker or ping on the game map, refresh destinations, and teleport to it. Also save current-position bookmarks, enter coordinates, or visit players sharing their position. Click Help &amp; tips for steps.'},
+  {teleportButton,'Create a named marker or ping on the game map, refresh destinations, and teleport to it. Also save current-position bookmarks, enter coordinates, or visit players sharing their position. Click Help & tips for steps.'},
   {listbox,'Select an item before using Selected item or Clear selected flag. X = frozen. Flag Y = cheated; - = clear; ? = unreadable.'}
 }
 for _,entry in ipairs(hints) do hint(entry[1],entry[2]) end
@@ -208,7 +205,7 @@ local title = createLabel(form)
 title.Caption = 'VALHEIM  |  Solo toolkit'; title.Left=20; title.Top=14; title.Font.Size=17
 form.Color=0x202020;form.Font.Color=0xE6E6E6
 local helpLink=createLabel(form)
-helpLink.Caption='? Help &amp; tips';helpLink.Font.Size=12;helpLink.Font.Color=0x8DCCE8
+helpLink.Caption='? Help & tips';helpLink.Font.Size=12;helpLink.Font.Color=0x8DCCE8
 helpLink.Cursor=-21;helpLink.OnClick=openHelp
 hint(helpLink,'Open the full action guide: inventory, deletion, item flags, map markers, pings and teleporting.')
 local subtitle = createLabel(form)
@@ -244,7 +241,7 @@ end
 flagWarningHelp.Font.Color=0x8DCCE8
 hint(godWarning,godButton.Hint)
 hint(craftingWarning,craftingButton.Hint)
-hint(flagWarningHelp,'Select the affected item and use Item flags &gt; Clear selected flag. Then drop it from your inventory and pick it up again. Keep item flags off clears carried-item flags continuously. Use the normal drop action, not Inventory delete. Click for the full guide.')
+hint(flagWarningHelp,'Select the affected item and use Item flags > Clear selected flag. Then drop it from your inventory and pick it up again. Keep item flags off clears carried-item flags continuously. Use the normal drop action, not Inventory delete. Click for the full guide.')
 flagWarningHelp.Cursor=-21;flagWarningHelp.OnClick=openHelp
 local actionLabels={}
 for i,text in ipairs({'Selected item','All stacks','Item flags'}) do
@@ -280,7 +277,7 @@ place(playerStatus,playerGroup,14,75,435,65)
 playerStatus.AutoSize=false; playerStatus.WordWrap=true
 local footer=createLabel(form)
 footer.Font.Color=0xB8B8B8
-footer.Caption='Hover any action for tips. Click Help &amp; tips for the full guide, including map markers, pings and teleporting.'
+footer.Caption='Hover any action for tips. Click Help & tips for the full guide, including map markers, pings and teleporting.'
 footer.Left=20; footer.Top=730
 -- Compact layout: fixed-height actions/notices; spare height belongs to the item list.
 local layingOut=false
@@ -295,7 +292,7 @@ local function layoutWindow()
     local buttonH=math.max(28,line+10)
     local half=math.floor((w-margin*2-gap)/2)
     -- Reserve two wrapped lines per warning only at narrower window widths.
-    local warningLines=half&lt;580 and 2 or 1
+    local warningLines=half<580 and 2 or 1
     local warningH=line*warningLines
     local lowerH=26+12+4*(buttonH+6)+line*2+8+warningH*3+8
     local footerH=line
@@ -385,7 +382,7 @@ form.OnClose = function() stopFreeze(); return caHide end
 form.OnDestroy = function() stopFreeze() end
 
 local function pointer(value, label)
-  assert(type(value) == 'number' and value &gt; 0, label .. ' unavailable')
+  assert(type(value) == 'number' and value > 0, label .. ' unavailable')
   return value
 end
 local function fields(class)
@@ -409,7 +406,7 @@ local function objectClass(address)
 end
 local function offset(class, name)
   local f = field(class, name)
-  assert(not f.isStatic and f.offset &gt;= 0x10, 'Unexpected field: ' .. name)
+  assert(not f.isStatic and f.offset >= 0x10, 'Unexpected field: ' .. name)
   return f.offset
 end
 local function integer(address, label)
@@ -420,7 +417,7 @@ end
 local function stringValue(address)
   pointer(address, 'Name string')
   local length = integer(address + 0x10, 'string length')
-  assert(length &gt;= 0 and length &lt;= 512, 'Unexpected Mono string layout')
+  assert(length >= 0 and length <= 512, 'Unexpected Mono string layout')
   if length == 0 then return '(unnamed)' end
   return assert(readString(address + 0x14, length * 2, true), 'Cannot read name')
 end
@@ -445,13 +442,13 @@ local function snapshot()
   -- CE 7.6 exposes the actual storage address on enumerated static fields.
   -- Read the reference there rather than relying on the domain-0 vtable getter.
   local storage = localField.staticAddress
-  if not storage or storage &lt;= localField.offset then
+  if not storage or storage <= localField.offset then
     local base = mono_class_getStaticFieldAddress(playerClass)
-    if base and base &gt; 0 then storage = base + localField.offset end
+    if base and base > 0 then storage = base + localField.offset end
   end
   pointer(storage, 'Local-player static storage')
   local playerValue = readPointer(storage)
-  assert(playerValue and playerValue &gt; 0, string.format(
+  assert(playerValue and playerValue > 0, string.format(
     'Local player is null/unreadable at static storage %X (field +%X). Load your world, then refresh.',
     storage, localField.offset))
   local player = playerValue
@@ -462,11 +459,11 @@ local function snapshot()
   local versionOffset = offset(class, '_version')
   local arrayOffset = offset(class, '_items')
   local count = integer(collection + sizeOffset, 'list count')
-  assert(count &gt;= 0 and count &lt;= 512, 'Unexpected inventory size')
+  assert(count >= 0 and count <= 512, 'Unexpected inventory size')
   local version = integer(collection + versionOffset, 'list version')
   local array = pointer(readPointer(collection + arrayOffset), 'Item array')
   local capacity = readQword(array + 0x18)
-  assert(capacity and capacity &gt;= count and capacity &lt;= 4096, 'Unexpected Mono array layout')
+  assert(capacity and capacity >= count and capacity <= 4096, 'Unexpected Mono array layout')
   local result = {player=player, inventory=inventory, collection=collection, version=version, items={}}
   for i=0,count-1 do
     result.items[#result.items+1] = pointer(readPointer(array + 0x20 + i*8), 'Item')
@@ -484,7 +481,7 @@ local function itemInfo(item)
   local name = stringValue(namePointer)
   local maximum = integer(shared + offset(sharedClass, 'm_maxStackSize'), 'stack limit')
   local quantity = integer(item + stackOffset, 'quantity')
-  assert(maximum &gt;= 1 and maximum &lt;= maxQuantity and quantity &gt;= 1 and quantity &lt;= maxQuantity,
+  assert(maximum >= 1 and maximum <= maxQuantity and quantity >= 1 and quantity <= maxQuantity,
     'Unexpected item quantity or stack limit')
   local flagField=fields(class).m_cheated
   local cheated
@@ -552,7 +549,7 @@ edit.OnClick = function()
     local answer = inputQuery('Edit quantity', row.name .. '\nNew quantity (overstack allowed; normal limit ' .. row.maximum .. '):', tostring(row.quantity))
     if answer == nil then return end
     local value = tonumber(answer)
-    if not (value and value == math.floor(value) and value &gt;= 1 and value &lt;= maxQuantity) then
+    if not (value and value == math.floor(value) and value >= 1 and value <= maxQuantity) then
       showMessage('Enter a whole number from 1 to 2147483647. Overstack values are allowed.')
       return
     end
@@ -637,7 +634,7 @@ local function makeFreeze(row, snap)
     local listClass = objectClass(snap.collection)
     local sharedClass = objectClass(current.shared)
     local storage = localField.staticAddress
-    if not storage or storage &lt;= localField.offset then
+    if not storage or storage <= localField.offset then
       storage = pointer(mono_class_getStaticFieldAddress(playerClass), 'Static storage') + localField.offset
     end
     return {row=current, snap=snap, storage=storage,
@@ -691,10 +688,10 @@ timer.OnTimer = function()
     assert(readPointer(snap.collection) == f.listType, 'Inventory list identity changed')
     local version = integer(snap.collection + f.versionOffset, 'list version')
     local count = integer(snap.collection + f.sizeOffset, 'item count')
-    assert(count &gt;= 0 and count &lt;= 512, 'Unexpected inventory size')
+    assert(count >= 0 and count <= 512, 'Unexpected inventory size')
     local array = pointer(readPointer(snap.collection + f.arrayOffset), 'Item array')
     local capacity = readQword(array + 0x18)
-    assert(capacity and capacity &gt;= count and capacity &lt;= 4096, 'Item array changed')
+    assert(capacity and capacity >= count and capacity <= 4096, 'Item array changed')
     local found = false
     for i=0,count-1 do if readPointer(array + 0x20 + i*8) == row.item then found=true; break end end
     -- A split can resize/reorder the list. Retry next tick if it changes mid-read.
@@ -707,7 +704,7 @@ timer.OnTimer = function()
       and readPointer(row.shared + f.nameOffset) == row.namePointer
       and readInteger(row.shared + f.maxOffset) == row.maximum, 'Item identity changed')
     local value = integer(row.address, 'quantity')
-    assert(value &gt;= 1 and value &lt;= maxQuantity, 'Stack depleted or invalid quantity')
+    assert(value >= 1 and value <= maxQuantity, 'Stack depleted or invalid quantity')
     if readInteger(snap.collection + f.versionOffset) ~= version then return end
     if value ~= row.quantity then
       assert(writeInteger(row.address, row.quantity), 'Freeze write failed')
@@ -728,7 +725,7 @@ end
 local function inspectSkills()
   if not session or session ~= getProcessIDFromProcessName('valheim.exe') then initialize() end
   local storage = localField.staticAddress
-  if not storage or storage &lt;= localField.offset then
+  if not storage or storage <= localField.offset then
     storage = pointer(mono_class_getStaticFieldAddress(playerClass), 'Static storage') + localField.offset
   end
   local player = pointer(readPointer(storage), 'Local player')
@@ -745,8 +742,8 @@ local function inspectSkills()
   local free = integer(dictionary + offset(dc, '_freeCount'), 'free skill entries')
   local version = integer(dictionary + versionOff, 'skill version')
   local capacity = readQword(entries + 0x18)
-  assert(count &gt;= 1 and count &lt;= 512 and free &gt;= 0 and free &lt;= count
-    and capacity and capacity &gt;= count and capacity &lt;= 4096, 'Unexpected skill dictionary size')
+  assert(count >= 1 and count <= 512 and free >= 0 and free <= count
+    and capacity and capacity >= count and capacity <= 4096, 'Unexpected skill dictionary size')
   local ec = pointer(mono_class_getArrayElementClass(objectClass(entries)), 'Skill entry class')
   assert(offset(ec,'hashCode') == 0x10 and offset(ec,'next') == 0x14
     and offset(ec,'key') == 0x18 and offset(ec,'value') == 0x20, 'Unsupported skill entry layout')
@@ -754,7 +751,7 @@ local function inspectSkills()
   for i=0,count-1 do
     local entry = entries + 0x20 + i*24
     local hash = integer(entry, 'skill hash')
-    if hash &gt;= 0 and hash &lt; 2147483648 then
+    if hash >= 0 and hash < 2147483648 then
       local key = integer(entry + 8, 'skill key')
       assert(not keys[key], 'Duplicate skill key')
       keys[key] = true
@@ -766,13 +763,13 @@ local function inspectSkills()
       assert(integer(info + offset(objectClass(info), 'm_skill'), 'definition key') == key,
         'Skill definition does not match dictionary key')
       local old, progress = readFloat(level), readFloat(accumulator)
-      assert(old and old == old and old &gt;= 0 and old &lt;= 1000000
-        and progress and progress == progress and math.abs(progress) &lt; 1e30, 'Invalid skill data')
+      assert(old and old == old and old >= 0 and old <= 1000000
+        and progress and progress == progress and math.abs(progress) < 1e30, 'Invalid skill data')
       pending[#pending+1] = {key=key, entry=entry, skill=skill, level=level, accumulator=accumulator,
         old=old, progress=progress}
     end
   end
-  assert(#pending == count-free and #pending &gt; 0, 'Skill entry count mismatch')
+  assert(#pending == count-free and #pending > 0, 'Skill entry count mismatch')
   local function stable()
     assert(readPointer(storage) == player and readPointer(player+skillsOff) == skills
       and readPointer(skills+dictOff) == dictionary and readPointer(dictionary+entriesOff) == entries
@@ -788,7 +785,7 @@ local function inspectSkills()
   return {rows=pending,stable=stable,player=player,skills=skills,pid=session}
 end
 local function setSkills(value,selected,expected)
-  assert(value and value == value and value &gt;= 0 and value &lt;= 1000000,
+  assert(value and value == value and value >= 0 and value <= 1000000,
     'Enter a finite skill level from 0 to 1000000.')
   local snapshot=inspectSkills()
   if expected then
@@ -810,7 +807,7 @@ local function setSkills(value,selected,expected)
   if selected then
     for key in pairs(selected) do assert(found[key],'A selected skill disappeared. Refresh first.') end
   end
-  assert(#pending&gt;0,'Select at least one skill.')
+  assert(#pending>0,'Select at least one skill.')
   local stable=snapshot.stable
   local written = {}
   local ok, err = pcall(function()
@@ -821,7 +818,7 @@ local function setSkills(value,selected,expected)
       assert(writeFloat(p.level, value), 'Skill level write failed')
       assert(writeFloat(p.accumulator, 0), 'Skill progress write failed')
       local actual = readFloat(p.level)
-      assert(actual and math.abs(actual-value) &lt;= math.max(0.0001, value*0.000001)
+      assert(actual and math.abs(actual-value) <= math.max(0.0001, value*0.000001)
         and readFloat(p.accumulator) == 0, 'Skill write verification failed')
     end
   end)
@@ -871,7 +868,7 @@ end
 local function refreshSkills()
   local fresh=inspectSkills()
   local names=skillNames()
-  table.sort(fresh.rows,function(a,b) return (names[a.key] or tostring(a.key))&lt;(names[b.key] or tostring(b.key)) end)
+  table.sort(fresh.rows,function(a,b) return (names[a.key] or tostring(a.key))<(names[b.key] or tostring(b.key)) end)
   local selected={}
   for _,entry in ipairs(checks or {}) do
     if entry.control.Checked then selected[entry.key]=true end
@@ -888,13 +885,13 @@ local function refreshSkills()
     hint(cb,'Check to change this skill. Unchecked skills keep their level and progress.')
     cb.OnChange=function()
       if changing then return end
-      local every=#checks&gt;0
+      local every=#checks>0
       for _,entry in ipairs(checks) do if not entry.control.Checked then every=false end end
       changing=true;all.Checked=every;changing=false
     end
     checks[#checks+1]={key=p.key,control=cb}
   end
-  local every=#checks&gt;0
+  local every=#checks>0
   for _,entry in ipairs(checks) do if not entry.control.Checked then every=false end end
   changing=true;all.Checked=every;changing=false
   window.Height=math.max(270,92+math.ceil(#checks/2)*28+94)
@@ -968,9 +965,9 @@ local function installDamageBlock(s)
   assert(signature and signature.returntype == 1, 'ApplyDamage must return void')
   local entry = pointer(mono_compile_method(method), 'Compiled ApplyDamage')
   local size, replay = 0, {}
-  while size &lt; 14 do
+  while size < 14 do
     local n = getInstructionSize(entry+size)
-    assert(n and n &gt; 0 and n &lt;= 15, 'Cannot decode damage method prologue')
+    assert(n and n > 0 and n <= 15, 'Cannot decode damage method prologue')
     replay[#replay+1] = string.format('reassemble(%X)',entry+size)
     size = size+n
   end
@@ -1012,7 +1009,7 @@ dq vhDamageGuard
 db %s
 dealloc(vhDamageGuard)
 ]],entry,original,entry,s.player,s.storage,table.concat(replay,'\n'),entry+size,
-    entry,size&gt;14 and string.format('nop %X',size-14) or '',entry,original)
+    entry,size>14 and string.format('nop %X',size-14) or '',entry,original)
   local ok, info = autoAssemble(script, false)
   assert(ok, 'Damage block installation failed: ' .. tostring(info))
   s.hookScript, s.hookInfo = script, info
@@ -1064,7 +1061,7 @@ form.OnDestroy = function() stopPlayerCheats(); stopFreeze() end
 local function playerContext()
   if not session or session ~= getProcessIDFromProcessName('valheim.exe') then initialize() end
   local storage = localField.staticAddress
-  if not storage or storage &lt;= localField.offset then
+  if not storage or storage <= localField.offset then
     storage = pointer(mono_class_getStaticFieldAddress(playerClass), 'Static storage') + localField.offset
   end
   local player = pointer(readPointer(storage), 'Local player')
@@ -1110,8 +1107,8 @@ staminaButton.OnClick = function()
     s.address = s.player + typedPlayerOffset('m_stamina','System.Single')
     s.maximum = s.player + typedPlayerOffset('m_maxStamina','System.Single')
     local maximum, current = readFloat(s.maximum), readFloat(s.address)
-    assert(maximum and maximum == maximum and maximum &gt; 0 and maximum &lt;= 1000000
-      and current and current == current and math.abs(current) &lt;= 1000000, 'Invalid stamina values')
+    assert(maximum and maximum == maximum and maximum > 0 and maximum <= 1000000
+      and current and current == current and math.abs(current) <= 1000000, 'Invalid stamina values')
     assert(playerIdentity(s), 'Player changed')
     assert(writeFloat(s.address,maximum), 'Stamina write failed')
     staminaState=s
@@ -1192,7 +1189,7 @@ playerTimer.OnTimer = function()
       local s=staminaState
       assert(playerIdentity(s), 'Player changed or world unloaded')
       local maximum=readFloat(s.maximum)
-      assert(maximum and maximum == maximum and maximum &gt; 0 and maximum &lt;= 1000000, 'Invalid maximum stamina')
+      assert(maximum and maximum == maximum and maximum > 0 and maximum <= 1000000, 'Invalid maximum stamina')
       assert(writeFloat(s.address,maximum), 'Stamina refill failed')
     end)
     if not ok then
@@ -1244,13 +1241,13 @@ cloneButton.OnClick = function()
     local ic=objectClass(snap.inventory)
     local width=integer(snap.inventory+offset(ic,'m_width'),'inventory width')
     local height=integer(snap.inventory+offset(ic,'m_height'),'inventory height')
-    assert(width&gt;0 and height&gt;0 and width*height&lt;=512,'Unexpected inventory dimensions')
+    assert(width>0 and height>0 and width*height<=512,'Unexpected inventory dimensions')
     local occupied, found={},false
     for _,item in ipairs(snap.items) do
       if item==row.item then found=true end
       local grid=item+offset(objectClass(item),'m_gridPos')
       local x,y=integer(grid,'slot x'),integer(grid+4,'slot y')
-      assert(x&gt;=0 and x&lt;width and y&gt;=0 and y&lt;height,'Item outside inventory grid')
+      assert(x>=0 and x<width and y>=0 and y<height,'Item outside inventory grid')
       occupied[y*width+x]=true
     end
     assert(found,'Selected item left your inventory. Refresh first.')
@@ -1331,14 +1328,14 @@ depositButton.OnClick=function()
     local snap=snapshot()
     local pc=playerClass
     local playerStorage=localField.staticAddress
-    if not playerStorage or playerStorage&lt;=localField.offset then
+    if not playerStorage or playerStorage<=localField.offset then
       playerStorage=pointer(mono_class_getStaticFieldAddress(pc),'Player storage')+localField.offset
     end
     local gc=pointer(mono_findClass('','InventoryGui'),'InventoryGui class')
     local gf=field(gc,'m_instance')
     assert(gf.isStatic,'Unexpected GUI instance field')
     local guiStorage=gf.staticAddress
-    if not guiStorage or guiStorage&lt;=gf.offset then
+    if not guiStorage or guiStorage<=gf.offset then
       guiStorage=pointer(mono_class_getStaticFieldAddress(gc),'GUI storage')+gf.offset
     end
     local containerOff=offset(gc,'m_currentContainer')
@@ -1350,9 +1347,9 @@ depositButton.OnClick=function()
     local method=matchingMethod(ic,'MoveItemToThis',{18,18},1)
     local entry=pointer(mono_compile_method(method),'Quick transfer code')
     local size,replay=0,{}
-    while size&lt;14 do
+    while size<14 do
       local n=getInstructionSize(entry+size)
-      assert(n and n&gt;0 and n&lt;=15,'Cannot decode transfer prologue')
+      assert(n and n>0 and n<=15,'Cannot decode transfer prologue')
       replay[#replay+1]=string.format('reassemble(%X)',entry+size)
       size=size+n
     end
@@ -1426,7 +1423,7 @@ dq vhRefill
 db %s
 dealloc(vhRefill)
 ]],entry,original,entry,playerStorage,inventoryOffset,guiStorage,containerOff,chestInvOff,
-      clone,table.concat(replay,'\n'),entry+size,entry,size&gt;14 and string.format('nop %X',size-14) or '',entry,original)
+      clone,table.concat(replay,'\n'),entry+size,entry,size>14 and string.format('nop %X',size-14) or '',entry,original)
     local installed,info=autoAssemble(script,false)
     assert(installed,'Auto refill installation failed: '..tostring(info))
     refillState={pid=session,script=script,info=info}
@@ -1470,7 +1467,7 @@ local function clearItemFlags(onlyRow)
   local lc=objectClass(snap.collection)
   local versionAddress=snap.collection+offset(lc,'_version')
   local storage=localField.staticAddress
-  if not storage or storage&lt;=localField.offset then
+  if not storage or storage<=localField.offset then
     storage=pointer(mono_class_getStaticFieldAddress(playerClass),'Player storage')+localField.offset
   end
   local function unchanged()
@@ -1514,7 +1511,7 @@ clearFlagButton.OnClick=function()
     flagTypes={}
     local count,complete=clearItemFlags(row)
     assert(complete,'Inventory changed during the check. Refresh and retry.')
-    status.Caption=count&gt;0 and 'Selected item flag cleared. Flag column now shows -.' or 'Selected item flag was already clear.'
+    status.Caption=count>0 and 'Selected item flag cleared. Flag column now shows -.' or 'Selected item flag was already clear.'
   end)
   if not ok then showMessage('Valheim item flags: '..tostring(err)) end
 end
@@ -1572,7 +1569,7 @@ form.OnClose=function() resetMovement(); return movementClose() end
 form.OnDestroy=function() resetMovement(); movementDestroy() end
 local function setMovement(kind,multiplier)
   local limit=kind=='speed' and 20 or 10
-  assert(multiplier and multiplier==multiplier and multiplier&gt;=0.1 and multiplier&lt;=limit,
+  assert(multiplier and multiplier==multiplier and multiplier>=0.1 and multiplier<=limit,
     'Enter a multiplier from 0.1 to '..limit..'.')
   if movementState and not playerIdentity(movementState) then movementState=nil end
   if not movementState then
@@ -1589,11 +1586,11 @@ local function setMovement(kind,multiplier)
     if not p then
       local address=s.player+typedPlayerOffset(name,'System.Single')
       local original=readFloat(address)
-      assert(original and original==original and original&gt;0 and original&lt;=10000,'Invalid normal value for '..name)
+      assert(original and original==original and original>0 and original<=10000,'Invalid normal value for '..name)
       p={name=name,address=address,original=original}; s.values[name]=p
     end
     local prior=readFloat(p.address)
-    assert(prior and prior==prior and prior&gt;0 and prior&lt;=1000000,'Invalid current movement value')
+    assert(prior and prior==prior and prior>0 and prior<=1000000,'Invalid current movement value')
     pending[#pending+1]={field=p,prior=prior,value=p.original*multiplier}
   end
   assert(playerIdentity(s),'Player changed; try again.')
@@ -1604,7 +1601,7 @@ local function setMovement(kind,multiplier)
       changed[#changed+1]=p
       assert(writeFloat(p.field.address,p.value),'Write failed: '..p.field.name)
       local actual=readFloat(p.field.address)
-      assert(actual and math.abs(actual-p.value)&lt;=math.max(0.0001,math.abs(p.value)*0.000001),
+      assert(actual and math.abs(actual-p.value)<=math.max(0.0001,math.abs(p.value)*0.000001),
         'Movement verification failed: '..p.field.name)
     end
   end)
@@ -1641,7 +1638,7 @@ do
 local window, destinations, teleportStatus, locationLabel, poll
 local entries, saved, worldKey = {}, {}, nil
 local hook, pending, settings
-local function finite(v,limit) return type(v)=='number' and v==v and math.abs(v)&lt;=limit end
+local function finite(v,limit) return type(v)=='number' and v==v and math.abs(v)<=limit end
 local function validPosition(p)
   return p and finite(p.x,20000) and finite(p.y,10000) and finite(p.z,20000)
 end
@@ -1659,7 +1656,7 @@ local function singleton(class,name)
   local f=field(class,name)
   assert(f.isStatic,'Expected static field '..name)
   local storage=f.staticAddress
-  if not storage or storage&lt;=f.offset then storage=pointer(mono_class_getStaticFieldAddress(class),'Static storage')+f.offset end
+  if not storage or storage<=f.offset then storage=pointer(mono_class_getStaticFieldAddress(class),'Static storage')+f.offset end
   return pointer(readPointer(storage),name)
 end
 local function context()
@@ -1688,13 +1685,13 @@ local function encodeName(name)
   return (name:gsub('.',function(c) return string.format('%02X',string.byte(c)) end))
 end
 local function decodeName(hex)
-  assert(#hex&lt;=320 and #hex%2==0 and not hex:find('[^%x]'),'Invalid saved location name')
+  assert(#hex<=320 and #hex%2==0 and not hex:find('[^%x]'),'Invalid saved location name')
   return (hex:gsub('%x%x',function(n) return string.char(tonumber(n,16)) end))
 end
 local function loadSaved(key)
   settings=settings or getSettings('ValheimSoloToolkit.Teleports.v1')
   local raw=settings['world_'..key] or ''
-  assert(#raw&lt;=131072,'Saved-location data is too large.')
+  assert(#raw<=131072,'Saved-location data is too large.')
   local result={}
   for line in raw:gmatch('[^\r\n]+') do
     local x,y,z,name=line:match('^([^|]+)|([^|]+)|([^|]+)|(%x+)$')
@@ -1703,7 +1700,7 @@ local function loadSaved(key)
     p.name=decodeName(name); p.source='Saved'; p.world=key
     result[#result+1]=p
   end
-  assert(#result&lt;=256,'Too many saved locations.')
+  assert(#result<=256,'Too many saved locations.')
   return result
 end
 local function persist()
@@ -1722,12 +1719,12 @@ local function readPins(s)
   local lc=objectClass(list)
   local count=integer(list+offset(lc,'_size'),'pin count')
   local version=integer(list+offset(lc,'_version'),'pin version')
-  assert(count&gt;=0 and count&lt;=10000,'Unexpected pin count.')
+  assert(count>=0 and count<=10000,'Unexpected pin count.')
   local result={}
-  if count&gt;0 then
+  if count>0 then
     local array=pointer(readPointer(list+offset(lc,'_items')),'Pin array')
     local capacity=readQword(array+0x18)
-    assert(capacity and capacity&gt;=count and capacity&lt;=16384,'Unexpected pin-array layout.')
+    assert(capacity and capacity>=count and capacity<=16384,'Unexpected pin-array layout.')
     for i=0,count-1 do
       local pin=pointer(readPointer(array+0x20+i*8),'Map pin')
       local pc=objectClass(pin)
@@ -1755,20 +1752,20 @@ local function readPlayers(s)
   local lc=objectClass(list)
   local count=integer(list+offset(lc,'_size'),'player count')
   local version=integer(list+offset(lc,'_version'),'player-list version')
-  assert(count&gt;=0 and count&lt;=256,'Unexpected player count.')
+  assert(count>=0 and count<=256,'Unexpected player count.')
   if count==0 then return {},0 end
   local array=pointer(readPointer(list+offset(lc,'_items')),'Player array')
   local capacity=readQword(array+0x18)
-  assert(capacity and capacity&gt;=count and capacity&lt;=1024,'Unexpected player-array layout.')
+  assert(capacity and capacity>=count and capacity<=1024,'Unexpected player-array layout.')
   local ac=objectClass(array)
   local pc=pointer(mono_class_getArrayElementClass(ac),'PlayerInfo class')
   assert(mono_class_isValueType(pc),'Expected inline PlayerInfo values.')
   local stride=mono_array_element_size(ac)
-  assert(stride and stride&gt;=32 and stride&lt;=1024,'Unexpected PlayerInfo size.')
+  assert(stride and stride>=32 and stride<=1024,'Unexpected PlayerInfo size.')
   local function inline(name,typename,size)
     local f=field(pc,name)
-    assert(not f.isStatic and f.typename==typename and f.offset&gt;=16
-      and f.offset-16+size&lt;=stride,'Unexpected PlayerInfo field: '..name)
+    assert(not f.isStatic and f.typename==typename and f.offset>=16
+      and f.offset-16+size<=stride,'Unexpected PlayerInfo field: '..name)
     return f.offset-16
   end
   local nameOff=inline('m_name','System.String',8)
@@ -1776,9 +1773,9 @@ local function readPlayers(s)
   local posOff=inline('m_position','UnityEngine.Vector3',12)
   local idOff=inline('m_characterID','ZDOID',8)
   local idClass=pointer(mono_findClass('','ZDOID'),'ZDOID class')
-  local keyOff=typedOffset(idClass,'&lt;UserKey&gt;k__BackingField','System.UInt16')-16
-  local valueOff=typedOffset(idClass,'&lt;ID&gt;k__BackingField','System.UInt32')-16
-  assert(keyOff&gt;=0 and keyOff+2&lt;=8 and valueOff&gt;=0 and valueOff+4&lt;=8,'Unexpected ZDOID layout.')
+  local keyOff=typedOffset(idClass,'<UserKey>k__BackingField','System.UInt16')-16
+  local valueOff=typedOffset(idClass,'<ID>k__BackingField','System.UInt32')-16
+  assert(keyOff>=0 and keyOff+2<=8 and valueOff>=0 and valueOff+4<=8,'Unexpected ZDOID layout.')
   local function identity(address)
     local b=readBytes(address+keyOff,2,true)
     local id=readBytes(address+valueOff,4,true)
@@ -1851,9 +1848,9 @@ local function installHook(s)
   local entry=pointer(mono_compile_method(method),'UpdateTeleport code')
   local target=pointer(mono_compile_method(teleport),'TeleportTo code')
   local size,replay=0,{}
-  while size&lt;14 do
+  while size<14 do
     local n=getInstructionSize(entry+size)
-    assert(n and n&gt;0 and n&lt;=15,'Cannot decode teleport prologue')
+    assert(n and n>0 and n<=15,'Cannot decode teleport prologue')
     replay[#replay+1]=string.format('reassemble(%X)',entry+size);size=size+n
   end
   local bytes=readBytes(entry,size,true)
@@ -1941,7 +1938,7 @@ db %s
 unregistersymbol(vhTeleportData)
 // Keep the retired 4 KB allocation until game exit: an in-flight call may still return here.
 ]],entry,original,entry,s.storage,target,table.concat(replay,'\n'),entry+size,entry,
-    size&gt;14 and string.format('nop %X',size-14) or '',entry,original)
+    size>14 and string.format('nop %X',size-14) or '',entry,original)
   local ok,info=autoAssemble(script,false)
   assert(ok,'Teleport hook installation failed: '..tostring(info))
   hook={pid=s.pid,script=script,info=info}
@@ -1992,7 +1989,7 @@ local function queueDestination(p)
   assert(not pending,'A teleport is already queued or running.')
   assert(readBytes(s.player+typedPlayerOffset('m_teleporting','System.Boolean'),1)==0,'Player is already teleporting.')
   local cooldown=readFloat(s.player+typedPlayerOffset('m_teleportCooldown','System.Single'))
-  assert(cooldown and cooldown&gt;=2,'Wait a few seconds after loading or teleporting, then try again.')
+  assert(cooldown and cooldown>=2,'Wait a few seconds after loading or teleporting, then try again.')
   installHook(s)
   assert(readInteger(hook.data)~=2,'Previous teleport call is still running.')
   assert(writeInteger(hook.data,0),'Cannot prepare teleport request')
@@ -2020,12 +2017,12 @@ local function pollTeleport()
       local p=currentPosition(s)
       local target=pending.target
       local distance=math.sqrt((p.x-target.x)^2+(p.z-target.z)^2)
-      teleportStatus.Caption=distance&lt;10 and ('Arrived: '..pending.name)
+      teleportStatus.Caption=distance<10 and ('Arrived: '..pending.name)
         or 'Teleport ended; arrival could not be confirmed. Refresh position before trying again.'
       pending=nil
       locationLabel.Caption=string.format('Current position: X %.2f   Y %.2f   Z %.2f',p.x,p.y,p.z)
     else teleportStatus.Caption='Teleporting: loading destination terrain...' end
-  elseif state==1 and pending.ticks&gt;=40 then
+  elseif state==1 and pending.ticks>=40 then
     teleportStatus.Caption='Still queued: return to Valheim and unpause, or click Cancel queued.'
   end
 end
@@ -2034,7 +2031,7 @@ local function openTeleportWindow()
   window=createForm(false);window.Caption='Valheim | Teleport tools'
   window.Width=960;window.Height=550;window.Position='poScreenCenter';window.BorderStyle='bsSizeable'
   local help=createLabel(window);help.AutoSize=false;help.WordWrap=true
-  help.Caption='Map: create a named marker or ping in Valheim, then Refresh locations and Teleport selected. Refresh while pings are visible. Saved positions are local bookmarks, not map markers. Players must share their position. Click Help &amp; tips for the full guide.'
+  help.Caption='Map: create a named marker or ping in Valheim, then Refresh locations and Teleport selected. Refresh while pings are visible. Saved positions are local bookmarks, not map markers. Players must share their position. Click Help & tips for the full guide.'
   window.Color=0x202020;window.Font.Color=0xE6E6E6;help.Font.Color=0x8DCCE8
   locationLabel=createLabel(window);locationLabel.AutoSize=false
   locationLabel.Caption='Current position: click Refresh locations. Position uses the player world-object snapshot; stand still when saving.'
@@ -2063,9 +2060,9 @@ local function openTeleportWindow()
     local name=inputQuery('Save teleport location','Name this position:', '')
     if name==nil then return end
     name=name:match('^%s*(.-)%s*$')
-    assert(#name&gt;0 and #name&lt;=160 and not name:find('[%c]'),'Use a name of 1-160 bytes without control characters.')
+    assert(#name>0 and #name<=160 and not name:find('[%c]'),'Use a name of 1-160 bytes without control characters.')
     assert(playerIdentity(s) and context().world==s.world,'World changed while naming the location.')
-    assert(#saved&lt;256,'Maximum of 256 saved locations per world.')
+    assert(#saved<256,'Maximum of 256 saved locations per world.')
     p.name=name;p.source='Saved';p.world=s.world
     saved[#saved+1]=p;persist();refreshLocations()
     teleportStatus.Caption='Saved '..name..'. Locations persist in local Cheat Engine settings.'
@@ -2090,7 +2087,7 @@ local function openTeleportWindow()
   end)
   button('Cancel queued',cancelQueued)
   button('Refresh players',refreshLocations)
-  local guide=createLabel(window);guide.Caption='? Help &amp; tips';guide.Font.Color=0x8DCCE8
+  local guide=createLabel(window);guide.Caption='? Help & tips';guide.Font.Color=0x8DCCE8
   guide.Cursor=-21;guide.OnClick=openHelp
   hint(guide,'Read step-by-step map marker, ping, bookmark and player teleport instructions.')
   hint(destinations,'Select a destination, then Teleport selected. Ping and Map pin rows use coordinates captured at refresh.')
@@ -2099,8 +2096,8 @@ local function openTeleportWindow()
     if resizing then return end;resizing=true
     local w=window.ClientWidth or window.Width-16
     local h=window.ClientHeight or window.Height-40
-    if w&lt;760 then window.Width=window.Width+760-w;w=760 end
-    if h&lt;400 then window.Height=window.Height+400-h;h=400 end
+    if w<760 then window.Width=window.Width+760-w;w=760 end
+    if h<400 then window.Height=window.Height+400-h;h=400 end
     place(help,window,16,12,w-32,54)
     place(locationLabel,window,16,72,w-32,40);locationLabel.WordWrap=true
     local bw=math.floor((w-56)/3)
@@ -2184,9 +2181,9 @@ beamButton.OnClick=function()
     local entry=pointer(mono_compile_method(matchingMethod(cc,'UpdateAttackBowDraw',{18,12},1)),'Bow draw code')
     local target=pointer(mono_compile_method(s.helper.hit),'Explosive-fists callback')
     local size,replay=0,{}
-    while size&lt;14 do
+    while size<14 do
       local n=getInstructionSize(entry+size)
-      assert(n and n&gt;0 and n&lt;=15,'Cannot decode damage prologue')
+      assert(n and n>0 and n<=15,'Cannot decode damage prologue')
       replay[#replay+1]=string.format('reassemble(%X)',entry+size);size=size+n
     end
     local bytes=readBytes(entry,size,true)
@@ -2258,7 +2255,7 @@ dq vhBowBeam
 db %s
 // Retain the retired allocation until game exit for in-flight callbacks.
 ]],entry,original,entry,s.storage,s.player,target,table.concat(replay,'\n'),entry+size,entry,
-      size&gt;14 and string.format('nop %X',size-14) or '',entry,original)
+      size>14 and string.format('nop %X',size-14) or '',entry,original)
     assert(playerIdentity(s),'Player changed before enabling bow beam')
     state=s
     local installed,info=autoAssemble(s.script,false)
@@ -2268,7 +2265,7 @@ db %s
     local ef=field(s.helper.class,'Enabled')
     assert(ef.isStatic and ef.typename=='System.Int32','Unexpected helper state layout')
     s.enabled=ef.staticAddress
-    if not s.enabled or s.enabled&lt;=ef.offset then s.enabled=pointer(mono_class_getStaticFieldAddress(s.helper.class),'Helper storage')+ef.offset end
+    if not s.enabled or s.enabled<=ef.offset then s.enabled=pointer(mono_class_getStaticFieldAddress(s.helper.class),'Helper storage')+ef.offset end
     assert(readInteger(s.enabled)==1,'Explosive-fists helper did not enable')
     if not watch then
       watch=createTimer(form,false);watch.Interval=250
@@ -2281,7 +2278,7 @@ db %s
             local ef=fields(state.helper.class).LastError
             if ef and ef.isStatic then
               local storage=ef.staticAddress
-              if not storage or storage&lt;=ef.offset then storage=pointer(mono_class_getStaticFieldAddress(state.helper.class),'Helper storage')+ef.offset end
+              if not storage or storage<=ef.offset then storage=pointer(mono_class_getStaticFieldAddress(state.helper.class),'Helper storage')+ef.offset end
               local text=readPointer(storage)
               if text and text~=0 then message=stringValue(text) end
             end
@@ -2327,9 +2324,9 @@ carryButton.OnClick=function()
     local method=matchingMethod(playerClass,'IsEncumbered',{},2)
     local entry=pointer(mono_compile_method(method),'Carry-limit code')
     local size,replay=0,{}
-    while size&lt;14 do
+    while size<14 do
       local n=getInstructionSize(entry+size)
-      assert(n and n&gt;0 and n&lt;=15,'Cannot decode carry-limit prologue')
+      assert(n and n>0 and n<=15,'Cannot decode carry-limit prologue')
       replay[#replay+1]=string.format('reassemble(%X)',entry+size);size=size+n
     end
     local bytes=readBytes(entry,size,true)
@@ -2368,7 +2365,7 @@ dq vhCarryLimit
 db %s
 // Retain the small trampoline until game exit for in-flight calls.
 ]],entry,original,entry,s.player,s.storage,table.concat(replay,'\n'),entry+size,entry,
-      size&gt;14 and string.format('nop %X',size-14) or '',entry,original)
+      size>14 and string.format('nop %X',size-14) or '',entry,original)
     assert(playerIdentity(s),'Player changed before enabling unlimited carry')
     local installed,info=autoAssemble(s.script,false)
     assert(installed,'Carry-limit hook failed: '..tostring(info))
@@ -2445,9 +2442,9 @@ deleteButton.OnClick=function()
     local entry=pointer(mono_compile_method(matchingMethod(cc,'Update',{},1)),'Inventory GUI update code')
     local target=pointer(mono_compile_method(s.helper.hit),'Explosive-fists callback')
     local size,replay=0,{}
-    while size&lt;14 do
+    while size<14 do
       local n=getInstructionSize(entry+size)
-      assert(n and n&gt;0 and n&lt;=15,'Cannot decode damage prologue')
+      assert(n and n>0 and n<=15,'Cannot decode damage prologue')
       replay[#replay+1]=string.format('reassemble(%X)',entry+size);size=size+n
     end
     local bytes=readBytes(entry,size,true)
@@ -2512,7 +2509,7 @@ dq vhDelete
 db %s
 // Retain the retired allocation until game exit for in-flight callbacks.
 ]],entry,original,entry,s.storage,s.player,target,table.concat(replay,'\n'),entry+size,entry,
-      size&gt;14 and string.format('nop %X',size-14) or '',entry,original)
+      size>14 and string.format('nop %X',size-14) or '',entry,original)
     assert(playerIdentity(s),'Player changed before enabling inventory deletion')
     state=s
     local installed,info=autoAssemble(s.script,false)
@@ -2522,7 +2519,7 @@ db %s
     local ef=field(s.helper.class,'Enabled')
     assert(ef.isStatic and ef.typename=='System.Int32','Unexpected helper state layout')
     s.enabled=ef.staticAddress
-    if not s.enabled or s.enabled&lt;=ef.offset then s.enabled=pointer(mono_class_getStaticFieldAddress(s.helper.class),'Helper storage')+ef.offset end
+    if not s.enabled or s.enabled<=ef.offset then s.enabled=pointer(mono_class_getStaticFieldAddress(s.helper.class),'Helper storage')+ef.offset end
     assert(readInteger(s.enabled)==1,'Explosive-fists helper did not enable')
     if not watch then
       watch=createTimer(form,false);watch.Interval=250
@@ -2605,9 +2602,9 @@ minerButton.OnClick=function()
     local entry=pointer(mono_compile_method(matchingMethod(cc,'Update',{},1)),'Player update code')
     local target=pointer(mono_compile_method(s.helper.hit),'Rapid-miner callback')
     local size,replay=0,{}
-    while size&lt;14 do
+    while size<14 do
       local n=getInstructionSize(entry+size)
-      assert(n and n&gt;0 and n&lt;=15,'Cannot decode damage prologue')
+      assert(n and n>0 and n<=15,'Cannot decode damage prologue')
       replay[#replay+1]=string.format('reassemble(%X)',entry+size);size=size+n
     end
     local bytes=readBytes(entry,size,true)
@@ -2672,7 +2669,7 @@ dq vhRapidMiner
 db %s
 // Retain the retired allocation until game exit for in-flight callbacks.
 ]],entry,original,entry,s.storage,s.player,target,table.concat(replay,'\n'),entry+size,entry,
-      size&gt;14 and string.format('nop %X',size-14) or '',entry,original)
+      size>14 and string.format('nop %X',size-14) or '',entry,original)
     assert(playerIdentity(s),'Player changed before enabling rapid mining')
     state=s
     local installed,info=autoAssemble(s.script,false)
@@ -2682,7 +2679,7 @@ db %s
     local ef=field(s.helper.class,'Enabled')
     assert(ef.isStatic and ef.typename=='System.Int32','Unexpected helper state layout')
     s.enabled=ef.staticAddress
-    if not s.enabled or s.enabled&lt;=ef.offset then s.enabled=pointer(mono_class_getStaticFieldAddress(s.helper.class),'Helper storage')+ef.offset end
+    if not s.enabled or s.enabled<=ef.offset then s.enabled=pointer(mono_class_getStaticFieldAddress(s.helper.class),'Helper storage')+ef.offset end
     assert(readInteger(s.enabled)==1,'Rapid-miner helper did not enable')
     if not watch then
       watch=createTimer(form,false);watch.Interval=250
@@ -2751,5 +2748,3 @@ do
   form.show()
   attempt()
 end
-</LuaScript>
-</CheatTable>

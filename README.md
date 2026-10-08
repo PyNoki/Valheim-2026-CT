@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="Valheim Solo Toolkit — Your world. Your rules." width="100%">
+  <img src="banner.svg" alt="Valheim Solo Toolkit — Your world. Your rules." width="100%">
 </p>
 
 <p align="center">
@@ -36,7 +36,7 @@ The **green Refresh inventory** button reloads your items whenever you need it. 
 
 ## Watch it in action
 
-> 🎬 **YouTube walkthrough — coming soon**  
+> 🎬 **YouTube walkthrough — coming soon**
 > A tour of the interface, inventory tools and everything you can do in your world.
 
 <!-- When the video is ready, replace the callout above with:
@@ -70,16 +70,19 @@ Freezing captures the stacks you have now. New items and newly split stacks star
 | :--- | :--- |
 | **God mode** | Blocks damage to your local player. |
 | **Unlimited stamina** | Replenishes stamina while enabled. |
+| **Rapid miner** | Speeds up pickaxe swing animations to 10×, refills stamina and keeps the equipped pickaxe at full durability. |
 | **Free crafting** | Bypasses crafting and building material requirements. |
 | **Unlimited carry** | Prevents encumbrance, even when you exceed the normal weight limit. |
 | **Bow beam** | Hold attack with a bow to unleash an energy beam with swirling particles, wind ribbons and bright impact effects. |
 
 The bow beam damages hostile monsters along its path. Players, pets and buildings are excluded from its damage targets.
 
+Enable **Rapid miner** in **Skills and movement**, equip a pickaxe, and hold attack. Switching to another tool stops its effects. Normal mining range, hit detection and pickaxe tier requirements still apply. Disable it to restore normal animation speed; refilled stamina and durability remain. The separate Unlimited stamina toggle works independently. The 10× setting controls animation speed, not a guaranteed tenfold ore yield.
+
 > [!IMPORTANT]
-> **God mode and Free crafting can affect item flags.**  
-> Killing monsters with an item while God mode is enabled can flag that item as cheated. Crafted or upgraded items can also receive the flag when using Free crafting.  
-> Select the affected item and use **Item flags → Clear selected flag**, then **drop it and pick it up again**. Use the normal drop action, not Inventory delete.  
+> **God mode and Free crafting can affect item flags.**
+> Killing monsters with an item while God mode is enabled can flag that item as cheated. Crafted or upgraded items can also receive the flag when using Free crafting.
+> Select the affected item and use **Item flags → Clear selected flag**, then **drop it and pick it up again**. Use the normal drop action, not Inventory delete.
 > **Keep item flags off** continuously clears flags on carried items.
 
 <br>
@@ -158,6 +161,8 @@ Closing the toolkit stops its active toggles and quantity freezes. It does not u
 <summary><strong>Do I need the separate DLL files?</strong></summary>
 
 The table contains its Lua script and embedded helpers. Use **Valheim 2026 CT.CT** to run the toolkit. The separate Lua and C# files are available for reviewing or modifying its implementation.
+
+Source lives in `outputs/`. From the repository root, build the mining helper with `pwsh -File work/build-miner.ps1` (use `-Managed` for a different Valheim managed-assembly folder), run `python work/run-lua-tests.py`, then package with `python work/package.py`. The Lua tests use Cheat Engine's Lua DLL; the C# behavior tests use mocks. Live mining speed and animation still require an in-game check.
 
 </details>
 
