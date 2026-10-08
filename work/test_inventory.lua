@@ -872,7 +872,7 @@ print('PASS: enemy selection/cancel/bounds, camera hook guard/argument preservat
 end
 
 do
-classes.DragBuildV2=44
+classes.DragBuildV3=44
 defs[44]={{name='Enabled',offset=0,isStatic=true,staticAddress=0xb0000,typename='System.Int32'},{name='Status',offset=8,isStatic=true,staticAddress=0xb0008,typename='System.String'}}
 local methodsBefore=mono_class_enumMethods
 function mono_class_enumMethods(c)
