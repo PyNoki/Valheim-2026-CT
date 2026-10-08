@@ -227,7 +227,7 @@ function readBytes(p,n,asTable)
 end
 function writeBytes(p,v) mem[p]=v; return true end
 classes.Character=13
-function mono_class_findMethod(c,name) assert(c==13 and name=='ApplyDamage'); return 77 end
+function mono_class_findMethod(c,name) assert((c==13 and name=='ApplyDamage') or (c==1 and name=='ConsumeResources')); return 77 end
 function mono_method_get_parameters() return {returntype=1} end
 function mono_compile_method() return 0xf000 end
 function getInstructionSize() return 1 end
@@ -340,20 +340,36 @@ buttons[13].OnClick(); ValheimInventoryWindow.OnClose()
 assert(not refillActive,'Close must remove refill hook')
 print('PASS: normalize stacks/freeze targets; refill hook guards, argument replacement, toggle and cleanup')
 defs[1][#defs[1]+1]={name='m_noPlacementCost',offset=0x80c,typename='System.Boolean'}
+local costActive,costFail=false,false
+local beforeCostAssemble=autoAssemble
+function autoAssemble(script,self,disable)
+  if script:find('vhCraftCostGuard',1,true) then
+    assert(script:find('cmp rcx,rax',1,true) and script:find('cmp [rax],rcx',1,true),'Cost guard must target current local player')
+    assert(script:find('cmp byte ptr [rax],1',1,true),'Cost guard must check no-cost flag')
+    assert(not script:find('dealloc(',1,true),'Do not free an in-flight cost trampoline')
+    if costFail and not disable then return false,'simulated install failure' end
+    costActive=not disable;return true,{}
+  end
+  return beforeCostAssemble(script,self,disable)
+end
 mem[0x280c]=0
 buttons[1].OnClick()
 buttons[14].OnClick()
-assert(mem[0x280c]==1 and buttons[14].Caption=='Free crafting: ON','Free crafting enable failed')
+assert(costActive and mem[0x280c]==1 and buttons[14].Caption=='Free crafting: ON','Free crafting enable failed')
 mem[0x280c]=0; timers[2].OnTimer()
 assert(mem[0x280c]==1,'Free crafting flag must remain on')
 buttons[14].OnClick()
-assert(mem[0x280c]==0 and buttons[14].Caption=='Free crafting: OFF','Free crafting disable must restore prior value')
+assert(not costActive and mem[0x280c]==0 and buttons[14].Caption=='Free crafting: OFF','Free crafting disable must restore prior value')
 mem[0x280c]=1; buttons[14].OnClick(); buttons[14].OnClick()
 assert(mem[0x280c]==1,'Preexisting no-cost setting must be preserved')
 mem[0x280c]=0; buttons[14].OnClick(); ValheimInventoryWindow.OnClose()
-assert(mem[0x280c]==0 and not timers[2].Enabled,'Close must restore free crafting')
+assert(not costActive and mem[0x280c]==0 and not timers[2].Enabled,'Close must restore free crafting')
 buttons[14].OnClick(); mem[0x1030]=0; mem[0x280c]=0; timers[2].OnTimer()
-assert(mem[0x280c]==0 and buttons[14].Caption=='Free crafting: OFF','World unload must stop no-cost writes')
+assert(not costActive and mem[0x280c]==0 and buttons[14].Caption=='Free crafting: OFF','World unload must stop no-cost writes')
+mem[0x1030]=0x2000;costFail=true
+buttons[14].OnClick()
+assert(not costActive and mem[0x280c]==0,'Failed cost guard must leave free crafting off')
+costFail=false
 print('PASS: free crafting on/off, maintain flag, preserve previous setting, close cleanup and world unload')
 mem[0x1030]=0x2000
 defs[5][#defs[5]+1]={name='m_cheated',offset=0x64,typename='System.Boolean'}
@@ -856,7 +872,7 @@ print('PASS: enemy selection/cancel/bounds, camera hook guard/argument preservat
 end
 
 do
-classes.DragBuildV1=44
+classes.DragBuildV2=44
 defs[44]={{name='Enabled',offset=0,isStatic=true,staticAddress=0xb0000,typename='System.Int32'},{name='Status',offset=8,isStatic=true,staticAddress=0xb0008,typename='System.String'}}
 local methodsBefore=mono_class_enumMethods
 function mono_class_enumMethods(c)
