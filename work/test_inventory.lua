@@ -1,4 +1,6 @@
 local buttons, box, errors, writes = {}, nil, {}, 0
+-- Distinct CE types matter: a managed reference cannot be passed as a numeric Int64.
+vtPointer=12;vtQword=3;vtDword=2;vtString=6
 local timer
 local timers={}
 function createTimer() local t={Enabled=false}; timers[#timers+1]=t; timer=timer or t; return t end
@@ -584,7 +586,7 @@ mem[0x42018]=0;buttons[37].OnClick()
 assert(#box.values()==1,'Disconnected player was not removed')
 print('PASS: shared players, self/private filtering, fresh position, offset, character-ID matching, hidden/disconnected rejection')
 do
- classes.DeathRecoveryV1=999
+ classes.DeathRecoveryV2=999
  local methods,params,call=mono_class_enumMethods,mono_method_get_parameters,mono_invoke_method
  local names={'Queue','Tick','Cancel','GetState','GetStatus'}
  function mono_class_enumMethods(c)
@@ -601,7 +603,7 @@ do
  end
  local state,mode,cancelled=0,0,0
  function mono_invoke_method(domain,m,obj,args)
-  if m==1901 then assert(args[1].value==0x2000 and args[3].value=='0100000000000000','Recovery player/world packet');mode=args[2].value;state=1;return end
+  if m==1901 then assert(args[1].type==vtPointer and args[2].type==vtDword and args[3].type==vtString,'Recovery argument types must use a managed player pointer');assert(args[1].value==0x2000 and args[3].value=='0100000000000000','Recovery player/world packet');mode=args[2].value;state=1;return end
   if m==1903 then cancelled=cancelled+1;state=0;return end
   if m==1904 then return state end
   if m==1905 then return 'Recovery test status' end

@@ -6,7 +6,7 @@ using UnityEngine;
 namespace ValheimSoloToolkit
 {
     // CE queues requests; all Unity and world operations run in Player.UpdateTeleport.
-    public static class DeathRecoveryV1
+    public static class DeathRecoveryV2
     {
         static readonly object Gate = new object();
         static Player owner;
@@ -47,8 +47,14 @@ namespace ValheimSoloToolkit
                 if (state != 1 && state != 2) return;
                 try
                 {
-                    if (!p || p != owner || p != Player.m_localPlayer || !ZNet.instance || ZNet.instance.GetWorldUID() != world || p.IsDead())
-                        throw new InvalidOperationException("Player died or world/player changed; recovery cancelled.");
+                    if (!ReferenceEquals(p, owner))
+                        throw new InvalidOperationException("Player reference changed after queuing. Finish respawning, then click recovery again.");
+                    if (!p || p != Player.m_localPlayer)
+                        throw new InvalidOperationException("Local player is unavailable. Finish respawning, then click recovery again.");
+                    if (!ZNet.instance || ZNet.instance.GetWorldUID() != world)
+                        throw new InvalidOperationException("World changed after queuing; recovery cancelled.");
+                    if (p.IsDead())
+                        throw new InvalidOperationException("Player died or is still respawning. Wait until you can move, then click recovery again.");
                     if (state == 2)
                     {
                         if (!p.IsTeleporting()) Finish(Utils.DistanceXZ(p.transform.position, destination) < 10 ? "Arrived at recovery destination." : "Teleport ended; arrival could not be confirmed.", true);

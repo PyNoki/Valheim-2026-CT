@@ -51,18 +51,18 @@ public class ZSyncTransform:Component { public void SyncNow(){} }
 public static class Utils { public static float DistanceXZ(Vector3 a,Vector3 b){return (float)Math.Sqrt((a.x-b.x)*(a.x-b.x)+(a.z-b.z)*(a.z-b.z));} }
 class Test {
  static Player p;
- static void Check(bool result,string reason){if(!result)throw new Exception(reason+": "+DeathRecoveryV1.GetStatus());}
- static void Reset(){DeathRecoveryV1.Cancel();p=new Player();Player.m_localPlayer=p;ZNet.instance=new ZNet();Game.instance=new Game();ZDOMan.instance=new ZDOMan();ZNetScene.instance=new ZNetScene();Physics.ground=true;}
+ static void Check(bool result,string reason){if(!result)throw new Exception(reason+": "+DeathRecoveryV2.GetStatus());}
+ static void Reset(){DeathRecoveryV2.Cancel();p=new Player();Player.m_localPlayer=p;ZNet.instance=new ZNet();Game.instance=new Game();ZDOMan.instance=new ZDOMan();ZNetScene.instance=new ZNetScene();Physics.ground=true;}
  static ZDO Stone(int id,long owner,long time){var s=new ZDO{m_uid=id,owner=owner,time=time,position=new Vector3(500,0,500),spawn=new Vector3(500,0,500)};ZDOMan.instance.stones.Add(s);return s;}
- static void Run(int mode){DeathRecoveryV1.Queue(p,mode,"0100000000000000");DeathRecoveryV1.Tick(p);}
- static void Failed(string message){Check(DeathRecoveryV1.GetState()==4 && DeathRecoveryV1.GetStatus().Contains(message),message);}
+ static void Run(int mode){DeathRecoveryV2.Queue(p,mode,"0100000000000000");DeathRecoveryV2.Tick(p);}
+ static void Failed(string message){Check(DeathRecoveryV2.GetState()==4 && DeathRecoveryV2.GetStatus().Contains(message),message);}
  static void Main(){
-  Reset();Run(1);Check(p.teleporting && p.transform.position.x==100,"last death");p.teleporting=false;DeathRecoveryV1.Tick(p);Check(DeathRecoveryV1.GetState()==3,"arrival");
+  Reset();Run(1);Check(p.teleporting && p.transform.position.x==100,"last death");p.teleporting=false;DeathRecoveryV2.Tick(p);Check(DeathRecoveryV2.GetState()==3,"arrival");
   Reset();Game.instance.profile.have=false;Run(1);Failed("No death location");
   Reset();p.accept=false;Run(1);Failed("declined");
   Reset();Run(3);Failed("No remaining tombstone");
   Reset();var old=Stone(1,42,10);var other=Stone(2,77,99);var latest=Stone(3,42,20);Run(3);
-  Check(DeathRecoveryV1.GetState()==3 && latest.position.x==3 && latest.spawn.x==3,"latest own stone moves and resets spawn");
+  Check(DeathRecoveryV2.GetState()==3 && latest.position.x==3 && latest.spawn.x==3,"latest own stone moves and resets spawn");
   Check(latest.inventory=="valuable contents" && ReferenceEquals(latest,ZDOMan.instance.GetZDO(3)) && ZDOMan.instance.stones.Count==3,"same object inventory intact");
   Check(old.position.x==500 && other.position.x==500 && Game.instance.profile.death.x==100,"other stones and death marker unchanged");
   Reset();latest=Stone(1,42,20);Run(2);Check(p.teleporting && p.transform.position.x==502 && latest.position.x==500,"teleport beside stone");
@@ -71,8 +71,12 @@ class Test {
   Reset();Stone(1,42,20);ZNetScene.instance.loaded=new GameObject{container=new Container{inUse=true}};Run(3);Failed("currently open");
   Reset();ZNet.instance.world=2;Run(1);Failed("changed");
   Reset();p.dead=true;Run(1);Failed("died");
-  Reset();latest=Stone(1,42,20);ZDOMan.instance.delay=true;Run(3);Check(DeathRecoveryV1.GetState()==1,"incremental scan");DeathRecoveryV1.Cancel();DeathRecoveryV1.Tick(p);Check(latest.position.x==500,"cancel prevents movement");
-  Reset();latest=Stone(1,42,20);ZDOMan.instance.delay=true;Run(3);Game.instance.profile.id=99;DeathRecoveryV1.Tick(p);Failed("Character changed");Check(latest.position.x==500,"character change prevents movement");
+  // Respawning replaces the Player object while retaining the same profile/world.
+  p=new Player();Player.m_localPlayer=p;Run(1);Check(p.teleporting,"new request after death and respawn");
+  Reset();DeathRecoveryV2.Queue(p,1,"0100000000000000");p=new Player();Player.m_localPlayer=p;DeathRecoveryV2.Tick(p);Failed("Player reference changed");
+  Run(1);Check(p.teleporting,"fresh request after stale pre-respawn request");
+  Reset();latest=Stone(1,42,20);ZDOMan.instance.delay=true;Run(3);Check(DeathRecoveryV2.GetState()==1,"incremental scan");DeathRecoveryV2.Cancel();DeathRecoveryV2.Tick(p);Check(latest.position.x==500,"cancel prevents movement");
+  Reset();latest=Stone(1,42,20);ZDOMan.instance.delay=true;Run(3);Game.instance.profile.id=99;DeathRecoveryV2.Tick(p);Failed("Character changed");Check(latest.position.x==500,"character change prevents movement");
   Console.WriteLine("PASS: recovery destinations, latest character-owned selection, same-object inventory preservation, spawn reset, remote authority, landing/in-use guards, cancellation, death/world/character changes.");
  }
 }

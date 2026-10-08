@@ -205,6 +205,8 @@ Return to the game and unpause after queuing a teleport. Give the destination ti
 
 Tombstone recovery moves the existing object and its spawn point; it does not duplicate items or target another character's tombstone. The original death location remains unchanged. An open tombstone cannot be retrieved. Remote clients may not know distant tombstone locations: use **Last death** in that case. **Bring tombstone to me** requires solo play or hosting because it needs authority over the world's stored objects. Searches run in batches while the game is unpaused.
 
+After dying, finish respawning and wait until you can move, then click the recovery action. Requests queued before death are cancelled; clicking again uses your new player object. Recovery v2 fixes the player-reference argument that could falsely report a player/world change after respawn.
+
 <br>
 
 ## A few useful details
