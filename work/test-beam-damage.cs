@@ -32,6 +32,11 @@ class Tests {
   Check(rock.last.m_hitCollider!=null&&rock.last.m_toolTier==100&&rock.last.m_damage.m_pickaxe==500&&tree.last.m_damage.m_chop==500&&building.last.m_damage.m_damage==500&&building.last.attacker==owner,"Damage metadata missing");
   BeamDamage.Death(owner,new Vector3(),new Vector3(0,0,1),80,1.6f);Check(building.hits==2&&Physics.calls==2,"Damage ticks did not reset dedup");
   System.Console.WriteLine("PASS: full-length all-layer death beam query, terrain without damage handler ignored, props/pets/players dispatched, caster excluded, multi-collider dedup, repeat tick and hit metadata");
+  var blastSeen=new System.Collections.Generic.HashSet<IDestructible>();int prior=building.hits;
+  BeamDamage.Hit(owner,Physics.hits[2],new Vector3(),new Vector3(0,1,0),20000,blastSeen);
+  BeamDamage.Hit(owner,Physics.hits[3],new Vector3(),new Vector3(0,1,0),20000,blastSeen);
+  BeamDamage.Hit(owner,Physics.hits[0],new Vector3(),new Vector3(0,1,0),20000,blastSeen);
+  Check(building.hits==prior+1&&building.last.m_damage.m_damage==20000&&owner.hits==0,"Bomb damage/dedup across batches or owner exclusion failed");
   Attack.registeredDig=new GameObject("digg_v2");ZNetScene.instance.prefab=new GameObject("PickaxeIron");ZNetScene.instance.prefab.item=new ItemDrop();ZNetScene.instance.prefab.item.m_itemData.m_shared.m_spawnOnHitTerrain=Attack.registeredDig;int cursor=0;BeamTerrain.Excavate(owner,new Vector3(0,20,0),new Vector3(0,0,1),80,1.6f,ref cursor);Check(Attack.edits==0,"Air beam excavated terrain");
   cursor=0;BeamTerrain.Excavate(owner,new Vector3(0,8,0),new Vector3(0,0,1),80,1.6f,ref cursor);Check(Attack.edits==6&&cursor==6,"Terrain work not bounded");
   for(int i=0;i<6;i++)BeamTerrain.Excavate(owner,new Vector3(0,8,0),new Vector3(0,0,1),80,1.6f,ref cursor);

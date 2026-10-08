@@ -593,7 +593,7 @@ buttons[21].OnClick()
 assert(mem[0x2910]==0 and buttons[21].Caption=='Flight: OFF','Failed flight enable must roll back')
 print('PASS: flight enable/disable, maintain flag, preserve prior setting, close cleanup, world unload and failed write')
 do
-classes.BowBeamV4=30;vtDword=2
+classes.BowBeamV5=30;vtDword=2
 local beamChoice="1"
 function inputQuery() return beamChoice end
 defs[30]={{name='Enabled',offset=0,isStatic=true,staticAddress=0x60000,typename='System.Int32'}}
@@ -633,10 +633,13 @@ buttons[22].OnClick()
 local beamTimer=timers[#timers]
 assert(active and mem[0x60000]==1 and buttons[22].Caption=='Kameha: ON','BowBeam toggle failed: '..tostring(errors[#errors]))
 buttons[22].OnClick();assert(not active and mem[0x60000]==0 and not beamTimer.Enabled,'Toggle disable did not clean up')
+for choice=3,4 do beamChoice=tostring(choice);buttons[22].OnClick();assert(active and buttons[22].Caption==(choice==3 and 'Spirit Bomb: ON' or 'Supernova: ON'),'Bomb selection failed');buttons[22].OnClick();assert(not active,'Bomb mode cleanup failed') end
+beamChoice='5';buttons[22].OnClick();assert(not active,'Invalid DBZ power enabled')
+beamChoice=nil;buttons[22].OnClick();assert(not active,'Cancelled DBZ power enabled')
 beamChoice='2';buttons[22].OnClick();assert(buttons[22].Caption=='Death beam: ON','Death beam selection failed');mem[0x1030]=0;beamTimer.OnTimer()
 assert(not active and mem[0x60000]==0,'World unload must disable callbacks and remove hook')
 mem[0x1030]=0x2000;buttons[22].OnClick();mem[0x60000]=0;beamTimer.OnTimer()
-assert(not active and buttons[22].Caption=='Kameha / Death beam: OFF','Helper fault must remove hook')
+assert(not active and buttons[22].Caption=='DBZ Powers: OFF','Helper fault must remove hook')
 buttons[22].OnClick();ValheimInventoryWindow.OnClose()
 assert(not active and mem[0x60000]==0 and not beamTimer.Enabled,'Closing toolkit must remove beam effect')
 print('PASS: beam toggle, hook guards, original argument preservation, disable, world unload, callback fault and close cleanup')
