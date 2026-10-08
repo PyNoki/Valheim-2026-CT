@@ -87,6 +87,8 @@ Enable **Rapid hoe** beside Rapid miner, equip the hoe, choose its terrain actio
 
 The transformation waits for Valheim to initialize the enemy's native weapons before suspending your player, including built-in unarmed attacks. If no attack becomes available within three seconds of game time, it cancels and leaves your player unchanged. The V2 helper fixes the early “no usable native attack weapons” error; reload the updated table to load the new helper even in an existing game session.
 
+**Enemy form v3** also hides your player nameplate and local map/minimap position markers, temporarily blanks the player's network display name, and turns off shared map position. Returning restores your original display name and map-sharing preference. Other players' markers and nameplates are unaffected. This remains a solo-oriented transformation: it does **not** guarantee that other clients see only the enemy model, and shared-map changes depend on normal network updates. Your account and saved character-profile name are not changed.
+
 | Enemy-form control | Action |
 | :--- | :--- |
 | Normal movement, run and jump bindings | Use the enemy's native movement; keyboard and controller inputs are supported. |
