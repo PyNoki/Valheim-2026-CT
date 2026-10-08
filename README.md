@@ -23,7 +23,7 @@
 
 **You need:** Windows, Cheat Engine 7.6 and Valheim running with Mono support.
 
-1. Download **[ValheimInventory.CT](ValheimInventory.CT)**. On GitHub's file page, use **Download raw file**.
+1. Download **[Valheim 2026 CT.CT](Valheim 2026 CT.CT)**. On GitHub's file page, use **Download raw file**.
 2. Start Valheim and load your world.
 3. Open the table in Cheat Engine and allow its Lua script to run.
 4. The toolkit finds Valheim and loads your inventory automatically.
