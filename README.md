@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="ValheimInventory.CT"><strong>Download the table</strong></a>
+  <a href="Valheim 2026 CT.CT"><strong>Download the table</strong></a>
   &nbsp; · &nbsp;
   <a href="#quick-start">Quick start</a>
   &nbsp; · &nbsp;
