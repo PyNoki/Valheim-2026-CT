@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 
 # Assemble the current release from the base Lua and extension sources.
 s = Path('outputs/ValheimInventory.lua').read_text(encoding='utf-8')
+s = s.replace('BowBeamV6','BowBeamV13')
+s = re.sub(r"local helperHex='[0-9a-f]+'", "local helperHex='" + Path('outputs/ValheimBowBeamV13.dll').read_bytes().hex() + "'", s)
 s = 'local styleToggle\n'+s
 s = s.replace('Clear all flags', 'Remove cheated item flags')
 s = s.replace('Teleport queued. Return to the game and unpause; distant areas may take 15+ seconds to load.', 'Teleport queued; carried-item restrictions are bypassed. Return to Valheim and unpause; distant areas may take 15+ seconds to load.')
@@ -12,9 +14,11 @@ s = "if ValheimPortalItemsStop then pcall(ValheimPortalItemsStop) end\n"+s
 s = s.replace('b.OnClick=fn;return b', 'b.OnClick=fn;if styleToggle then styleToggle(b) end;return b')
 s = s.replace('b.OnClick=function() action(fn) end', 'b.OnClick=function() action(fn) end\n    if styleToggle then styleToggle(b) end')
 s = s.replace("rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)", "rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)\n  if styleToggle then styleToggle(rowControl) end")
-s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV11')
-s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v11 |")
-s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV11.dll').read_bytes().hex() + "'", s)
+s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV13')
+s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v20 |")
+s = s.replace('Death Beam 16000/tick, 120m.', 'Death Beam 16000/tick, 2000m.')
+s = s.replace('Death Beam: hold bow attack. 80m terrain excavation;', 'Death Beam: hold bow attack. 2000m surface-contact terrain excavation;')
+s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV13.dll').read_bytes().hex() + "'", s)
 s = s.replace("queue=matchingMethod(class,'Queue',{18,8,14},1),", "queue=matchingMethod(class,'Queue',{18,8,14},1),summon=matchingMethod(class,'QueueSummon',{18,14,14},1),")
 s = s.replace("  button('Refresh players',refreshLocations)", """  button('Refresh players',refreshLocations)
   button('Summon selected player',function()
@@ -31,6 +35,9 @@ s = s.replace("  button('Refresh players',refreshLocations)", """  button('Refre
     teleportStatus.Caption='Summon queued. Return to Valheim and unpause; stand on clear ground.'
   end)""")
 s = s.replace("local dragButton=createButton(form)", "local spawnButton=createButton(form)\nspawnButton.Caption='Spawn box...'\nlocal dragButton=createButton(form)")
+s = s.replace("local spawnButton=createButton(form)", "local trophyButton=createButton(form)\ntrophyButton.Caption='Trophy buffs...'\nlocal spawnButton=createButton(form)")
+s = s.replace('local skillsH=26+12+4*(buttonH+6)+line*3+10', 'local skillsH=26+12+5*(buttonH+6)+line*3+10')
+s = s.replace('place(skillStatus,group,12,10+4*(buttonH+6),cw-24,line*3)', 'place(trophyButton,group,12,10+4*(buttonH+6),cw-24,buttonH)\n        place(skillStatus,group,12,10+5*(buttonH+6),cw-24,line*3)')
 s = s.replace('{dragButton}}', '{dragButton,spawnButton}}')
 s = s.replace("local spawnButton=createButton(form)", "local boatButton=createButton(form)\nboatButton.Caption='Pixie boat...'\nlocal spawnButton=createButton(form)")
 s = s.replace("local minerButton=createButton(form)", "local rapidButton=createButton(form)\nrapidButton.Caption='Rapid tools: OFF'\nlocal minerButton=createButton(form)")
@@ -129,22 +136,46 @@ spawnButton.OnClick=function() action(function()
   spawnWindow.Width=540;spawnWindow.Height=260;spawnWindow.Position='poScreenCenter'
   local box=createGroupBox(spawnWindow);box.Caption='Spawn';box.Left=12;box.Top=12;box.Width=500;box.Height=180
   local item=createComboBox(box);item.Left=16;item.Top=28;item.Width=300;item.Style='csDropDownList'
-  item.Items.add('Blueberry bush (BlueberryBush)');item.ItemIndex=0
+  for _,name in ipairs({'Blueberry bush','Haldor','Hildir','Bog Witch'}) do item.Items.add(name) end;item.ItemIndex=0
   local info=createLabel(box);info.Left=16;info.Top=65;info.Width=460;info.Height=40
   info.AutoSize=false;info.WordWrap=true
-  info.Caption='Places one bush at your feet when you return to Valheim and unpause. Stand still until it completes. Connected server clients are supported; verify with a friend.'
-  local button=createButton(box);button.Left=16;button.Top=110;button.Width=210;button.Caption='Spawn at my position'
+  info.Caption='Bushes spawn at your feet; merchants spawn beside you on clear ground. Return to Valheim and unpause. Spawns remain in the world; normal merchant shop/progression requirements apply.'
+  local button=createButton(box);button.Left=16;button.Top=110;button.Width=210;button.Caption='Spawn selected'
   local cancel=createButton(box);cancel.Left=240;cancel.Top=110;cancel.Width=210;cancel.Caption='Cancel queued spawn'
   cancel.OnClick=function() action(function() stopTeleport();spawnWindow.show();spawnStatus.Caption='Queue cancelled. A spawn already running may finish.' end) end
   spawnStatus=createLabel(spawnWindow);spawnStatus.Left=16;spawnStatus.Top=200
   spawnStatus.AutoSize=false;spawnStatus.WordWrap=true;spawnStatus.Width=490;spawnStatus.Height=40;spawnStatus.Caption='Ready.'
   button.OnClick=function()
-    local ok,err=pcall(function() queueRecovery(4) end)
+    local ok,err=pcall(function() local mode=({4,7,8,9})[item.ItemIndex+1];assert(mode,'Select a spawn option.');queueRecovery(mode) end)
     spawnStatus.Caption=ok and 'Queued: return to Valheim and unpause.' or tostring(err)
   end
   if styleToggle then styleToggle(button,false);styleToggle(cancel,false) end
   spawnWindow.OnClose=function() stopTeleport();return caHide end
   spawnWindow.show()
+end) end
+local trophyWindow
+local trophyClose,trophyDestroy=form.OnClose,form.OnDestroy
+form.OnClose=function() if trophyWindow then trophyWindow.hide() end;return trophyClose() end
+form.OnDestroy=function() if trophyWindow then trophyWindow.destroy();trophyWindow=nil end;trophyDestroy() end
+trophyButton.OnClick=function() action(function()
+  if not window then openTeleportWindow();window.hide() end
+  if trophyWindow then trophyWindow.show();return end
+  local buffs=createForm(false);buffs.Caption='Valheim | Trophy buffs';buffs.Width=600;buffs.Height=300;buffs.Position='poScreenCenter'
+  trophyWindow=buffs
+  local info=createLabel(buffs);info.Left=16;info.Top=16;info.Width=555;info.Height=58;info.AutoSize=false;info.WordWrap=true
+  info.Caption='Activate a selected trophy power or all available powers together. Automatically shares with players within 10m, using native buff requests. Native durations apply; your selected forsaken power is unchanged.'
+  local choice=createComboBox(buffs);choice.Left=16;choice.Top=85;choice.Width=555;choice.Style='csDropDownList'
+  for _,name in ipairs({'Eikthyr','The Elder','Bonemass','Moder','Yagluth','The Queen','Fader / Ashlands','Deep North trophy power'}) do choice.Items.add(name) end;choice.ItemIndex=0
+  local function queue(mode)
+    action(function() queueRecovery(mode);window.show();teleportStatus.Caption='Trophy buff queued. Return to Valheim and unpause.' end)
+  end
+  local selected=createButton(buffs);selected.Left=16;selected.Top=132;selected.Width=175;selected.Caption='Activate selected';selected.OnClick=function() if choice.ItemIndex>=0 then queue(10+choice.ItemIndex) end end
+  local all=createButton(buffs);all.Left=201;all.Top=132;all.Width=175;all.Caption='Activate all';all.OnClick=function() queue(18) end
+  local remove=createButton(buffs);remove.Left=386;remove.Top=132;remove.Width=175;remove.Caption='Remove trophy buffs';remove.OnClick=function() queue(19) end
+  local note=createLabel(buffs);note.Left=16;note.Top=183;note.Width=555;note.Height=65;note.AutoSize=false;note.WordWrap=true
+  note.Caption='Results appear in Teleport tools. Nearby friends do not need the toolkit. Activate all skips unavailable powers. Remove affects only your own trophy buffs; food and other effects remain.'
+  if styleToggle then styleToggle(selected,false);styleToggle(all,false);styleToggle(remove,false) end
+  buffs.OnClose=function() return caHide end;buffs.show()
 end) end
 ''')
 s += '''
@@ -227,8 +258,6 @@ s += Path('outputs/ValheimToggleStyle.lua').read_text(encoding='utf-8')
 Path('outputs/ValheimBeta.lua').write_text(s, encoding='utf-8')
 root = ET.fromstring(Path('Valheim 2026 CT.CT').read_bytes())
 root.find('LuaScript').text = s
-Path('beta.CT').write_bytes(ET.tostring(root, encoding='utf-8', xml_declaration=True))
 Path('Valheim 2026 CT.CT').write_bytes(ET.tostring(root, encoding='utf-8', xml_declaration=True))
-assert ET.parse('beta.CT').findtext('LuaScript') == s
 assert ET.parse('Valheim 2026 CT.CT').findtext('LuaScript') == s
-print('Valheim 2026 CT.CT packaged and XML verified; beta.CT retained as a compatibility copy.')
+print('Valheim 2026 CT.CT packaged and XML verified.')

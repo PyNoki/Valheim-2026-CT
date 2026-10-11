@@ -35,7 +35,7 @@ styleToggle=function(b,toggle)
 end
 for _,b in ipairs({godButton,staminaButton,craftingButton,flightButton,beamButton,carryButton,
   deleteButton,enemyButton,keepFlagsButton,rapidButton,freezeReplenishButton,freeze,speedButton,jumpButton,boatButton}) do styleToggle(b,true) end
-for _,b in ipairs({edit,cloneButton,refresh,maxStacksButton,dragButton,spawnButton,maxSkills,customSkills,
+for _,b in ipairs({edit,cloneButton,refresh,maxStacksButton,dragButton,spawnButton,trophyButton,maxSkills,customSkills,
   resetMovementButton,teleportButton}) do styleToggle(b,false) end
 local function updateAll() for _,entry in ipairs(entries) do update(entry) end end
 local resize,show=form.OnResize,form.OnShow

@@ -27,17 +27,17 @@ namespace ValheimSoloToolkit
             if(held)return;
             held=true;
             if(flying||exploding||!InputAllowed())return;
-            boosted=BowBeamV6.Kayoken==1;
+            boosted=BowBeamV13.Kayoken==1;
             direction=Owner.GetAimDir(Owner.GetEyePoint()).normalized;
             position=Owner.GetEyePoint()+direction*10f+Vector3.up*4f;
             born=Time.time;flying=true;
             BuildVisual();
-            BowBeamV6.Status=(Mode==3?"Supernova":"Spirit Bomb")+" in flight. Impact or 20 seconds detonates; toggle OFF cancels.";
+            BowBeamV13.Status=(Mode==3?"Supernova":"Spirit Bomb")+" in flight. Impact or 20 seconds detonates; toggle OFF cancels.";
         }
         private bool InputAllowed()
         {
             return Owner&&Owner.enabled&&!Owner.IsDead()&&!Owner.IsTeleporting()&&Application.isFocused
-                &&BowBeamV6.CanInput(Owner)&&!InventoryGui.IsVisible()&&!Menu.IsVisible()&&!Console.IsVisible()
+                &&BowBeamV13.CanInput(Owner)&&!InventoryGui.IsVisible()&&!Menu.IsVisible()&&!Console.IsVisible()
                 &&!Minimap.IsOpen()&&!(Chat.instance&&Chat.instance.HasFocus());
         }
         private Material MakeMaterial(Color color)
@@ -108,15 +108,15 @@ namespace ValheimSoloToolkit
                 if((height-center.y)*(height-center.y)+offset.X*offset.X+offset.Z*offset.Z>Radius*Radius)continue;
                 point.y=height;BeamTerrain.Dig(Owner,point);
             }
-            BowBeamV6.Status=(Mode==3?"Supernova":"Spirit Bomb")+" blast: objects "+targetCursor+"/"+targets.Length+", terrain "+terrainCursor+"/"+crater.Count+". Toggle OFF cancels remaining work.";
+            BowBeamV13.Status=(Mode==3?"Supernova":"Spirit Bomb")+" blast: objects "+targetCursor+"/"+targets.Length+", terrain "+terrainCursor+"/"+crater.Count+". Toggle OFF cancels remaining work.";
             if(targetCursor>=targets.Length&&terrainCursor>=crater.Count&&Time.time-detonated>6f)
-            {exploding=false;ClearVisual();targets=null;crater=null;hit.Clear();BowBeamV6.Status="Blast complete. Release and click bow attack to launch again.";}
+            {exploding=false;ClearVisual();targets=null;crater=null;hit.Clear();BowBeamV13.Status="Blast complete. Release and click bow attack to launch again.";}
         }
         private void Update()
         {
             try
             {
-                if(!BowBeamV6.Owns(Owner)||BowBeamV6.Mode!=Mode||BowBeamV6.Generation!=Generation||!Owner||Owner.IsDead()||Owner.IsTeleporting())
+                if(!BowBeamV13.Owns(Owner)||BowBeamV13.Mode!=Mode||BowBeamV13.Generation!=Generation||!Owner||Owner.IsDead()||Owner.IsTeleporting())
                 {Destroy(gameObject);return;}
                 if(!Input.GetMouseButton(0))held=false;
                 if(!InputAllowed())return;
@@ -138,7 +138,7 @@ namespace ValheimSoloToolkit
                 if(exploding)WorkBlast();
                 Animate();
             }
-            catch(Exception e){BowBeamV6.Fault(e);Destroy(gameObject);}
+            catch(Exception e){BowBeamV13.Fault(e);Destroy(gameObject);}
         }
         private void ClearVisual()
         {

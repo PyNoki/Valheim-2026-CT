@@ -6,7 +6,7 @@ using UnityEngine;
 namespace ValheimSoloToolkit
 {
     // CE queues requests; all Unity and world operations run in Player.UpdateTeleport.
-    public static class RecoverySpawnBetaV11
+    public static class RecoverySpawnBetaV13
     {
         static readonly object Gate = new object();
         static Player owner;
@@ -30,7 +30,7 @@ namespace ValheimSoloToolkit
         {
             lock (Gate)
             {
-                if (mode < 1 || mode > 6 || mode == 5 || worldHex == null || worldHex.Length != 16) throw new ArgumentException("Invalid recovery request");
+                if (mode < 1 || mode > 19 || mode == 5 || worldHex == null || worldHex.Length != 16) throw new ArgumentException("Invalid toolkit request");
                 byte[] bytes = new byte[8];
                 for (int i = 0; i < 8; ++i) bytes[i] = Convert.ToByte(worldHex.Substring(i * 2, 2), 16);
                 world = BitConverter.ToInt64(bytes, 0);
@@ -107,6 +107,17 @@ namespace ValheimSoloToolkit
                     if (p.IsTeleporting()) throw new InvalidOperationException("Finish the current teleport first.");
                     if (action == 5) { Summon(p); return; }
                     if (action == 6) { BoatFunV4.Toggle(p); Finish(BoatFunV4.Status, true); return; }
+                    if (action >= 10 && action <= 19) { Finish(TrophyBuffsV1.Apply(p,action-10),true);return; }
+                    if (action >= 7 && action <= 9)
+                    {
+                        string merchant=new[]{"Haldor","Hildir","BogWitch"}[action-7];
+                        if (!ZNetScene.instance) throw new InvalidOperationException("World prefabs are not ready.");
+                        var template=ZNetScene.instance.GetPrefab(merchant);
+                        if (!template || !template.GetComponent<ZNetView>()) throw new InvalidOperationException("Registered merchant prefab unavailable: "+merchant);
+                        var placed=UnityEngine.Object.Instantiate(template,Landing(p),p.transform.rotation);
+                        if(!placed)throw new InvalidOperationException("Game did not create the merchant.");
+                        Finish("Spawned "+merchant+" beside you. Normal shop and world-progression requirements apply.",true);return;
+                    }
                     if (action == 4)
                     {
                         if (!ZNetScene.instance) throw new InvalidOperationException("World prefabs are not ready.");

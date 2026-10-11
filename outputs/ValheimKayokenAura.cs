@@ -53,7 +53,7 @@ namespace ValheimSoloToolkit
         }
         private void Update()
         {
-            if(!BowBeamV6.Owns(Owner)||BowBeamV6.Kayoken!=1||Owner.IsDead()||Owner.IsTeleporting()){Destroy(gameObject);return;}
+            if(!BowBeamV13.Owns(Owner)||BowBeamV13.Kayoken!=1||Owner.IsDead()||Owner.IsTeleporting()){Destroy(gameObject);return;}
             Follow();
         }
         private void OnDestroy(){if(material)Destroy(material);if(texture)Destroy(texture);}

@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 
 namespace ValheimSoloToolkit
 {
-    public static class BowBeamV6
+    public static class BowBeamV13
     {
         public static int Enabled;
         public static int Mode;
@@ -70,7 +70,7 @@ namespace ValheimSoloToolkit
     public sealed class BowBeamVisualV6 : MonoBehaviour
     {
         public Player Owner;
-        public bool ModeChanged { get { return mode!=BowBeamV6.Mode||boosted!=(BowBeamV6.Kayoken==1); } }
+        public bool ModeChanged { get { return mode!=BowBeamV13.Mode||boosted!=(BowBeamV13.Kayoken==1); } }
         private GameObject effects;
         private Material material;
         private Material particleMaterial;
@@ -78,7 +78,7 @@ namespace ValheimSoloToolkit
         private readonly LineRenderer[] gusts = new LineRenderer[12];
         private ParticleSystem vortex;
         private float nextParticles;
-        private int mode, terrainCursor;
+        private int mode;
         private bool boosted;
         private Color Tint(Color c) { return mode==1 ? new Color(c.b,c.r*0.12f,c.g*0.25f,c.a) : c; }
         private LineRenderer halo, sheath, core, coilA, coilB, muzzleA, muzzleB, impactRing;
@@ -88,13 +88,13 @@ namespace ValheimSoloToolkit
         private string drawAnimation;
         private float lastStep, started, nextDamage;
         private bool firing;
-        private float Range {get{return DbzPower.Range(boosted);}}
+        private float Range {get{return mode==1?DbzPower.DeathRange(boosted):DbzPower.Range(boosted);}}
         private float Radius {get{return 1.6f*DbzPower.Scale(boosted);}}
         private float DamagePerTick {get{return DbzPower.Damage(0,boosted);}}
 
         public void Setup(Player player)
         {
-            Owner = player;mode=BowBeamV6.Mode;boosted=BowBeamV6.Kayoken==1;
+            Owner = player;mode=BowBeamV13.Mode;boosted=BowBeamV13.Kayoken==1;
             animation = player.GetComponent<ZSyncAnimation>();
             Shader shader = Shader.Find("Legacy Shaders/Particles/Additive") ?? Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Sprites/Default");
             if (!shader) throw new InvalidOperationException("No compatible beam shader found");
@@ -184,15 +184,15 @@ namespace ValheimSoloToolkit
         }
         private void Update()
         {
-            if (!BowBeamV6.Owns(Owner)||ModeChanged) { Hide(); Destroy(gameObject); return; }
+            if (!BowBeamV13.Owns(Owner)||ModeChanged) { Hide(); Destroy(gameObject); return; }
             if (Time.time-lastStep > 0.12f || !Application.isFocused || !Input.GetMouseButton(0)
-                || !BowBeamV6.CanInput(Owner) || !BowBeamV6.IsBow(Owner.GetCurrentWeapon())) Hide();
+                || !BowBeamV13.CanInput(Owner) || !BowBeamV13.IsBow(Owner.GetCurrentWeapon())) Hide();
         }
         private void OnDestroy() { Hide(); if (material) Destroy(material); if(particleMaterial) Destroy(particleMaterial);if(softTexture) Destroy(softTexture); }
         public void Step(ItemDrop.ItemData weapon)
         {
             lastStep = Time.time;
-            if (!Application.isFocused || !Input.GetMouseButton(0) || !BowBeamV6.CanInput(Owner)
+            if (!Application.isFocused || !Input.GetMouseButton(0) || !BowBeamV13.CanInput(Owner)
                 || Owner.IsDead() || Owner.IsTeleporting()) { Hide(); return; }
             if (!firing) { firing = true;started = Time.time;nextDamage = Time.time;nextParticles=Time.time;effects.SetActive(true);sparks.Play();vortex.Play(); }
             drawAnimation = weapon.m_shared.m_attack.m_drawAnimationState;
@@ -262,7 +262,7 @@ namespace ValheimSoloToolkit
             }
             muzzleLight.intensity=3f*pulse;endLight.intensity=4f*pulse;
             sparks.transform.position=end;muzzleLight.transform.position=origin;endLight.transform.position=end;
-            if (Time.time>=nextDamage) { nextDamage=Time.time+0.1f; if(mode==1) { BeamDamage.Death(Owner,origin,direction,length,Radius,DbzPower.Damage(1,boosted)); BeamTerrain.Excavate(Owner,origin,direction,length,Radius,ref terrainCursor); } else DamageMonsters(origin,direction,length); }
+            if (Time.time>=nextDamage) { nextDamage=Time.time+0.1f; if(mode==1) { BeamDamage.Death(Owner,origin,direction,length,Radius,DbzPower.Damage(1,boosted)); DeathBeamTerrain.Excavate(origin,direction,length,Radius); } else DamageMonsters(origin,direction,length); }
         }
         private static void Ring(LineRenderer line,Vector3 center,Vector3 side,Vector3 up,float radius)
         {
