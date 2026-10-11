@@ -2,7 +2,7 @@ from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
 
-# Keep the released table and its source untouched.
+# Assemble the current release from the base Lua and extension sources.
 s = Path('outputs/ValheimInventory.lua').read_text(encoding='utf-8')
 s = 'local styleToggle\n'+s
 s = s.replace('Clear all flags', 'Remove cheated item flags')
@@ -13,7 +13,7 @@ s = s.replace('b.OnClick=fn;return b', 'b.OnClick=fn;if styleToggle then styleTo
 s = s.replace('b.OnClick=function() action(fn) end', 'b.OnClick=function() action(fn) end\n    if styleToggle then styleToggle(b) end')
 s = s.replace("rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)", "rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)\n  if styleToggle then styleToggle(rowControl) end")
 s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV11')
-s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim Admin & Solo Toolkit | BETA Custom teleport v11 |")
+s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v11 |")
 s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV11.dll').read_bytes().hex() + "'", s)
 s = s.replace("queue=matchingMethod(class,'Queue',{18,8,14},1),", "queue=matchingMethod(class,'Queue',{18,8,14},1),summon=matchingMethod(class,'QueueSummon',{18,14,14},1),")
 s = s.replace("  button('Refresh players',refreshLocations)", """  button('Refresh players',refreshLocations)
@@ -228,5 +228,7 @@ Path('outputs/ValheimBeta.lua').write_text(s, encoding='utf-8')
 root = ET.fromstring(Path('Valheim 2026 CT.CT').read_bytes())
 root.find('LuaScript').text = s
 Path('beta.CT').write_bytes(ET.tostring(root, encoding='utf-8', xml_declaration=True))
+Path('Valheim 2026 CT.CT').write_bytes(ET.tostring(root, encoding='utf-8', xml_declaration=True))
 assert ET.parse('beta.CT').findtext('LuaScript') == s
-print('beta.CT packaged and XML verified.')
+assert ET.parse('Valheim 2026 CT.CT').findtext('LuaScript') == s
+print('Valheim 2026 CT.CT packaged and XML verified; beta.CT retained as a compatibility copy.')

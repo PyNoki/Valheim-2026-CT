@@ -14,3 +14,5 @@ root.find('LuaScript').text = s
 table.write_bytes(ET.tostring(root, encoding='utf-8', xml_declaration=True))
 assert ET.fromstring(table.read_bytes()).findtext('LuaScript') == s
 print('Table XML validated; Lua and all seven embedded helpers synchronized.')
+import runpy
+runpy.run_path('work/package-beta.py', run_name='__main__')
