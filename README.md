@@ -3,12 +3,14 @@
 </p>
 
 <p align="center">
-  A dark, easy-to-use Cheat Engine toolkit for your solo Valheim world.<br>
+  A dark, easy-to-use Cheat Engine toolkit for Valheim server admins and solo players.<br>
   Manage your inventory, tune your skills and make the next adventure your own.
 </p>
 
 <p align="center">
-  <a href="Valheim%202026%20CT.CT"><strong>Download the table</strong></a>
+  <a href="beta.CT"><strong>Download the latest beta</strong></a>
+  &nbsp; · &nbsp;
+  <a href="Valheim%202026%20CT.CT">Original table</a>
   &nbsp; · &nbsp;
   <a href="#quick-start">Quick start</a>
   &nbsp; · &nbsp;
@@ -103,7 +105,7 @@ Enable **Rapid miner** in **Skills and movement**, equip a pickaxe, and hold att
 
 Enable **Rapid hoe** beside Rapid miner, equip the hoe, choose its terrain action and hold the use button (mouse attack or controller place). Release to stop repeating. Normal terrain restrictions and material costs still apply, including stone for raising ground. Switching tools or disabling restores the original placement cooldown. Refilled stamina and durability remain. It can run alongside Rapid miner; each affects only its own tool.
 
-**Building v2** has its own row in the toolkit. Open **Building tools**, enable **Auto rows**, equip the hammer and select a straight floor, wall or horizontal beam. Start from a valid placement preview, hold **Ctrl + left mouse**, and aim along the row. Release **left mouse while still holding Ctrl** to place it. Right-click or Escape cancels; releasing Ctrl before the mouse also cancels. Tool/selection changes, menus and loss of focus cancel pending work. Already placed pieces remain.
+**Building v2** has its own row in the toolkit. Open **Building tools**, enable **Auto rows**, equip the hammer and select a straight floor, wall or horizontal beam. Start from a valid placement preview, hold **left mouse**, and aim along the row. Release **left mouse** to place it. Right-click or Escape cancels. Ctrl remains available for descending in flight mode. Tool/selection changes, menus and loss of focus cancel pending work. Already placed pieces remain.
 
 The translucent previews use the piece's meshes and aligned snap points, lock to its horizontal X/Z axes, and cap each row at 24 pieces. Release to automatically build at those exact positions, four pieces per frame. Once the starting placement is valid, the row does not recheck line of sight, player reach, snapping, collision or hammer cooldown, so you can stay where you started. The preview is the placement plan: avoid running it through existing structures. Native piece creation retains creator/network setup, placement effects and structural support; unsupported pieces can still collapse. Direct row placement uses the game's cheat marking unless its bypass setting is active.
 
@@ -209,6 +211,44 @@ After dying, finish respawning and wait until you can move, then click the recov
 
 <br>
 
+## Beta v11: admin and solo tools
+
+Download **[beta.CT](beta.CT)** for the current toolkit. It is self-contained and includes the features below. The original table also receives the left-click drag-building control update.
+
+### Custom teleport
+
+Our custom Teleport tools call the game teleport method directly and bypass carried-item teleport restrictions. Items and their icons remain unchanged. The separate item-permission toggle has been removed. Remove cheated item flags remains a separate inventory action. Reload beta.CT and confirm BETA Custom teleport v11; the previous icon override is stopped and restored during reload.
+
+The beta uses consistent rectangular buttons with thin outlines. Toggle fills turn green when active and gray when inactive; action buttons stay gray. Yellow outlines identify cheated-alert risks for God mode, Flight and Free crafting regardless of their active state. ON/OFF text is omitted from the visible buttons. Hover or open Help for the meaning and feature-specific details.
+
+### Freeze inventory + replenish
+
+Reload **beta.CT** and confirm **BETA Custom teleport v11** in the title. In Inventory, **Freeze inventory + replenish** replaces the separate Freeze inventory and Auto refill buttons. Enabling freezes current stacks and retains their source items when dropping on the ground or transferring into another inventory. Both Ctrl-click and drag deposits, including partial stacks, use a copy in a temporary source inventory so the normal destination transfer rules still apply. A full destination does not remove your original stack. Ground drops create the requested quantity without consuming the source; quest-item drop restrictions remain native.
+
+Turning the button off or closing the toolkit disables both effects. New stacks start unfrozen; toggle off/on to include them. If enabling either effect fails, both are stopped. This covers player-inventory transfers and ground drops; it does not intercept machine-feeding, crafting or other generic item consumption. Compilation, Lua syntax and mocked deposit/drop checks pass; the new hooks still need an in-game check with full/partial ground drops and Ctrl-click/drag chest deposits.
+
+### Pixie boats
+
+In the beta, **Pixie boat...** is in **Skills and movement**, beside **Rapid tools**. **Rapid tools** toggles Rapid miner and Rapid hoe together; equip a pickaxe or hoe to use the corresponding effect. If either helper stops or fails to enable, the combined toggle turns both off. Building mode remains incompatible with Rapid hoe and therefore turns off Rapid tools.
+
+Reload **beta.CT** and confirm **BETA Custom teleport v11** in the title. Click **Pixie boat... → Toggle pixie boat**, return to Valheim and unpause, then take the helm. **W/S** keeps the normal boat throttle steps, **A/D** steers, each tap of **Left Ctrl** gives one high jump with no cooldown, and **Shift** boosts speed. Holding the key does not repeat jumps. Rapid taps and repeat jumps in the air are allowed. Forward speed targets 25 m/s, or 40 m/s with boost; throttle steps scale that speed and reverse is slower.
+
+Land driving adds spring lift above terrain and keeps the hull upright. Rocks and buildings still collide with the boat; steep cliffs are not automatically climbed. While driving, native propulsion/horizontal damping and water-impact/upside-down damage settings are temporarily overridden. Native vertical water damping, buoyancy, gravity and normal collision physics remain active. Land lift only runs above dry terrain, never against the submerged seabed, and is suspended during a jump. Leaving the helm, losing ownership, or opening menus restores the boat settings. Stop/close the boat window or close the toolkit to disable the mode; return to the game and unpause for restoration to execute. Changing player/world also ends it.
+
+Only the locally controlled, normally network-owned boat receives the effect. There is no host-only restriction and ownership is not forcibly taken from another player. Boat physics compiles against installed Valheim assemblies; activation, one-shot queueing and cancellation have mocked tests. Speed, jumping, land handling, passengers and shared-server replication still require an in-game check.
+
+### Summon a player
+
+Reload **beta.CT** and confirm the title says **BETA Custom teleport v11**. Open **Teleport tools**, click **Refresh players**, select a **Player** row, then click **Summon selected player**. Return to Valheim and unpause while standing on clear ground. Players currently need **Visible to other players** enabled to appear in this selector.
+
+Summoning checks Valheim's native admin/host permission and sends the game's `RPC_TeleportTo` to the selected character's owning client. It chooses a clear landing beside you, rather than inside your character. A sent request is not confirmation of arrival: target cooldown/loading can delay or decline the teleport. Ask your friend to confirm arrival. This is compiled and tested with mocks; live shared-server summoning still needs validation. Closing Teleport tools or **Cancel queued** cancels unsent requests, but cannot recall a network request already sent.
+
+Open **beta.CT** in Cheat Engine with Valheim and your world loaded. In the toolkit's Building row, click **Spawn box...**, select **Blueberry bush (BlueberryBush)**, then click **Spawn at my position**. Return to Valheim, unpause, and stand still until the status reports success. Each click queues one bush at your player's feet; closing the spawn window or using **Cancel queued spawn** cancels a request that has not started. Spawned bushes remain in the world and are not removed when you close the toolkit.
+
+The beta allows connected server clients as well as solo play and hosting to spawn bushes. It uses the game's registered bush prefab, with native network initialization. Placement uses your exact position when the game handles the request; choose ground with room for the bush. Bush spawning has been confirmed on a shared server; save/reload persistence still needs validation. Reload `beta.CT` and confirm the window title says **BETA Custom teleport v11** to load the current helper.
+
+Beta source: `outputs/ValheimRecoverySpawnBeta.cs`. Build with `work/build-beta.ps1` (override `-Managed` for your install), package with `python work/package-beta.py`, and check with `python work/test-beta.py`. The tests cover one-shot placement and rejection/cancellation guards with mocks; compilation uses installed Valheim assemblies. `beta.CT` embeds its helper and needs no separate DLL.
+
 ## A few useful details
 
 <details>
@@ -265,5 +305,5 @@ Build and test enemy transformation with `pwsh -File work/build-enemy-form.ps1`,
 
 <p align="center">
   <strong>Explore a little further. Build something bigger. Have fun.</strong><br>
-  <sub>An unofficial community toolkit for solo play. Not affiliated with Valheim's developers.</sub>
+  <sub>An unofficial community toolkit for server admins and solo play. Not affiliated with Valheim's developers.</sub>
 </p>
