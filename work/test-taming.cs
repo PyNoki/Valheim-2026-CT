@@ -15,7 +15,7 @@ namespace UnityEngine {
  public enum QueryTriggerInteraction {Ignore}
  public static class Physics {public static RaycastHit[] RaycastAll(Vector3 a,Vector3 b,float length,int mask,QueryTriggerInteraction q){return new RaycastHit[0];}}
  public static class Time {public static float time;}
- 
+
  public static class Input {public static bool down;public static bool GetMouseButtonDown(int button){if(button!=2)throw new Exception("Taming must use wheel click");bool result=down;down=false;return result;}}
  public static class Application {public static bool isFocused=true;}
  public static class Debug {public static void LogWarning(object o){}}
