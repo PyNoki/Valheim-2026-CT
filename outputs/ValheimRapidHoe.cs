@@ -4,12 +4,12 @@ using UnityEngine;
 
 namespace ValheimSoloToolkit
 {
-    public static class RapidHoeV1
+    public static class RapidHoeV2
     {
         public static int Enabled;
         public static string LastError;
         private static Player owner;
-        private static RapidHoeDriverV1 driver;
+        private static RapidHoeDriverV2 driver;
         internal static FieldInfo Field(string name)
         {
             var field = typeof(Player).GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
@@ -38,7 +38,7 @@ namespace ValheimSoloToolkit
                 }
                 if (!driver)
                 {
-                    driver = new GameObject("SoloToolkit_RapidHoe").AddComponent<RapidHoeDriverV1>();
+                    driver = new GameObject("SoloToolkit_RapidHoe").AddComponent<RapidHoeDriverV2>();
                     driver.Owner = player;
                 }
                 driver.Step(takeInput);
@@ -47,7 +47,7 @@ namespace ValheimSoloToolkit
         }
     }
 
-    public sealed class RapidHoeDriverV1 : MonoBehaviour
+    public sealed class RapidHoeDriverV2 : MonoBehaviour
     {
         public Player Owner;
         private bool changed;
@@ -55,13 +55,13 @@ namespace ValheimSoloToolkit
         private const float Interval = 0.05f;
         private ItemDrop.ItemData Hoe()
         {
-            if (!RapidHoeV1.Owns(Owner) || Owner.IsDead()) return null;
-            var item = (ItemDrop.ItemData)RapidHoeV1.RightItem.Invoke(Owner, null);
-            return item != null && item.m_shared.m_name == "$item_hoe" ? item : null;
+            if (!RapidHoeV2.Owns(Owner) || Owner.IsDead()) return null;
+            var item = (ItemDrop.ItemData)RapidHoeV2.RightItem.Invoke(Owner, null);
+            return item != null && (item.m_shared.m_name == "$item_hoe" || item.m_shared.m_name == "$item_cultivator") ? item : null;
         }
         public void Release()
         {
-            if (changed && Owner) RapidHoeV1.Delay.SetValue(Owner, originalDelay);
+            if (changed && Owner) RapidHoeV2.Delay.SetValue(Owner, originalDelay);
             changed = false;
         }
         public void Step(bool takeInput)
@@ -71,25 +71,25 @@ namespace ValheimSoloToolkit
             { Release(); return; }
             if (!changed)
             {
-                originalDelay = (float)RapidHoeV1.Delay.GetValue(Owner);
+                originalDelay = (float)RapidHoeV2.Delay.GetValue(Owner);
                 changed = true;
             }
-            RapidHoeV1.Delay.SetValue(Owner, Math.Min(originalDelay, Interval));
-            RapidHoeV1.Stamina.SetValue(Owner, Owner.GetMaxStamina());
+            RapidHoeV2.Delay.SetValue(Owner, Math.Min(originalDelay, Interval));
+            RapidHoeV2.Stamina.SetValue(Owner, Owner.GetMaxStamina());
             item.m_durability = item.GetMaxDurability();
             // Queue only when an action can run now: releasing never leaves an auto-repeat queued.
             if (!ZInput.GetButton("JoyAltKeys") && (ZInput.GetButton("Attack") || ZInput.GetButton("JoyPlace"))
-                && Time.time - (float)RapidHoeV1.LastUse.GetValue(Owner) > Interval)
-                RapidHoeV1.Pressed.SetValue(Owner, Time.time);
+                && Time.time - (float)RapidHoeV2.LastUse.GetValue(Owner) > Interval)
+                RapidHoeV2.Pressed.SetValue(Owner, Time.time);
         }
         private void Update()
         {
             try
             {
                 if (Hoe() == null) Release();
-                if (!RapidHoeV1.Owns(Owner)) Destroy(gameObject);
+                if (!RapidHoeV2.Owns(Owner)) Destroy(gameObject);
             }
-            catch (Exception error) { RapidHoeV1.Fault(error); Release(); }
+            catch (Exception error) { RapidHoeV2.Fault(error); Release(); }
         }
         private void OnDestroy() { Release(); }
     }

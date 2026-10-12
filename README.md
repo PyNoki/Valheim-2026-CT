@@ -198,39 +198,39 @@ Open **Teleport tools** to choose where you want to go next.
 | **Another player** | They must enable **Visible to other players** on their map. Click **Refresh players**, select them and teleport. |
 | **Last death** | Teleport to your character's last recorded death in the current world, even after retrieving or moving the tombstone. |
 | **Teleport to tombstone** | Teleport beside your latest remaining tombstone, matched by character ID. |
-| **Bring tombstone to me** | In solo play or as the host, move your latest tombstone beside you with its inventory intact. Stand on open, solid ground. |
+| **Bring tombstone to me** | Move your latest known tombstone beside you with its inventory intact. Stand on open, solid ground. |
 
 Saved locations are local bookmarks for each world; they do not create markers on the in-game map. Map and ping destinations use the coordinates captured when you refresh. Player destinations use the latest shared position when clicked, with a small sideways offset.
 
 Return to the game and unpause after queuing a teleport. Give the destination time to load. **Cancel queued** cancels a waiting request; it does not undo an accepted teleport.
 
-Tombstone recovery moves the existing object and its spawn point; it does not duplicate items or target another character's tombstone. The original death location remains unchanged. An open tombstone cannot be retrieved. Remote clients may not know distant tombstone locations: use **Last death** in that case. **Bring tombstone to me** requires solo play or hosting because it needs authority over the world's stored objects. Searches run in batches while the game is unpaused.
+Tombstone recovery moves the existing object and its spawn point; it does not duplicate items or target another character's tombstone. The original death location remains unchanged. An open tombstone cannot be retrieved. Remote clients may not know distant tombstone locations: use **Last death** in that case. **Bring tombstone to me** has no host-only gate, but the client must know the tombstone and successfully synchronize its networked position. Searches run in batches while the game is unpaused.
 
 After dying, finish respawning and wait until you can move, then click the recovery action. Requests queued before death are cancelled; clicking again uses your new player object. Recovery v2 fixes the player-reference argument that could falsely report a player/world change after respawn.
 
 <br>
 
-## Valheim 2026 CT v20: admin and solo tools
+## Valheim 2026 CT v22: admin and solo tools
 
 Download **[Valheim 2026 CT.CT](Valheim%202026%20CT.CT)** for the current toolkit. It is self-contained and includes the features below.
 
 ### Custom teleport
 
-Our custom Teleport tools call the game teleport method directly and bypass carried-item teleport restrictions. Items and their icons remain unchanged. The separate item-permission toggle has been removed. Remove cheated item flags remains a separate inventory action. Reload Valheim 2026 CT.CT and confirm Valheim 2026 CT | v20; the previous icon override is stopped and restored during reload.
+Our custom Teleport tools call the game teleport method directly and bypass carried-item teleport restrictions. Items and their icons remain unchanged. The separate item-permission toggle has been removed. Remove cheated item flags remains a separate inventory action. Reload Valheim 2026 CT.CT and confirm Valheim 2026 CT | v22; the previous icon override is stopped and restored during reload.
 
 The toolkit uses consistent rectangular buttons with thin outlines. Toggle fills turn green when active and gray when inactive; action buttons stay gray. Yellow outlines identify cheated-alert risks for God mode, Flight and Free crafting regardless of their active state. ON/OFF text is omitted from the visible buttons. Hover or open Help for the meaning and feature-specific details.
 
 ### Freeze inventory + replenish
 
-Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v20** in the title. In Inventory, **Freeze inventory + replenish** replaces the separate Freeze inventory and Auto refill buttons. Enabling freezes current stacks and retains their source items when dropping on the ground or transferring into another inventory. Both Ctrl-click and drag deposits, including partial stacks, use a copy in a temporary source inventory so the normal destination transfer rules still apply. A full destination does not remove your original stack. Ground drops create the requested quantity without consuming the source; quest-item drop restrictions remain native.
+Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v22** in the title. In Inventory, **Freeze inventory + replenish** replaces the separate Freeze inventory and Auto refill buttons. Enabling freezes current stacks and retains their source items when dropping on the ground or transferring into another inventory. Both Ctrl-click and drag deposits, including partial stacks, use a copy in a temporary source inventory so the normal destination transfer rules still apply. A full destination does not remove your original stack. Ground drops create the requested quantity without consuming the source; quest-item drop restrictions remain native.
 
 Turning the button off or closing the toolkit disables both effects. New stacks start unfrozen; toggle off/on to include them. If enabling either effect fails, both are stopped. This covers player-inventory transfers and ground drops; it does not intercept machine-feeding, crafting or other generic item consumption. Compilation, Lua syntax and mocked deposit/drop checks pass; the new hooks still need an in-game check with full/partial ground drops and Ctrl-click/drag chest deposits.
 
 ### Pixie boats
 
-In the toolkit, **Pixie boat...** is in **Skills and movement**, beside **Rapid tools**. **Rapid tools** toggles Rapid miner and Rapid hoe together; equip a pickaxe or hoe to use the corresponding effect. If either helper stops or fails to enable, the combined toggle turns both off. Building mode remains incompatible with Rapid hoe and therefore turns off Rapid tools.
+In the toolkit, **Pixie boat...** is in **Skills and movement**, beside **Rapid tools**. **Rapid tools** toggles rapid mining, hoe actions and cultivator actions together; equip a pickaxe, hoe or cultivator to use the corresponding effect. Cultivation and planting receive rapid actions, stamina protection and tool durability refill; normal seed/material costs and placement rules apply. If either helper stops or fails to enable, the combined toggle turns both off. Building mode remains incompatible with Rapid hoe and therefore turns off Rapid tools.
 
-Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v20** in the title. Click **Pixie boat... → Toggle pixie boat**, return to Valheim and unpause, then take the helm. **W/S** keeps the normal boat throttle steps, **A/D** steers, each tap of **Left Ctrl** gives one high jump with no cooldown, and **Shift** boosts speed. Holding the key does not repeat jumps. Rapid taps and repeat jumps in the air are allowed. Forward speed targets 25 m/s, or 40 m/s with boost; throttle steps scale that speed and reverse is slower.
+Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v22** in the title. Click **Pixie boat... → Toggle pixie boat**, return to Valheim and unpause, then take the helm. **W/S** keeps the normal boat throttle steps, **A/D** steers, each tap of **Left Ctrl** gives one high jump with no cooldown, and **Shift** boosts speed. Holding the key does not repeat jumps. Rapid taps and repeat jumps in the air are allowed. Forward speed targets 25 m/s, or 40 m/s with boost; throttle steps scale that speed and reverse is slower.
 
 Land driving adds spring lift above terrain and keeps the hull upright. Rocks and buildings still collide with the boat; steep cliffs are not automatically climbed. While driving, native propulsion/horizontal damping and water-impact/upside-down damage settings are temporarily overridden. Native vertical water damping, buoyancy, gravity and normal collision physics remain active. Land lift only runs above dry terrain, never against the submerged seabed, and is suspended during a jump. Leaving the helm, losing ownership, or opening menus restores the boat settings. Stop/close the boat window or close the toolkit to disable the mode; return to the game and unpause for restoration to execute. Changing player/world also ends it.
 
@@ -244,13 +244,13 @@ Open **Skills and movement → Trophy buffs...** to activate Eikthyr, The Elder,
 
 ### Summon a player
 
-Reload **Valheim 2026 CT.CT** and confirm the title says **Valheim 2026 CT | v20**. Open **Teleport tools**, click **Refresh players**, select a **Player** row, then click **Summon selected player**. Return to Valheim and unpause while standing on clear ground. Players currently need **Visible to other players** enabled to appear in this selector.
+Reload **Valheim 2026 CT.CT** and confirm the title says **Valheim 2026 CT | v22**. Open **Teleport tools**, click **Refresh players**, select a **Player** row, then click **Summon selected player**. Return to Valheim and unpause while standing on clear ground. Players currently need **Visible to other players** enabled to appear in this selector.
 
-Summoning checks Valheim's native admin/host permission and sends the game's `RPC_TeleportTo` to the selected character's owning client. It chooses a clear landing beside you, rather than inside your character. A sent request is not confirmation of arrival: target cooldown/loading can delay or decline the teleport. Ask your friend to confirm arrival. This is compiled and tested with mocks; live shared-server summoning still needs validation. Closing Teleport tools or **Cancel queued** cancels unsent requests, but cannot recall a network request already sent.
+Summoning has no admin/host check and sends the game's `RPC_TeleportTo` to the selected character's owning client. It chooses a clear landing beside you, rather than inside your character. A sent request is not confirmation of arrival: target cooldown/loading can delay or decline the teleport. Ask your friend to confirm arrival. This is compiled and tested with mocks; live shared-server summoning still needs validation. Closing Teleport tools or **Cancel queued** cancels unsent requests, but cannot recall a network request already sent.
 
 Open **Valheim 2026 CT.CT** in Cheat Engine with Valheim and your world loaded. In the toolkit's Building row, click **Spawn box...**, select **Blueberry bush (BlueberryBush)**, then click **Spawn selected**. Return to Valheim, unpause, and stand still until the status reports success. Each click queues one bush at your player's feet; closing the spawn window or using **Cancel queued spawn** cancels a request that has not started. Spawned bushes remain in the world and are not removed when you close the toolkit.
 
-The toolkit allows connected server clients as well as solo play and hosting to spawn bushes. It uses the game's registered bush prefab, with native network initialization. Placement uses your exact position when the game handles the request; choose ground with room for the bush. Bush spawning has been confirmed on a shared server; save/reload persistence still needs validation. Reload `Valheim 2026 CT.CT` and confirm the window title says **Valheim 2026 CT | v20** to load the current helper.
+The toolkit allows connected server clients as well as solo play and hosting to spawn bushes. It uses the game's registered bush prefab, with native network initialization. Placement uses your exact position when the game handles the request; choose ground with room for the bush. Bush spawning has been confirmed on a shared server; save/reload persistence still needs validation. Reload `Valheim 2026 CT.CT` and confirm the window title says **Valheim 2026 CT | v22** to load the current helper.
 
 Release source: `outputs/ValheimRecoverySpawnBeta.cs`. Build with `work/build-beta.ps1` (override `-Managed` for your install), package with `python work/package-beta.py`, and check with `python work/test-beta.py`. The tests cover one-shot placement and rejection/cancellation guards with mocks; compilation uses installed Valheim assemblies. `Valheim 2026 CT.CT` embeds its helper and needs no separate DLL.
 

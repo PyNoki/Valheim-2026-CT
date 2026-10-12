@@ -28,13 +28,13 @@ s = s.replace('static void Main(){', '''static void Main(){
   RecoverySpawnBetaV3.QueueSummon(p,"020007000000","0100000000000000");Check(ZRoutedRpc.instance.sent==0,"no RPC before tick");
   RecoverySpawnBetaV3.Tick(p);Check(RecoverySpawnBetaV3.GetState()==3 && ZRoutedRpc.instance.sent==1 && ZRoutedRpc.instance.owner==22 && ZRoutedRpc.instance.point.x==3,"distant remote summon uses identity and safe landing");
   RecoverySpawnBetaV3.Tick(p);Check(ZRoutedRpc.instance.sent==1,"one summon per request");
-  Reset();ZNet.instance.admin=false;RecoverySpawnBetaV3.QueueSummon(p,"020007000000","0100000000000000");RecoverySpawnBetaV3.Tick(p);Failed("permission");
+  Reset();ZNet.instance.server=false;ZNet.instance.admin=false;ZNet.instance.roster.Add(new ZNet.PlayerInfo{m_name="Friend",m_characterID=new ZDOID(2,7)});RecoverySpawnBetaV3.QueueSummon(p,"020007000000","0100000000000000");RecoverySpawnBetaV3.Tick(p);Check(RecoverySpawnBetaV3.GetState()==3&&ZRoutedRpc.instance.sent==2,"non-admin client can summon");
   Reset();RecoverySpawnBetaV3.QueueSummon(p,"020007000000","0100000000000000");RecoverySpawnBetaV3.Tick(p);Failed("disconnected");
   Reset();ZNet.instance.roster.Add(new ZNet.PlayerInfo{m_name="Friend",m_characterID=new ZDOID(2,7)});ZDOMan.instance.remote=new ZDO{networkOwner=99};
-  RecoverySpawnBetaV3.QueueSummon(p,"020007000000","0100000000000000");RecoverySpawnBetaV3.Tick(p);Check(ZRoutedRpc.instance.owner==99 && ZRoutedRpc.instance.sent==2,"current owner wins over creator");
+  RecoverySpawnBetaV3.QueueSummon(p,"020007000000","0100000000000000");RecoverySpawnBetaV3.Tick(p);Check(ZRoutedRpc.instance.owner==99 && ZRoutedRpc.instance.sent==3,"current owner wins over creator");
   Reset();ZNet.instance.roster.Add(new ZNet.PlayerInfo{m_name="Friend",m_characterID=new ZDOID(2,7)});Physics.ground=false;
-  RecoverySpawnBetaV3.QueueSummon(p,"020007000000","0100000000000000");RecoverySpawnBetaV3.Tick(p);Failed("No clear landing");Check(ZRoutedRpc.instance.sent==2,"no unsafe RPC");
-  Reset();RecoverySpawnBetaV3.QueueSummon(p,"020007000000","0100000000000000");RecoverySpawnBetaV3.Cancel();RecoverySpawnBetaV3.Tick(p);Check(ZRoutedRpc.instance.sent==2,"cancelled summon never sent");
+  RecoverySpawnBetaV3.QueueSummon(p,"020007000000","0100000000000000");RecoverySpawnBetaV3.Tick(p);Failed("No clear landing");Check(ZRoutedRpc.instance.sent==3,"no unsafe RPC");
+  Reset();RecoverySpawnBetaV3.QueueSummon(p,"020007000000","0100000000000000");RecoverySpawnBetaV3.Cancel();RecoverySpawnBetaV3.Tick(p);Check(ZRoutedRpc.instance.sent==3,"cancelled summon never sent");
   Console.WriteLine("PASS: remote admin summon RPC, identity routing, current owner, one-shot send, admin/disconnect/landing guards and cancellation.");
 ''')
 s = s.replace('public class Object {', '''public class Object {
@@ -60,7 +60,7 @@ s = s.replace('static void Main(){', '''static void Main(){
   Console.WriteLine("PASS: spawn queued on game thread, exact feet position, one-shot execution, remote client success and prefab/death/world/teleport/position guards and cancellation.");
 ''')
 s = s.replace('RecoverySpawnBetaV2', 'RecoverySpawnBetaV3')
-s = s.replace('RecoverySpawnBetaV3', 'RecoverySpawnBetaV13')
+s = s.replace('RecoverySpawnBetaV3', 'RecoverySpawnBetaV14')
 s = s.replace('if(name!="BlueberryBush")throw new Exception("Wrong prefab");', 'if(name!="BlueberryBush"&&name!="Haldor"&&name!="Hildir"&&name!="BogWitch")throw new Exception("Wrong prefab");')
 s = s.replace('return missing?null:new GameObject();', 'return missing?null:new GameObject{name=name};')
 s = s.replace('public static int spawns;', 'public static string lastPrefab;public static int spawns;')
@@ -81,15 +81,15 @@ namespace ValheimSoloToolkit { public static class BoatFunV4 {
 } }
 '''
 s = s.replace('static void Main(){', '''static void Main(){
-  Reset();Run(7);Check(RecoverySpawnBetaV13.GetState()==3&&UnityEngine.Object.lastPrefab=="Haldor"&&UnityEngine.Object.last.x==3,"Haldor spawned beside player");
-  Reset();Run(8);Check(RecoverySpawnBetaV13.GetState()==3&&UnityEngine.Object.lastPrefab=="Hildir","Hildir prefab");
-  Reset();Run(9);Check(RecoverySpawnBetaV13.GetState()==3&&UnityEngine.Object.lastPrefab=="BogWitch","Bog Witch prefab");
-  int count=UnityEngine.Object.spawns;RecoverySpawnBetaV13.Tick(p);Check(UnityEngine.Object.spawns==count,"merchant spawn is one-shot");
+  Reset();Run(7);Check(RecoverySpawnBetaV14.GetState()==3&&UnityEngine.Object.lastPrefab=="Haldor"&&UnityEngine.Object.last.x==3,"Haldor spawned beside player");
+  Reset();Run(8);Check(RecoverySpawnBetaV14.GetState()==3&&UnityEngine.Object.lastPrefab=="Hildir","Hildir prefab");
+  Reset();Run(9);Check(RecoverySpawnBetaV14.GetState()==3&&UnityEngine.Object.lastPrefab=="BogWitch","Bog Witch prefab");
+  int count=UnityEngine.Object.spawns;RecoverySpawnBetaV14.Tick(p);Check(UnityEngine.Object.spawns==count,"merchant spawn is one-shot");
   Reset();ZNetScene.instance.missing=true;Run(7);Failed("merchant prefab unavailable");Check(UnityEngine.Object.spawns==count,"missing merchant does not spawn");
   Console.WriteLine("PASS: Haldor/Hildir/Bog Witch queue, native prefab selection, beside-player placement and missing/one-shot guards.");
-  Reset();RecoverySpawnBetaV13.Queue(p,6,"0100000000000000");Check(BoatFunV4.toggles==0,"boat queue waits for game thread");
-  RecoverySpawnBetaV13.Tick(p);RecoverySpawnBetaV13.Tick(p);Check(BoatFunV4.toggles==1,"one boat toggle per request");
-  Reset();RecoverySpawnBetaV13.Queue(p,6,"0100000000000000");RecoverySpawnBetaV13.Cancel();RecoverySpawnBetaV13.Tick(p);Check(BoatFunV4.toggles==1,"cancelled boat toggle not executed");
+  Reset();RecoverySpawnBetaV14.Queue(p,6,"0100000000000000");Check(BoatFunV4.toggles==0,"boat queue waits for game thread");
+  RecoverySpawnBetaV14.Tick(p);RecoverySpawnBetaV14.Tick(p);Check(BoatFunV4.toggles==1,"one boat toggle per request");
+  Reset();RecoverySpawnBetaV14.Queue(p,6,"0100000000000000");RecoverySpawnBetaV14.Cancel();RecoverySpawnBetaV14.Tick(p);Check(BoatFunV4.toggles==1,"cancelled boat toggle not executed");
   Console.WriteLine("PASS: boat activation queued on game thread, one-shot toggle and cancellation.");
 ''')
 s = s.replace('public long GetLong(int key,long fallback)', 'public long GetOwner(){return networkOwner;} public long GetLong(int key,long fallback)')

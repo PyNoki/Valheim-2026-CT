@@ -109,8 +109,6 @@ namespace ValheimSoloToolkit
         }
         static void Bring(Player p, ZDO stone)
         {
-            // The server has the full world database and authority over unloaded objects.
-            if (!ZNet.instance.IsServer()) throw new InvalidOperationException("Bring tombstone requires a solo world or being the host. Use Teleport to tombstone or Last death on a remote server.");
             GameObject instance = ZNetScene.instance.FindInstance(stone.m_uid);
             Container container = instance ? instance.GetComponent<Container>() : null;
             if (container && container.IsInUse()) throw new InvalidOperationException("Tombstone is currently open. Close it and retry.");

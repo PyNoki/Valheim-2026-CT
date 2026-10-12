@@ -25,12 +25,16 @@ class Test {
     static void Check(bool value, string message) { if (!value) throw new Exception(message); }
     static void Call(object obj,string method) { obj.GetType().GetMethod(method,BindingFlags.NonPublic|BindingFlags.Instance).Invoke(obj,null); }
     static void Main() {
-        var p=new Player(); Player.m_localPlayer=p; RapidHoeV1.Configure(p);
-        var d=new RapidHoeDriverV1(); d.Owner=p;
+        var p=new Player(); Player.m_localPlayer=p; RapidHoeV2.Configure(p);
+        var d=new RapidHoeDriverV2(); d.Owner=p;
         p.weapon=new ItemDrop.ItemData();p.weapon.m_shared.m_name="$item_hammer";
         ZInput.attack=true;d.Step(true);Check(p.m_placeDelay==0.4f && p.m_stamina==3 && p.weapon.m_durability==2,"Hammer changed");
         p.weapon.m_shared.m_name="$item_hoe";d.Step(true);
         Check(p.m_placeDelay==0.05f && p.m_stamina==120 && p.weapon.m_durability==150 && p.m_placePressedTime==10,"Hoe not accelerated/protected");
+        d.Step(false);p.weapon.m_shared.m_name="$item_cultivator";p.weapon.m_durability=2;p.m_stamina=3;p.m_placePressedTime=-9999;
+        d.Step(true);Check(p.m_placeDelay==0.05f&&p.m_stamina==120&&p.weapon.m_durability==150&&p.m_placePressedTime==10,"Cultivator not accelerated/protected");
+        ZInput.attack=false;p.m_placePressedTime=-9999;d.Step(true);Check(p.m_placePressedTime==-9999,"Cultivator release repeated an action");
+        d.Step(false);Check(p.m_placeDelay==0.4f,"Cultivator restores normal placement delay");p.weapon.m_shared.m_name="$item_hoe";
         p.max=180;p.m_lastToolUseTime=10;p.m_placePressedTime=-9999;
         UnityEngine.Time.time=10.01f;d.Step(true);Check(p.m_placePressedTime==-9999 && p.m_stamina==180,"Cooldown/dynamic stamina");
         UnityEngine.Time.time=10.1f;ZInput.attack=false;d.Step(true);Check(p.m_placePressedTime==-9999,"Release repeated an action");
@@ -40,11 +44,11 @@ class Test {
         Hud.selection=true;d.Step(true);Check(p.m_placeDelay==0.4f && p.m_placePressedTime==-9999,"Piece menu allowed repeat");Hud.selection=false;
         Hud.radial=true;d.Step(true);Check(p.m_placeDelay==0.4f,"Radial menu allowed repeat");Hud.radial=false;
         d.Step(true);p.weapon.m_shared.m_name="$item_pickaxe_iron";d.Step(true);Check(p.m_placeDelay==0.4f,"Tool switch did not restore");
-        p.weapon.m_shared.m_name="$item_hoe";d.Step(true);RapidHoeV1.Disable();Call(d,"Update");Check(p.m_placeDelay==0.4f,"Disable did not restore");
+        p.weapon.m_shared.m_name="$item_hoe";d.Step(true);RapidHoeV2.Disable();Call(d,"Update");Check(p.m_placeDelay==0.4f,"Disable did not restore");
         p.m_stamina=7;d.Step(true);Check(p.m_stamina==7,"Disabled stamina write");
-        RapidHoeV1.Configure(p);d.Step(true);Player.m_localPlayer=new Player();Call(d,"Update");Check(p.m_placeDelay==0.4f,"World change did not restore");
+        RapidHoeV2.Configure(p);d.Step(true);Player.m_localPlayer=new Player();Call(d,"Update");Check(p.m_placeDelay==0.4f,"World change did not restore");
         Player.m_localPlayer=p;p.dead=true;p.m_stamina=8;d.Step(true);Check(p.m_stamina==8,"Dead player write");
         p.dead=false;p.placing=false;d.Step(true);Check(p.m_placeDelay==0.4f,"Non-placement mode changed");
-        Console.WriteLine("PASS: hoe-only repeat, cooldown, mouse/controller release, input/menu guards, stamina/durability, tool switch, disable and world unload");
+        Console.WriteLine("PASS: hoe/cultivator repeat, cooldown, mouse/controller release, input/menu guards, stamina/durability, other-tool exclusion, disable and world unload");
     }
 }

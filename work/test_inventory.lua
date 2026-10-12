@@ -823,7 +823,7 @@ print('PASS: rapid miner toggle, local-player guard, world unload and cleanup')
 end
 
 do
-classes.RapidHoeV1=41
+classes.RapidHoeV2=41
 defs[41]={{name='Enabled',offset=0,isStatic=true,staticAddress=0x80000,typename='System.Int32'}}
 local methodsBefore=mono_class_enumMethods
 function mono_class_enumMethods(c)

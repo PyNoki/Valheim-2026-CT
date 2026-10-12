@@ -66,7 +66,7 @@ class Test {
   Check(latest.inventory=="valuable contents" && ReferenceEquals(latest,ZDOMan.instance.GetZDO(3)) && ZDOMan.instance.stones.Count==3,"same object inventory intact");
   Check(old.position.x==500 && other.position.x==500 && Game.instance.profile.death.x==100,"other stones and death marker unchanged");
   Reset();latest=Stone(1,42,20);Run(2);Check(p.teleporting && p.transform.position.x==502 && latest.position.x==500,"teleport beside stone");
-  Reset();latest=Stone(1,42,20);ZNet.instance.server=false;Run(3);Failed("solo world");Check(latest.position.x==500 && latest.networkOwner==0,"remote mutation denied");
+  Reset();latest=Stone(1,42,20);ZNet.instance.server=false;Run(3);Check(DeathRecoveryV2.GetState()==3 && latest.position.x==3 && latest.networkOwner==7,"connected client may recover its known tombstone");
   Reset();latest=Stone(1,42,20);Physics.ground=false;Run(3);Failed("No clear landing");Check(latest.position.x==500,"no unsafe landing mutation");
   Reset();Stone(1,42,20);ZNetScene.instance.loaded=new GameObject{container=new Container{inUse=true}};Run(3);Failed("currently open");
   Reset();ZNet.instance.world=2;Run(1);Failed("changed");

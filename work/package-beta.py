@@ -14,11 +14,11 @@ s = "if ValheimPortalItemsStop then pcall(ValheimPortalItemsStop) end\n"+s
 s = s.replace('b.OnClick=fn;return b', 'b.OnClick=fn;if styleToggle then styleToggle(b) end;return b')
 s = s.replace('b.OnClick=function() action(fn) end', 'b.OnClick=function() action(fn) end\n    if styleToggle then styleToggle(b) end')
 s = s.replace("rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)", "rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)\n  if styleToggle then styleToggle(rowControl) end")
-s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV13')
-s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v20 |")
+s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV14')
+s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v22 |")
 s = s.replace('Death Beam 16000/tick, 120m.', 'Death Beam 16000/tick, 2000m.')
 s = s.replace('Death Beam: hold bow attack. 80m terrain excavation;', 'Death Beam: hold bow attack. 2000m surface-contact terrain excavation;')
-s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV13.dll').read_bytes().hex() + "'", s)
+s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV14.dll').read_bytes().hex() + "'", s)
 s = s.replace("queue=matchingMethod(class,'Queue',{18,8,14},1),", "queue=matchingMethod(class,'Queue',{18,8,14},1),summon=matchingMethod(class,'QueueSummon',{18,14,14},1),")
 s = s.replace("  button('Refresh players',refreshLocations)", """  button('Refresh players',refreshLocations)
   button('Summon selected player',function()
@@ -182,7 +182,7 @@ s += '''
 -- The original controls retain their helpers; one visible button coordinates both.
 do
 minerButton.Visible=false;hoeButton.Visible=false
-hint(rapidButton,'Toggle rapid mining and rapid hoe together. Pickaxe: faster mining. Hoe: rapid terrain actions. Normal material costs apply. Building mode disables rapid hoe, so Rapid tools also turns off.')
+hint(rapidButton,'Toggle rapid pickaxe, hoe and cultivator actions together. Includes cultivation and planting, stamina protection and tool durability refill. Normal material costs apply. Building mode disables the hoe/cultivator helper, so Rapid tools also turns off.')
 hint(boatButton,'Open Pixie boat controls: faster travel, land driving and Left Ctrl jumps.')
 local enabled=false
 local monitor=createTimer(form,false);monitor.Interval=250
@@ -202,7 +202,7 @@ rapidButton.OnClick=function()
     hoeButton.OnClick()
     assert(hoeButton.Caption=='Rapid hoe: ON','Rapid hoe did not enable. Check the reported error.')
     enabled=true;monitor.Enabled=true;rapidButton.Caption='Rapid tools: ON'
-    playerStatus.Caption='Rapid mining and rapid hoe enabled. Equip a pickaxe or hoe.'
+    playerStatus.Caption='Rapid tools enabled. Equip a pickaxe, hoe or cultivator. Normal planting/material costs apply.'
   end)
   if not ok then
     local stopped,stopError=pcall(stopBoth)
