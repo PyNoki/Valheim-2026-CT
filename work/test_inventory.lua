@@ -783,7 +783,7 @@ print('PASS: deletion UI toggle, local-player guard, world unload and cleanup')
 end
 
 do
-classes.RapidMinerV1=40
+classes.RapidMinerV2=40
 defs[40]={{name='Enabled',offset=0,isStatic=true,staticAddress=0x70000,typename='System.Int32'}}
 local methodsBefore=mono_class_enumMethods
 function mono_class_enumMethods(c)

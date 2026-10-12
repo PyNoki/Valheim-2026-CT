@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 
 source = Path('outputs/ValheimInventory.lua')
 s = source.read_text(encoding='utf-8')
-for name, dll in [('helperHex', 'ValheimBowBeamV6'), ('deleteHelperHex', 'ValheimInventoryDelete'), ('minerHelperHex', 'ValheimRapidMinerV1'), ('hoeHelperHex', 'ValheimRapidHoeV2'), ('enemyHelperHex', 'ValheimEnemyFormV6'), ('dragHelperHex', 'ValheimDragBuildV6'), ('recoveryHelperHex', 'ValheimDeathRecoveryV2')]:
+for name, dll in [('helperHex', 'ValheimBowBeamV6'), ('deleteHelperHex', 'ValheimInventoryDelete'), ('minerHelperHex', 'ValheimRapidMinerV2'), ('hoeHelperHex', 'ValheimRapidHoeV2'), ('enemyHelperHex', 'ValheimEnemyFormV6'), ('dragHelperHex', 'ValheimDragBuildV6'), ('recoveryHelperHex', 'ValheimDeathRecoveryV2')]:
     s, count = re.subn(r"local " + name + "='[0-9a-f]+'", "local " + name + "='" + Path('outputs', dll + '.dll').read_bytes().hex() + "'", s)
     assert count == 1, name
 source.write_text(s, encoding='utf-8')

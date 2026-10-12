@@ -17,11 +17,11 @@ s = "if ValheimPortalItemsStop then pcall(ValheimPortalItemsStop) end\n"+s
 s = s.replace('b.OnClick=fn;return b', 'b.OnClick=fn;if styleToggle then styleToggle(b) end;return b')
 s = s.replace('b.OnClick=function() action(fn) end', 'b.OnClick=function() action(fn) end\n    if styleToggle then styleToggle(b) end')
 s = s.replace("rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)", "rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)\n  if styleToggle then styleToggle(rowControl) end")
-s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV18')
-s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v26 |")
+s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV19')
+s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v28 |")
 s = s.replace('Death Beam 16000/tick, 120m.', 'Death Beam 16000/tick, 2000m.')
 s = s.replace('Death Beam: hold bow attack. 80m terrain excavation;', 'Death Beam: hold bow attack. 2000m surface-contact terrain excavation;')
-s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV18.dll').read_bytes().hex() + "'", s)
+s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV19.dll').read_bytes().hex() + "'", s)
 s = s.replace("queue=matchingMethod(class,'Queue',{18,8,14},1),", "queue=matchingMethod(class,'Queue',{18,8,14},1),summon=matchingMethod(class,'QueueSummon',{18,14,14},1),")
 s = s.replace("  button('Refresh players',refreshLocations)", """  button('Refresh players',refreshLocations)
   button('Summon selected player',function()
@@ -81,13 +81,13 @@ If an item is flagged, use the inventory item-flag controls. Clearing an item fl
 
 ''')
 s = s.replace('label.Font.Color=0x75BDFF', 'label.Font.Color=0x00D7FF')
-s = s.replace("state=matchingMethod(class,'GetState',{},8)", "animal=matchingMethod(class,'QueueAnimal',{18,14,14},1),tameCatalogue=matchingMethod(class,'TamingCatalogue',{},14),tameStatus=matchingMethod(class,'TamingStatus',{},14),tameStop=matchingMethod(class,'StopTaming',{},1),boatStop=matchingMethod(class,'StopBoat',{},1),boatStatus=matchingMethod(class,'BoatStatus',{},14),state=matchingMethod(class,'GetState',{},8)")
+s = s.replace("state=matchingMethod(class,'GetState',{},8)", "prefab=matchingMethod(class,'QueuePrefab',{18,14,8,14},1),spawnCatalogue=matchingMethod(class,'SpawnCatalogue',{},14),animal=matchingMethod(class,'QueueAnimal',{18,14,14},1),tameCatalogue=matchingMethod(class,'TamingCatalogue',{},14),tameStatus=matchingMethod(class,'TamingStatus',{},14),tameStop=matchingMethod(class,'StopTaming',{},1),boatStop=matchingMethod(class,'StopBoat',{},1),boatStatus=matchingMethod(class,'BoatStatus',{},14),state=matchingMethod(class,'GetState',{},8)")
 s = s.replace("local window, destinations, teleportStatus, locationLabel, poll", "local window, destinations, teleportStatus, locationLabel, poll, spawnWindow, spawnStatus, trophyStatus, tamingWindow, tamingStatus")
 s = s.replace("teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))", "teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))\n    if pending.taming and tamingStatus then tamingStatus.Caption=teleportStatus.Caption elseif pending.trophy and trophyStatus then trophyStatus.Caption=teleportStatus.Caption elseif pending.spawn and spawnStatus then spawnStatus.Caption=teleportStatus.Caption end")
 s = s.replace("if window then window.hide() end\nend\nValheimTeleportStop", "if window then window.hide() end\n  if spawnWindow then spawnWindow.hide() end\nend\nValheimTeleportStop")
 s = s.replace("if window then window.destroy();window=nil end;oldDestroy()", "if spawnWindow then spawnWindow.destroy();spawnWindow=nil end;if window then window.destroy();window=nil end;oldDestroy()")
 marker = "teleportButton.OnClick=function() action(openTeleportWindow) end"
-s = s.replace(marker, marker+'\n'+Path('outputs/ValheimReplenish.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimTaming.lua').read_text(encoding='utf-8'))
+s = s.replace(marker, marker+'\n'+Path('outputs/ValheimReplenish.lua').read_text(encoding='utf-8')+'\n;(function()\n'+Path('outputs/ValheimSpawn.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimTaming.lua').read_text(encoding='utf-8')+'\nend)()\n')
 s = s.replace(marker, marker + '''
 local boatWindow,boatTimer,boatHelper
 local function stopBoatUI()
@@ -133,30 +133,6 @@ boatButton.OnClick=function() action(function()
   boatWindow.OnClose=function() stopBoatUI();return caHide end
   boatWindow.show()
 end) end
-spawnButton.OnClick=function() action(function()
-  if not window then openTeleportWindow();window.hide() end
-  if spawnWindow then spawnWindow.show();return end
-  spawnWindow=createForm(false);spawnWindow.Caption='Valheim | Beta spawn box v2'
-  spawnWindow.Width=540;spawnWindow.Height=260;spawnWindow.Position='poScreenCenter'
-  local box=createGroupBox(spawnWindow);box.Caption='Spawn';box.Left=12;box.Top=12;box.Width=500;box.Height=180
-  local item=createComboBox(box);item.Left=16;item.Top=28;item.Width=300;item.Style='csDropDownList'
-  for _,name in ipairs({'Blueberry bush','Raspberry bush','Cloudberry bush','Lingonberry bush','Vineberry vine (Ashlands)','Vineberry vine (green)','Decorative bush','Decorative bush (Deep North)','Haldor','Hildir','Bog Witch'}) do item.Items.add(name) end;item.ItemIndex=0
-  local info=createLabel(box);info.Left=16;info.Top=65;info.Width=460;info.Height=40
-  info.AutoSize=false;info.WordWrap=true
-  info.Caption='Plants spawn at your feet; vines need support. Merchants spawn beside you on clear ground. Return to Valheim and unpause. Spawns remain in the world; normal shop/progression requirements apply.'
-  local button=createButton(box);button.Left=16;button.Top=110;button.Width=210;button.Caption='Spawn selected'
-  local cancel=createButton(box);cancel.Left=240;cancel.Top=110;cancel.Width=210;cancel.Caption='Cancel queued spawn'
-  cancel.OnClick=function() action(function() stopTeleport();spawnWindow.show();spawnStatus.Caption='Queue cancelled. A spawn already running may finish.' end) end
-  spawnStatus=createLabel(spawnWindow);spawnStatus.Left=16;spawnStatus.Top=200
-  spawnStatus.AutoSize=false;spawnStatus.WordWrap=true;spawnStatus.Width=490;spawnStatus.Height=40;spawnStatus.Caption='Ready.'
-  button.OnClick=function()
-    local ok,err=pcall(function() local mode=({4,20,21,22,23,24,25,26,7,8,9})[item.ItemIndex+1];assert(mode,'Select a spawn option.');queueRecovery(mode);pending.spawn=true;spawnWindow.show() end)
-    spawnStatus.Caption=ok and 'Queued: return to Valheim and unpause.' or tostring(err)
-  end
-  if styleToggle then styleToggle(button,false);styleToggle(cancel,false) end
-  spawnWindow.OnClose=function() stopTeleport();return caHide end
-  spawnWindow.show()
-end) end
 local trophyWindow
 local trophyClose,trophyDestroy=form.OnClose,form.OnDestroy
 form.OnClose=function() if trophyWindow then trophyWindow.hide() end;return trophyClose() end
@@ -188,7 +164,7 @@ s += '''
 -- The original controls retain their helpers; one visible button coordinates both.
 do
 minerButton.Visible=false;hoeButton.Visible=false
-hint(rapidButton,'Toggle rapid pickaxe, hoe and cultivator actions together. Includes cultivation and planting, stamina protection and tool durability refill. Normal material costs apply. Building mode disables the hoe/cultivator helper, so Rapid tools also turns off.')
+hint(rapidButton,'Toggle rapid pickaxe, axe, hoe and cultivator actions together. Axes receive faster swings, stamina protection and durability refill. Normal material costs apply. Building mode disables the hoe/cultivator helper, so Rapid tools also turns off.')
 hint(boatButton,'Open Pixie boat controls: faster travel, land driving and Left Ctrl jumps.')
 local enabled=false
 local monitor=createTimer(form,false);monitor.Interval=250
@@ -208,7 +184,7 @@ rapidButton.OnClick=function()
     hoeButton.OnClick()
     assert(hoeButton.Caption=='Rapid hoe: ON','Rapid hoe did not enable. Check the reported error.')
     enabled=true;monitor.Enabled=true;rapidButton.Caption='Rapid tools: ON'
-    playerStatus.Caption='Rapid tools enabled. Equip a pickaxe, hoe or cultivator. Normal planting/material costs apply.'
+    playerStatus.Caption='Rapid tools enabled. Equip a pickaxe, axe, hoe or cultivator. Normal planting/material costs apply.'
   end)
   if not ok then
     local stopped,stopError=pcall(stopBoth)
