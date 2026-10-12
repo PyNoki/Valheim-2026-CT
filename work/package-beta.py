@@ -4,6 +4,9 @@ import xml.etree.ElementTree as ET
 
 # Assemble the current release from the base Lua and extension sources.
 s = Path('outputs/ValheimInventory.lua').read_text(encoding='utf-8')
+s = s.replace('if hook then stopTeleport();window.show() end', 'if hook then stopTeleport();if mode<10 then window.show() end end')
+s = s.replace('pending=nil;poll.Enabled=false;window.show()', 'local trophyRequest=pending and pending.trophy;pending=nil;poll.Enabled=false;if not trophyRequest then window.show() end')
+s = s.replace("..(stopped and '' or (' Cleanup failed: '..tostring(stopError)))", "..(stopped and '' or (' Cleanup failed: '..tostring(stopError)))\n      if trophyRequest and trophyStatus then trophyStatus.Caption=teleportStatus.Caption end")
 s = s.replace('BowBeamV6','BowBeamV13')
 s = re.sub(r"local helperHex='[0-9a-f]+'", "local helperHex='" + Path('outputs/ValheimBowBeamV13.dll').read_bytes().hex() + "'", s)
 s = 'local styleToggle\n'+s
@@ -78,8 +81,8 @@ If an item is flagged, use the inventory item-flag controls. Clearing an item fl
 ''')
 s = s.replace('label.Font.Color=0x75BDFF', 'label.Font.Color=0x00D7FF')
 s = s.replace("state=matchingMethod(class,'GetState',{},8)", "boatStop=matchingMethod(class,'StopBoat',{},1),boatStatus=matchingMethod(class,'BoatStatus',{},14),state=matchingMethod(class,'GetState',{},8)")
-s = s.replace("local window, destinations, teleportStatus, locationLabel, poll", "local window, destinations, teleportStatus, locationLabel, poll, spawnWindow, spawnStatus")
-s = s.replace("teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))", "teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))\n    if spawnStatus then spawnStatus.Caption=teleportStatus.Caption end")
+s = s.replace("local window, destinations, teleportStatus, locationLabel, poll", "local window, destinations, teleportStatus, locationLabel, poll, spawnWindow, spawnStatus, trophyStatus")
+s = s.replace("teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))", "teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))\n    if pending.trophy and trophyStatus then trophyStatus.Caption=teleportStatus.Caption elseif spawnStatus then spawnStatus.Caption=teleportStatus.Caption end")
 s = s.replace("if window then window.hide() end\nend\nValheimTeleportStop", "if window then window.hide() end\n  if spawnWindow then spawnWindow.hide() end\nend\nValheimTeleportStop")
 s = s.replace("if window then window.destroy();window=nil end;oldDestroy()", "if spawnWindow then spawnWindow.destroy();spawnWindow=nil end;if window then window.destroy();window=nil end;oldDestroy()")
 marker = "teleportButton.OnClick=function() action(openTeleportWindow) end"
@@ -156,24 +159,26 @@ end) end
 local trophyWindow
 local trophyClose,trophyDestroy=form.OnClose,form.OnDestroy
 form.OnClose=function() if trophyWindow then trophyWindow.hide() end;return trophyClose() end
-form.OnDestroy=function() if trophyWindow then trophyWindow.destroy();trophyWindow=nil end;trophyDestroy() end
+form.OnDestroy=function() if trophyWindow then trophyWindow.destroy();trophyWindow=nil;trophyStatus=nil end;trophyDestroy() end
 trophyButton.OnClick=function() action(function()
   if not window then openTeleportWindow();window.hide() end
   if trophyWindow then trophyWindow.show();return end
-  local buffs=createForm(false);buffs.Caption='Valheim | Trophy buffs';buffs.Width=600;buffs.Height=300;buffs.Position='poScreenCenter'
+  local buffs=createForm(false);buffs.Caption='Valheim | Trophy buffs';buffs.Width=600;buffs.Height=340;buffs.Position='poScreenCenter'
   trophyWindow=buffs
   local info=createLabel(buffs);info.Left=16;info.Top=16;info.Width=555;info.Height=58;info.AutoSize=false;info.WordWrap=true
   info.Caption='Activate a selected trophy power or all available powers together. Automatically shares with players within 10m, using native buff requests. Native durations apply; your selected forsaken power is unchanged.'
   local choice=createComboBox(buffs);choice.Left=16;choice.Top=85;choice.Width=555;choice.Style='csDropDownList'
   for _,name in ipairs({'Eikthyr','The Elder','Bonemass','Moder','Yagluth','The Queen','Fader / Ashlands','Deep North trophy power'}) do choice.Items.add(name) end;choice.ItemIndex=0
   local function queue(mode)
-    action(function() queueRecovery(mode);window.show();teleportStatus.Caption='Trophy buff queued. Return to Valheim and unpause.' end)
+    local ok,err=pcall(function() queueRecovery(mode);pending.trophy=true end)
+    trophyStatus.Caption=ok and 'Trophy buff queued. Return to Valheim and unpause.' or tostring(err)
   end
   local selected=createButton(buffs);selected.Left=16;selected.Top=132;selected.Width=175;selected.Caption='Activate selected';selected.OnClick=function() if choice.ItemIndex>=0 then queue(10+choice.ItemIndex) end end
   local all=createButton(buffs);all.Left=201;all.Top=132;all.Width=175;all.Caption='Activate all';all.OnClick=function() queue(18) end
   local remove=createButton(buffs);remove.Left=386;remove.Top=132;remove.Width=175;remove.Caption='Remove trophy buffs';remove.OnClick=function() queue(19) end
-  local note=createLabel(buffs);note.Left=16;note.Top=183;note.Width=555;note.Height=65;note.AutoSize=false;note.WordWrap=true
-  note.Caption='Results appear in Teleport tools. Nearby friends do not need the toolkit. Activate all skips unavailable powers. Remove affects only your own trophy buffs; food and other effects remain.'
+  local note=createLabel(buffs);note.Left=16;note.Top=183;note.Width=555;note.Height=45;note.AutoSize=false;note.WordWrap=true
+  note.Caption='Nearby friends do not need the toolkit. Activate all skips unavailable powers. Remove affects only your own trophy buffs; food and other effects remain.'
+  trophyStatus=createLabel(buffs);trophyStatus.Left=16;trophyStatus.Top=235;trophyStatus.Width=555;trophyStatus.Height=65;trophyStatus.AutoSize=false;trophyStatus.WordWrap=true;trophyStatus.Caption='Ready.'
   if styleToggle then styleToggle(selected,false);styleToggle(all,false);styleToggle(remove,false) end
   buffs.OnClose=function() return caHide end;buffs.show()
 end) end
