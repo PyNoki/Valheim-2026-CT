@@ -60,13 +60,15 @@ s = s.replace('static void Main(){', '''static void Main(){
   Console.WriteLine("PASS: spawn queued on game thread, exact feet position, one-shot execution, remote client success and prefab/death/world/teleport/position guards and cancellation.");
 ''')
 s = s.replace('RecoverySpawnBetaV2', 'RecoverySpawnBetaV3')
-s = s.replace('RecoverySpawnBetaV3', 'RecoverySpawnBetaV19')
+s = s.replace('RecoverySpawnBetaV3', 'RecoverySpawnBetaV21')
 s = s.replace('if(name!="BlueberryBush")throw new Exception("Wrong prefab");', 'if(Array.IndexOf(new[]{"BlueberryBush","RaspberryBush","CloudberryBush","LingonberryBush","VineAsh","VineGreen","Bush01","Bush01_deepnorth","Haldor","Hildir","BogWitch"},name)<0)throw new Exception("Wrong prefab");')
 s = s.replace('return missing?null:new GameObject();', 'return missing?null:new GameObject{name=name};')
 s = s.replace('public static int spawns;', 'public static string lastPrefab;public static int spawns;')
 s = s.replace('spawns++;last=position;', 'spawns++;lastPrefab=prefab.name;last=position;')
 s += '''
 namespace ValheimSoloToolkit {public static class TrophyBuffsV1 {public static string Apply(Player p,int choice){return "Buffs applied";}}}
+namespace ValheimSoloToolkit {public static class AutoPlanterV1 {public static string Status="Idle";public static string Catalogue(){return "";}public static void Stop(){}public static string Start(Player p,string name){return "Started";}}}
+namespace ValheimSoloToolkit {public static class ItemQualityV1 {public static string Set(Player p,ItemDrop.ItemData item,int quality){return "Quality changed";}}}
 namespace ValheimSoloToolkit {public static class SpawnCatalogueV1 {public static string Catalogue(){return "";}public static string Refresh(){return "Ready";}public static string Spawn(Player p,string name,int kind,UnityEngine.Vector3 point){return "Spawned";}}}
 namespace ValheimSoloToolkit {public static class TamingV1 {public static string Catalogue(){return "";}public static string Status(){return "Ready";}public static void Stop(){}public static void Refresh(Player p){}public static string EnableHotkey(Player p){return "F9 enabled";}public static string Bring(Player p,string key,UnityEngine.Vector3 point){return "Moved";}public static string TameAimed(Player p){return "Tamed";}}}
 public class Inventory {}
@@ -83,19 +85,19 @@ namespace ValheimSoloToolkit { public static class BoatFunV4 {
 } }
 '''
 s = s.replace('static void Main(){', '''static void Main(){
-  Reset();Run(7);Check(RecoverySpawnBetaV19.GetState()==3&&UnityEngine.Object.lastPrefab=="Haldor"&&UnityEngine.Object.last.x==3,"Haldor spawned beside player");
-  Reset();Run(8);Check(RecoverySpawnBetaV19.GetState()==3&&UnityEngine.Object.lastPrefab=="Hildir","Hildir prefab");
-  Reset();Run(9);Check(RecoverySpawnBetaV19.GetState()==3&&UnityEngine.Object.lastPrefab=="BogWitch","Bog Witch prefab");
+  Reset();Run(7);Check(RecoverySpawnBetaV21.GetState()==3&&UnityEngine.Object.lastPrefab=="Haldor"&&UnityEngine.Object.last.x==3,"Haldor spawned beside player");
+  Reset();Run(8);Check(RecoverySpawnBetaV21.GetState()==3&&UnityEngine.Object.lastPrefab=="Hildir","Hildir prefab");
+  Reset();Run(9);Check(RecoverySpawnBetaV21.GetState()==3&&UnityEngine.Object.lastPrefab=="BogWitch","Bog Witch prefab");
   string[] plants={"RaspberryBush","CloudberryBush","LingonberryBush","VineAsh","VineGreen","Bush01","Bush01_deepnorth"};
-  for(int i=0;i<plants.Length;i++){Reset();Run(20+i);Check(RecoverySpawnBetaV19.GetState()==3&&UnityEngine.Object.lastPrefab==plants[i]&&UnityEngine.Object.last.x==0,"plant selection and feet placement: "+plants[i]);}
-  int count=UnityEngine.Object.spawns;RecoverySpawnBetaV19.Tick(p);Check(UnityEngine.Object.spawns==count,"merchant spawn is one-shot");
+  for(int i=0;i<plants.Length;i++){Reset();Run(20+i);Check(RecoverySpawnBetaV21.GetState()==3&&UnityEngine.Object.lastPrefab==plants[i]&&UnityEngine.Object.last.x==0,"plant selection and feet placement: "+plants[i]);}
+  int count=UnityEngine.Object.spawns;RecoverySpawnBetaV21.Tick(p);Check(UnityEngine.Object.spawns==count,"merchant spawn is one-shot");
   Reset();ZNetScene.instance.missing=true;Run(7);Failed("merchant prefab unavailable");Check(UnityEngine.Object.spawns==count,"missing merchant does not spawn");
   Reset();ZNetScene.instance.missing=true;Run(21);Failed("plant prefab unavailable");Check(UnityEngine.Object.spawns==count,"missing cloudberry bush does not spawn");
   Console.WriteLine("PASS: berry bushes, berry vines and decorative variants select native prefabs, place at feet and reject missing plants.");
   Console.WriteLine("PASS: Haldor/Hildir/Bog Witch queue, native prefab selection, beside-player placement and missing/one-shot guards.");
-  Reset();RecoverySpawnBetaV19.Queue(p,6,"0100000000000000");Check(BoatFunV4.toggles==0,"boat queue waits for game thread");
-  RecoverySpawnBetaV19.Tick(p);RecoverySpawnBetaV19.Tick(p);Check(BoatFunV4.toggles==1,"one boat toggle per request");
-  Reset();RecoverySpawnBetaV19.Queue(p,6,"0100000000000000");RecoverySpawnBetaV19.Cancel();RecoverySpawnBetaV19.Tick(p);Check(BoatFunV4.toggles==1,"cancelled boat toggle not executed");
+  Reset();RecoverySpawnBetaV21.Queue(p,6,"0100000000000000");Check(BoatFunV4.toggles==0,"boat queue waits for game thread");
+  RecoverySpawnBetaV21.Tick(p);RecoverySpawnBetaV21.Tick(p);Check(BoatFunV4.toggles==1,"one boat toggle per request");
+  Reset();RecoverySpawnBetaV21.Queue(p,6,"0100000000000000");RecoverySpawnBetaV21.Cancel();RecoverySpawnBetaV21.Tick(p);Check(BoatFunV4.toggles==1,"cancelled boat toggle not executed");
   Console.WriteLine("PASS: boat activation queued on game thread, one-shot toggle and cancellation.");
 ''')
 s = s.replace('public long GetLong(int key,long fallback)', 'public long GetOwner(){return networkOwner;} public long GetLong(int key,long fallback)')

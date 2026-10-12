@@ -17,7 +17,7 @@ local function installReplenish()
   if not session then initialize() end
   snapshot()
   local h=loadRecovery()
-  local class=pointer(mono_findClass('ValheimSoloToolkit','RecoverySpawnBetaV19'),'Replenish helper')
+  local class=pointer(mono_findClass('ValheimSoloToolkit','RecoverySpawnBetaV20'),'Replenish helper')
   local prepare=pointer(mono_compile_method(matchingMethod(class,'PrepareTransfer',{18,18,18},18)),'Prepare transfer')
   local copy=pointer(mono_compile_method(matchingMethod(class,'PreparedCopy',{},18)),'Prepared copy')
   local drop=pointer(mono_compile_method(matchingMethod(class,'DropReplenished',{18,18,18,8},8)),'Replenished drop')

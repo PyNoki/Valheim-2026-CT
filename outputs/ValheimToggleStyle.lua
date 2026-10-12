@@ -25,7 +25,7 @@ styleToggle=function(b,toggle)
   for _,entry in ipairs(entries) do if entry.button==b then return end end
   if toggle==nil then toggle=(b.Caption or ''):match(': O[NF]+$')~=nil end
   local warning=b==godButton or b==flightButton or b==craftingButton
-  local frame=createPanel(b.Parent);frame.Caption='';frame.BevelOuter='bvNone';frame.ParentColor=false;frame.Color=0x666666
+  local frame=createPanel(b.Parent);frame.Caption='';frame.BevelOuter='bvNone';frame.ParentColor=false;frame.Color=warning and 0x00D7FF or 0x666666
   local p=createPanel(frame);p.BevelOuter='bvNone';p.ParentColor=false
   p.Cursor=-21;p.TabStop=true
   local entry={button=b,panel=p,frame=frame,toggle=toggle,warning=warning};entries[#entries+1]=entry
@@ -35,7 +35,7 @@ styleToggle=function(b,toggle)
 end
 for _,b in ipairs({godButton,staminaButton,craftingButton,flightButton,beamButton,carryButton,
   deleteButton,enemyButton,keepFlagsButton,rapidButton,freezeReplenishButton,freeze,speedButton,jumpButton,boatButton}) do styleToggle(b,true) end
-for _,b in ipairs({edit,cloneButton,refresh,maxStacksButton,dragButton,spawnButton,tamingButton,trophyButton,maxSkills,customSkills,
+for _,b in ipairs({edit,cloneButton,maxItemQualityButton,refresh,maxStacksButton,dragButton,spawnButton,tamingButton,trophyButton,maxSkills,customSkills,
   resetMovementButton,teleportButton}) do styleToggle(b,false) end
 local function updateAll() for _,entry in ipairs(entries) do update(entry) end end
 local resize,show=form.OnResize,form.OnShow

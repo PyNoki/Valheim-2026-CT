@@ -4,9 +4,12 @@ import xml.etree.ElementTree as ET
 
 # Assemble the current release from the base Lua and extension sources.
 s = Path('outputs/ValheimInventory.lua').read_text(encoding='utf-8')
+s = s.replace('local edit = createButton(form)', "local maxItemQualityButton=createButton(form)\nmaxItemQualityButton.Caption='Set quality...'\nlocal edit = createButton(form)")
+s = s.replace('{edit,cloneButton,freeze,refresh}', '{edit,cloneButton,maxItemQualityButton,freeze,refresh}')
+s = s.replace('local y=6+(row-1)*(buttonH+5)', 'local bw=row==1 and math.floor((iw-24-labelW-4*gap)/5) or bw\n      local y=6+(row-1)*(buttonH+5)')
 s = s.replace('if hook then stopTeleport();window.show() end', 'if hook then stopTeleport();if mode<=3 then window.show() end end')
-s = s.replace('pending=nil;poll.Enabled=false;window.show()', 'local trophyRequest=pending and pending.trophy;local spawnRequest=pending and pending.spawn;local boatRequest=pending and pending.boat;local tamingRequest=pending and pending.taming;pending=nil;poll.Enabled=false;if tamingRequest and tamingWindow then tamingWindow.show() elseif spawnRequest and spawnWindow then spawnWindow.show() elseif not trophyRequest and not boatRequest then window.show() end')
-s = s.replace("..(stopped and '' or (' Cleanup failed: '..tostring(stopError)))", "..(stopped and '' or (' Cleanup failed: '..tostring(stopError)))\n      if tamingRequest and tamingStatus then tamingStatus.Caption=teleportStatus.Caption elseif trophyRequest and trophyStatus then trophyStatus.Caption=teleportStatus.Caption elseif spawnRequest and spawnStatus then spawnStatus.Caption=teleportStatus.Caption end")
+s = s.replace('pending=nil;poll.Enabled=false;window.show()', 'local trophyRequest=pending and pending.trophy;local spawnRequest=pending and pending.spawn;local boatRequest=pending and pending.boat;local tamingRequest=pending and pending.taming;local qualityRequest=pending and pending.itemQuality;pending=nil;poll.Enabled=false;if tamingRequest and tamingWindow then tamingWindow.show() elseif spawnRequest and spawnWindow then spawnWindow.show() elseif not trophyRequest and not boatRequest and not qualityRequest then window.show() end')
+s = s.replace("..(stopped and '' or (' Cleanup failed: '..tostring(stopError)))", "..(stopped and '' or (' Cleanup failed: '..tostring(stopError)))\n      if qualityRequest then status.Caption=teleportStatus.Caption elseif tamingRequest and tamingStatus then tamingStatus.Caption=teleportStatus.Caption elseif trophyRequest and trophyStatus then trophyStatus.Caption=teleportStatus.Caption elseif spawnRequest and spawnStatus then spawnStatus.Caption=teleportStatus.Caption end")
 s = s.replace('BowBeamV6','BowBeamV13')
 s = re.sub(r"local helperHex='[0-9a-f]+'", "local helperHex='" + Path('outputs/ValheimBowBeamV13.dll').read_bytes().hex() + "'", s)
 s = 'local styleToggle\n'+s
@@ -17,11 +20,11 @@ s = "if ValheimPortalItemsStop then pcall(ValheimPortalItemsStop) end\n"+s
 s = s.replace('b.OnClick=fn;return b', 'b.OnClick=fn;if styleToggle then styleToggle(b) end;return b')
 s = s.replace('b.OnClick=function() action(fn) end', 'b.OnClick=function() action(fn) end\n    if styleToggle then styleToggle(b) end')
 s = s.replace("rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)", "rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)\n  if styleToggle then styleToggle(rowControl) end")
-s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV19')
-s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v28 |")
+s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV21')
+s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v30 |")
 s = s.replace('Death Beam 16000/tick, 120m.', 'Death Beam 16000/tick, 2000m.')
 s = s.replace('Death Beam: hold bow attack. 80m terrain excavation;', 'Death Beam: hold bow attack. 2000m surface-contact terrain excavation;')
-s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV19.dll').read_bytes().hex() + "'", s)
+s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV21.dll').read_bytes().hex() + "'", s)
 s = s.replace("queue=matchingMethod(class,'Queue',{18,8,14},1),", "queue=matchingMethod(class,'Queue',{18,8,14},1),summon=matchingMethod(class,'QueueSummon',{18,14,14},1),")
 s = s.replace("  button('Refresh players',refreshLocations)", """  button('Refresh players',refreshLocations)
   button('Summon selected player',function()
@@ -42,7 +45,8 @@ s = s.replace("local spawnButton=createButton(form)", "local tamingButton=create
 s = s.replace("local spawnButton=createButton(form)", "local trophyButton=createButton(form)\ntrophyButton.Caption='Trophy buffs...'\nlocal spawnButton=createButton(form)")
 s = s.replace('local skillsH=26+12+4*(buttonH+6)+line*3+10', 'local skillsH=26+12+5*(buttonH+6)+line*3+10')
 s = s.replace('place(skillStatus,group,12,10+4*(buttonH+6),cw-24,line*3)', 'place(trophyButton,group,12,10+4*(buttonH+6),cw-24,buttonH)\n        place(skillStatus,group,12,10+5*(buttonH+6),cw-24,line*3)')
-s = s.replace('{dragButton}}', '{dragButton,spawnButton,tamingButton}}')
+s = s.replace('local tamingButton=createButton(form)', "local planterButton=createButton(form)\nplanterButton.Caption='Auto planter...'\nlocal tamingButton=createButton(form)")
+s = s.replace('{dragButton}}', '{dragButton,spawnButton,tamingButton,planterButton}}')
 s = s.replace("local spawnButton=createButton(form)", "local boatButton=createButton(form)\nboatButton.Caption='Pixie boat...'\nlocal spawnButton=createButton(form)")
 s = s.replace("local minerButton=createButton(form)", "local rapidButton=createButton(form)\nrapidButton.Caption='Rapid tools: OFF'\nlocal minerButton=createButton(form)")
 s = s.replace('pair(minerButton,hoeButton,4)', 'pair(rapidButton,boatButton,4)')
@@ -77,17 +81,19 @@ Yellow means this feature has a known or reported risk of triggering Valheim's c
 
 God mode: killing monsters can flag the item used. Free crafting: crafted or upgraded items may be flagged. Flight: cheated alerts have been reported while using it.
 
+Set quality: choose equipment quality 1-1000, including refinement levels beyond the normal cap. This edit does not set the cheated flag and preserves any existing flag.
+
 If an item is flagged, use the inventory item-flag controls. Clearing an item flag does not erase every record of cheat use. Turning a feature off does not automatically remove existing flags.
 
 ''')
 s = s.replace('label.Font.Color=0x75BDFF', 'label.Font.Color=0x00D7FF')
-s = s.replace("state=matchingMethod(class,'GetState',{},8)", "prefab=matchingMethod(class,'QueuePrefab',{18,14,8,14},1),spawnCatalogue=matchingMethod(class,'SpawnCatalogue',{},14),animal=matchingMethod(class,'QueueAnimal',{18,14,14},1),tameCatalogue=matchingMethod(class,'TamingCatalogue',{},14),tameStatus=matchingMethod(class,'TamingStatus',{},14),tameStop=matchingMethod(class,'StopTaming',{},1),boatStop=matchingMethod(class,'StopBoat',{},1),boatStatus=matchingMethod(class,'BoatStatus',{},14),state=matchingMethod(class,'GetState',{},8)")
+s = s.replace("state=matchingMethod(class,'GetState',{},8)", "plant=matchingMethod(class,'QueuePlant',{18,14,14},1),plantCatalogue=matchingMethod(class,'PlantCatalogue',{},14),plantStatus=matchingMethod(class,'PlantStatus',{},14),plantStop=matchingMethod(class,'StopPlant',{},1),quality=matchingMethod(class,'QueueItemQuality',{18,18,8,14},1),prefab=matchingMethod(class,'QueuePrefab',{18,14,8,14},1),spawnCatalogue=matchingMethod(class,'SpawnCatalogue',{},14),animal=matchingMethod(class,'QueueAnimal',{18,14,14},1),tameCatalogue=matchingMethod(class,'TamingCatalogue',{},14),tameStatus=matchingMethod(class,'TamingStatus',{},14),tameStop=matchingMethod(class,'StopTaming',{},1),boatStop=matchingMethod(class,'StopBoat',{},1),boatStatus=matchingMethod(class,'BoatStatus',{},14),state=matchingMethod(class,'GetState',{},8)")
 s = s.replace("local window, destinations, teleportStatus, locationLabel, poll", "local window, destinations, teleportStatus, locationLabel, poll, spawnWindow, spawnStatus, trophyStatus, tamingWindow, tamingStatus")
-s = s.replace("teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))", "teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))\n    if pending.taming and tamingStatus then tamingStatus.Caption=teleportStatus.Caption elseif pending.trophy and trophyStatus then trophyStatus.Caption=teleportStatus.Caption elseif pending.spawn and spawnStatus then spawnStatus.Caption=teleportStatus.Caption end")
+s = s.replace("teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))", "teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))\n    if pending.itemQuality then status.Caption=teleportStatus.Caption elseif pending.taming and tamingStatus then tamingStatus.Caption=teleportStatus.Caption elseif pending.trophy and trophyStatus then trophyStatus.Caption=teleportStatus.Caption elseif pending.spawn and spawnStatus then spawnStatus.Caption=teleportStatus.Caption end")
 s = s.replace("if window then window.hide() end\nend\nValheimTeleportStop", "if window then window.hide() end\n  if spawnWindow then spawnWindow.hide() end\nend\nValheimTeleportStop")
 s = s.replace("if window then window.destroy();window=nil end;oldDestroy()", "if spawnWindow then spawnWindow.destroy();spawnWindow=nil end;if window then window.destroy();window=nil end;oldDestroy()")
 marker = "teleportButton.OnClick=function() action(openTeleportWindow) end"
-s = s.replace(marker, marker+'\n'+Path('outputs/ValheimReplenish.lua').read_text(encoding='utf-8')+'\n;(function()\n'+Path('outputs/ValheimSpawn.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimTaming.lua').read_text(encoding='utf-8')+'\nend)()\n')
+s = s.replace(marker, marker+'\n'+Path('outputs/ValheimReplenish.lua').read_text(encoding='utf-8')+'\n;(function()\n'+Path('outputs/ValheimSpawn.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimTaming.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimItemQuality.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimAutoPlanter.lua').read_text(encoding='utf-8')+'\nend)()\n')
 s = s.replace(marker, marker + '''
 local boatWindow,boatTimer,boatHelper
 local function stopBoatUI()
@@ -236,7 +242,7 @@ form.OnClose=function() stopCombined();return close() end
 form.OnDestroy=function() stopCombined();destroy() end
 end
 '''
-s += Path('outputs/ValheimToggleStyle.lua').read_text(encoding='utf-8')
+s += Path('outputs/ValheimToggleStyle.lua').read_text(encoding='utf-8').replace('spawnButton,tamingButton,trophyButton','spawnButton,tamingButton,planterButton,trophyButton')
 Path('outputs/ValheimBeta.lua').write_text(s, encoding='utf-8')
 root = ET.fromstring(Path('Valheim 2026 CT.CT').read_bytes())
 root.find('LuaScript').text = s

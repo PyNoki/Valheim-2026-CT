@@ -6,7 +6,7 @@ using UnityEngine;
 namespace ValheimSoloToolkit
 {
     // CE queues requests; all Unity and world operations run in Player.UpdateTeleport.
-    public static class RecoverySpawnBetaV19
+    public static class RecoverySpawnBetaV21
     {
         static readonly object Gate = new object();
         static Player owner;
@@ -16,20 +16,26 @@ namespace ValheimSoloToolkit
         static string summonTarget;
         static string animalTarget;
         static string spawnTarget;static int spawnKind;
+        static ItemDrop.ItemData qualityItem;static int chosenQuality;
         static readonly FieldInfo UserKey = typeof(ZDOID).GetField("<UserKey>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
         static readonly List<ZDO> stones = new List<ZDO>();
         static Vector3 destination;
         static readonly FieldInfo TombPrefab = typeof(Player).GetField("m_tombstone", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         public static int GetState() { lock (Gate) return state; }
         public static string GetStatus() { lock (Gate) return status; }
-        public static void Cancel() { lock (Gate) { state = 0; owner = null; stones.Clear(); } }
+        public static void Cancel() { lock (Gate) { state = 0; owner = null; qualityItem=null; stones.Clear(); } }
         public static void StopBoat() { BoatFunV4.Stop(); }
         public static string BoatStatus() { return BoatFunV4.Status; }
         public static string TamingCatalogue(){return TamingV1.Catalogue();}
         public static string TamingStatus(){return TamingV1.Status();}
         public static void StopTaming(){TamingV1.Stop();}
+        public static string PlantCatalogue(){return AutoPlanterV1.Catalogue();}
+        public static string PlantStatus(){return AutoPlanterV1.Status;}
+        public static void StopPlant(){AutoPlanterV1.Stop();}
+        public static void QueuePlant(Player player,string name,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");Queue(player,35,worldHex);spawnTarget=name;}}
         public static string SpawnCatalogue(){return SpawnCatalogueV1.Catalogue();}
         public static void QueuePrefab(Player player,string name,int kind,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");if(kind<0||kind>3)throw new ArgumentException("Invalid spawn category.");Queue(player,33,worldHex);spawnTarget=name;spawnKind=kind;}}
+        public static void QueueItemQuality(Player player,ItemDrop.ItemData item,int quality,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");if(quality<1||quality>1000)throw new ArgumentException("Choose quality 1-1000.");Queue(player,34,worldHex);qualityItem=item;chosenQuality=quality;}}
         public static void QueueAnimal(Player player,string target,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");Queue(player,28,worldHex);animalTarget=target;}}
         public static Inventory PrepareTransfer(Inventory target, Inventory source, ItemDrop.ItemData item) { return ReplenishV1.Prepare(target, source, item); }
         public static ItemDrop.ItemData PreparedCopy() { return ReplenishV1.Copy(); }
@@ -38,7 +44,7 @@ namespace ValheimSoloToolkit
         {
             lock (Gate)
             {
-                if (mode < 1 || mode > 33 || mode == 5 || worldHex == null || worldHex.Length != 16) throw new ArgumentException("Invalid toolkit request");
+                if (mode < 1 || mode > 35 || mode == 5 || worldHex == null || worldHex.Length != 16) throw new ArgumentException("Invalid toolkit request");
                 byte[] bytes = new byte[8];
                 for (int i = 0; i < 8; ++i) bytes[i] = Convert.ToByte(worldHex.Substring(i * 2, 2), 16);
                 world = BitConverter.ToInt64(bytes, 0);
@@ -82,7 +88,7 @@ namespace ValheimSoloToolkit
             }
             throw new InvalidOperationException("Selected player disconnected or changed character. Refresh players.");
         }
-        static void Finish(string text, bool success) { status = text; state = success ? 3 : 4; stones.Clear(); owner = null; }
+        static void Finish(string text, bool success) { status = text; state = success ? 3 : 4; stones.Clear(); owner = null;qualityItem=null; }
         static bool Valid(Vector3 p) { return !float.IsNaN(p.x) && !float.IsNaN(p.y) && !float.IsNaN(p.z) && Math.Abs(p.x) <= 20000 && Math.Abs(p.y) <= 10000 && Math.Abs(p.z) <= 20000; }
         static void Teleport(Player p, Vector3 point)
         {
@@ -121,6 +127,8 @@ namespace ValheimSoloToolkit
                     if(action==31){Finish(TamingV1.EnableHotkey(p),true);return;}
                     if(action==32){Finish(SpawnCatalogueV1.Refresh(),true);return;}
                     if(action==33){Finish(SpawnCatalogueV1.Spawn(p,spawnTarget,spawnKind,spawnKind==2?p.transform.position:Landing(p)),true);return;}
+                    if(action==35){Finish(AutoPlanterV1.Start(p,spawnTarget),true);return;}
+                    if(action==34){try{Finish(ItemQualityV1.Set(p,qualityItem,chosenQuality),true);}finally{qualityItem=null;}return;}
                     if (action >= 10 && action <= 19) { Finish(TrophyBuffsV1.Apply(p,action-10),true);return; }
                     if (action >= 7 && action <= 9)
                     {
