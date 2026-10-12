@@ -6,7 +6,7 @@ using UnityEngine;
 namespace ValheimSoloToolkit
 {
     // CE queues requests; all Unity and world operations run in Player.UpdateTeleport.
-    public static class RecoverySpawnBetaV14
+    public static class RecoverySpawnBetaV18
     {
         static readonly object Gate = new object();
         static Player owner;
@@ -14,6 +14,7 @@ namespace ValheimSoloToolkit
         static int action, state, index;
         static string status = "Idle", prefab;
         static string summonTarget;
+        static string animalTarget;
         static readonly FieldInfo UserKey = typeof(ZDOID).GetField("<UserKey>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
         static readonly List<ZDO> stones = new List<ZDO>();
         static Vector3 destination;
@@ -23,6 +24,10 @@ namespace ValheimSoloToolkit
         public static void Cancel() { lock (Gate) { state = 0; owner = null; stones.Clear(); } }
         public static void StopBoat() { BoatFunV4.Stop(); }
         public static string BoatStatus() { return BoatFunV4.Status; }
+        public static string TamingCatalogue(){return TamingV1.Catalogue();}
+        public static string TamingStatus(){return TamingV1.Status();}
+        public static void StopTaming(){TamingV1.Stop();}
+        public static void QueueAnimal(Player player,string target,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");Queue(player,28,worldHex);animalTarget=target;}}
         public static Inventory PrepareTransfer(Inventory target, Inventory source, ItemDrop.ItemData item) { return ReplenishV1.Prepare(target, source, item); }
         public static ItemDrop.ItemData PreparedCopy() { return ReplenishV1.Copy(); }
         public static int DropReplenished(Humanoid actor, Inventory source, ItemDrop.ItemData item, int amount) { return ReplenishV1.Drop(actor, source, item, amount); }
@@ -30,7 +35,7 @@ namespace ValheimSoloToolkit
         {
             lock (Gate)
             {
-                if (mode < 1 || mode > 19 || mode == 5 || worldHex == null || worldHex.Length != 16) throw new ArgumentException("Invalid toolkit request");
+                if (mode < 1 || mode > 31 || mode == 5 || worldHex == null || worldHex.Length != 16) throw new ArgumentException("Invalid toolkit request");
                 byte[] bytes = new byte[8];
                 for (int i = 0; i < 8; ++i) bytes[i] = Convert.ToByte(worldHex.Substring(i * 2, 2), 16);
                 world = BitConverter.ToInt64(bytes, 0);
@@ -106,6 +111,11 @@ namespace ValheimSoloToolkit
                     if (p.IsTeleporting()) throw new InvalidOperationException("Finish the current teleport first.");
                     if (action == 5) { Summon(p); return; }
                     if (action == 6) { BoatFunV4.Toggle(p); Finish(BoatFunV4.Status, true); return; }
+                    if(action==27){TamingV1.Refresh(p);Finish("Taming scan started. Results appear in the Taming window.",true);return;}
+                    if(action==28){Finish(TamingV1.Bring(p,animalTarget,Landing(p)),true);return;}
+                    if(action==29){Finish(TamingV1.TameAimed(p),true);return;}
+                    if(action==30){TamingV1.Stop();Finish("Taming map markers hidden.",true);return;}
+                    if(action==31){Finish(TamingV1.EnableHotkey(p),true);return;}
                     if (action >= 10 && action <= 19) { Finish(TrophyBuffsV1.Apply(p,action-10),true);return; }
                     if (action >= 7 && action <= 9)
                     {
@@ -117,17 +127,20 @@ namespace ValheimSoloToolkit
                         if(!placed)throw new InvalidOperationException("Game did not create the merchant.");
                         Finish("Spawned "+merchant+" beside you. Normal shop and world-progression requirements apply.",true);return;
                     }
-                    if (action == 4)
+                    if (action == 4 || action >= 20 && action <= 26)
                     {
                         if (!ZNetScene.instance) throw new InvalidOperationException("World prefabs are not ready.");
-                        GameObject bush = ZNetScene.instance.GetPrefab("BlueberryBush");
-                        if (!bush || !bush.GetComponent<Pickable>() || !bush.GetComponent<ZNetView>())
-                            throw new InvalidOperationException("Registered BlueberryBush prefab unavailable or incompatible.");
+                        string[] plants={"BlueberryBush","RaspberryBush","CloudberryBush","LingonberryBush","VineAsh","VineGreen","Bush01","Bush01_deepnorth"};
+                        int choice=action==4?0:action-19;
+                        string plant=plants[choice];
+                        GameObject bush = ZNetScene.instance.GetPrefab(plant);
+                        if (!bush || choice<=5 && !bush.GetComponent<Pickable>() || !bush.GetComponent<ZNetView>())
+                            throw new InvalidOperationException("Registered plant prefab unavailable or incompatible: "+plant);
                         Vector3 point = p.transform.position;
                         if (!Valid(point)) throw new InvalidOperationException("Player position is invalid.");
                         GameObject placed = UnityEngine.Object.Instantiate(bush, point, Quaternion.identity);
-                        if (!placed) throw new InvalidOperationException("Game did not create the bush.");
-                        Finish("Spawned one blueberry bush at your feet.", true);
+                        if (!placed) throw new InvalidOperationException("Game did not create the plant.");
+                        Finish("Spawned "+plant+" at your feet."+(choice==4||choice==5?" Vines need suitable support.":""), true);
                         return;
                     }
                     PlayerProfile profile = Game.instance.GetPlayerProfile();

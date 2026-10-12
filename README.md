@@ -210,19 +210,19 @@ After dying, finish respawning and wait until you can move, then click the recov
 
 <br>
 
-## Valheim 2026 CT v22: admin and solo tools
+## Valheim 2026 CT v26: admin and solo tools
 
 Download **[Valheim 2026 CT.CT](Valheim%202026%20CT.CT)** for the current toolkit. It is self-contained and includes the features below.
 
 ### Custom teleport
 
-Our custom Teleport tools call the game teleport method directly and bypass carried-item teleport restrictions. Items and their icons remain unchanged. The separate item-permission toggle has been removed. Remove cheated item flags remains a separate inventory action. Reload Valheim 2026 CT.CT and confirm Valheim 2026 CT | v22; the previous icon override is stopped and restored during reload.
+Our custom Teleport tools call the game teleport method directly and bypass carried-item teleport restrictions. Items and their icons remain unchanged. The separate item-permission toggle has been removed. Remove cheated item flags remains a separate inventory action. Reload Valheim 2026 CT.CT and confirm Valheim 2026 CT | v26; the previous icon override is stopped and restored during reload.
 
 The toolkit uses consistent rectangular buttons with thin outlines. Toggle fills turn green when active and gray when inactive; action buttons stay gray. Yellow outlines identify cheated-alert risks for God mode, Flight and Free crafting regardless of their active state. ON/OFF text is omitted from the visible buttons. Hover or open Help for the meaning and feature-specific details.
 
 ### Freeze inventory + replenish
 
-Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v22** in the title. In Inventory, **Freeze inventory + replenish** replaces the separate Freeze inventory and Auto refill buttons. Enabling freezes current stacks and retains their source items when dropping on the ground or transferring into another inventory. Both Ctrl-click and drag deposits, including partial stacks, use a copy in a temporary source inventory so the normal destination transfer rules still apply. A full destination does not remove your original stack. Ground drops create the requested quantity without consuming the source; quest-item drop restrictions remain native.
+Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v26** in the title. In Inventory, **Freeze inventory + replenish** replaces the separate Freeze inventory and Auto refill buttons. Enabling freezes current stacks and retains their source items when dropping on the ground or transferring into another inventory. Both Ctrl-click and drag deposits, including partial stacks, use a copy in a temporary source inventory so the normal destination transfer rules still apply. A full destination does not remove your original stack. Ground drops create the requested quantity without consuming the source; quest-item drop restrictions remain native.
 
 Turning the button off or closing the toolkit disables both effects. New stacks start unfrozen; toggle off/on to include them. If enabling either effect fails, both are stopped. This covers player-inventory transfers and ground drops; it does not intercept machine-feeding, crafting or other generic item consumption. Compilation, Lua syntax and mocked deposit/drop checks pass; the new hooks still need an in-game check with full/partial ground drops and Ctrl-click/drag chest deposits.
 
@@ -230,27 +230,35 @@ Turning the button off or closing the toolkit disables both effects. New stacks 
 
 In the toolkit, **Pixie boat...** is in **Skills and movement**, beside **Rapid tools**. **Rapid tools** toggles rapid mining, hoe actions and cultivator actions together; equip a pickaxe, hoe or cultivator to use the corresponding effect. Cultivation and planting receive rapid actions, stamina protection and tool durability refill; normal seed/material costs and placement rules apply. If either helper stops or fails to enable, the combined toggle turns both off. Building mode remains incompatible with Rapid hoe and therefore turns off Rapid tools.
 
-Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v22** in the title. Click **Pixie boat... → Toggle pixie boat**, return to Valheim and unpause, then take the helm. **W/S** keeps the normal boat throttle steps, **A/D** steers, each tap of **Left Ctrl** gives one high jump with no cooldown, and **Shift** boosts speed. Holding the key does not repeat jumps. Rapid taps and repeat jumps in the air are allowed. Forward speed targets 25 m/s, or 40 m/s with boost; throttle steps scale that speed and reverse is slower.
+Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v26** in the title. Click **Pixie boat... → Toggle pixie boat**, return to Valheim and unpause, then take the helm. **W/S** keeps the normal boat throttle steps, **A/D** steers, each tap of **Left Ctrl** gives one high jump with no cooldown, and **Shift** boosts speed. Holding the key does not repeat jumps. Rapid taps and repeat jumps in the air are allowed. Forward speed targets 25 m/s, or 40 m/s with boost; throttle steps scale that speed and reverse is slower.
 
 Land driving adds spring lift above terrain and keeps the hull upright. Rocks and buildings still collide with the boat; steep cliffs are not automatically climbed. While driving, native propulsion/horizontal damping and water-impact/upside-down damage settings are temporarily overridden. Native vertical water damping, buoyancy, gravity and normal collision physics remain active. Land lift only runs above dry terrain, never against the submerged seabed, and is suspended during a jump. Leaving the helm, losing ownership, or opening menus restores the boat settings. Stop/close the boat window or close the toolkit to disable the mode; return to the game and unpause for restoration to execute. Changing player/world also ends it.
 
 Only the locally controlled, normally network-owned boat receives the effect. There is no host-only restriction and ownership is not forcibly taken from another player. Boat physics compiles against installed Valheim assemblies; activation, one-shot queueing and cancellation have mocked tests. Speed, jumping, land handling, passengers and shared-server replication still require an in-game check.
 
+### Taming tools
+
+Open **Building row → Taming...**. **Refresh + show on map** scans known network records for tamed creatures, lists their custom names (or species name when unnamed), and adds temporary map markers. Markers update while Taming mode is active. **Bring selected to me** moves the existing animal beside you, preserves its identity/name, updates its home point, and clears an old patrol destination. Stand on open ground with enough space for the animal.
+
+Click **Enable wheel taming**, return to Valheim and unpause, then aim at a live creature within 10m and **click the mouse wheel in game**. Looking alone never tames it. Wheel-click taming uses the native taming method and shows in-game feedback; creatures without native taming support are rejected. Menus, chat and focus loss block the key. Closing the Taming window leaves wheel-click taming active; **Stop / hide markers**, leaving the world, or closing the toolkit disables it and removes only the toolkit's temporary markers when the game next updates.
+
+Connected clients can only list world records synchronized to them; distant animals never seen by the client may be absent. Hosts generally have more complete world data. There is no admin/host gate, but animal ownership and server synchronization still matter. Compilation and mocked scanning, name preservation, movement, taming and cleanup checks pass; shared-server behavior still needs in-game testing.
+
 ### Trophy buffs and merchants
 
 Open **Skills and movement → Trophy buffs...** to activate Eikthyr, The Elder, Bonemass, Moder, Yagluth, The Queen, Fader/Ashlands, or the Deep North power available in your game. **Activate all** applies all available trophy powers together. Activation automatically shares the buffs with players within **10 metres**, using native status-effect requests; friends do not need the toolkit. Native durations apply. **Remove trophy buffs** removes only your own trophy powers and leaves food and other effects alone. Return to Valheim and unpause to process actions.
 
-**Spawn box...** now includes **Haldor, Hildir and Bog Witch**, alongside the blueberry bush. Merchants appear beside you on clear ground, use their native registered prefabs, and keep normal shop/progression requirements. Spawns remain in the world. Merchant and nearby-player buff behavior still needs in-game confirmation; compilation and mocked tests pass.
+**Spawn box...** now includes **Haldor, Hildir and Bog Witch**, alongside blueberry, raspberry, cloudberry and lingonberry bushes, Ashlands/green berry vines, and decorative normal/Deep North bushes. Vines need suitable support; missing prefabs are reported without spawning a substitute. Merchants appear beside you on clear ground, use their native registered prefabs, and keep normal shop/progression requirements. Spawns remain in the world. Merchant and nearby-player buff behavior still needs in-game confirmation; compilation and mocked tests pass.
 
 ### Summon a player
 
-Reload **Valheim 2026 CT.CT** and confirm the title says **Valheim 2026 CT | v22**. Open **Teleport tools**, click **Refresh players**, select a **Player** row, then click **Summon selected player**. Return to Valheim and unpause while standing on clear ground. Players currently need **Visible to other players** enabled to appear in this selector.
+Reload **Valheim 2026 CT.CT** and confirm the title says **Valheim 2026 CT | v26**. Open **Teleport tools**, click **Refresh players**, select a **Player** row, then click **Summon selected player**. Return to Valheim and unpause while standing on clear ground. Players currently need **Visible to other players** enabled to appear in this selector.
 
 Summoning has no admin/host check and sends the game's `RPC_TeleportTo` to the selected character's owning client. It chooses a clear landing beside you, rather than inside your character. A sent request is not confirmation of arrival: target cooldown/loading can delay or decline the teleport. Ask your friend to confirm arrival. This is compiled and tested with mocks; live shared-server summoning still needs validation. Closing Teleport tools or **Cancel queued** cancels unsent requests, but cannot recall a network request already sent.
 
 Open **Valheim 2026 CT.CT** in Cheat Engine with Valheim and your world loaded. In the toolkit's Building row, click **Spawn box...**, select **Blueberry bush (BlueberryBush)**, then click **Spawn selected**. Return to Valheim, unpause, and stand still until the status reports success. Each click queues one bush at your player's feet; closing the spawn window or using **Cancel queued spawn** cancels a request that has not started. Spawned bushes remain in the world and are not removed when you close the toolkit.
 
-The toolkit allows connected server clients as well as solo play and hosting to spawn bushes. It uses the game's registered bush prefab, with native network initialization. Placement uses your exact position when the game handles the request; choose ground with room for the bush. Bush spawning has been confirmed on a shared server; save/reload persistence still needs validation. Reload `Valheim 2026 CT.CT` and confirm the window title says **Valheim 2026 CT | v22** to load the current helper.
+The toolkit allows connected server clients as well as solo play and hosting to spawn bushes. It uses the game's registered bush prefab, with native network initialization. Placement uses your exact position when the game handles the request; choose ground with room for the bush. Bush spawning has been confirmed on a shared server; save/reload persistence still needs validation. Reload `Valheim 2026 CT.CT` and confirm the window title says **Valheim 2026 CT | v26** to load the current helper.
 
 Release source: `outputs/ValheimRecoverySpawnBeta.cs`. Build with `work/build-beta.ps1` (override `-Managed` for your install), package with `python work/package-beta.py`, and check with `python work/test-beta.py`. The tests cover one-shot placement and rejection/cancellation guards with mocks; compilation uses installed Valheim assemblies. `Valheim 2026 CT.CT` embeds its helper and needs no separate DLL.
 
