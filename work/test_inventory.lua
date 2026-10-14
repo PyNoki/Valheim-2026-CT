@@ -22,6 +22,23 @@ function createListBox()
   box=control
   return box
 end
+function createListView()
+  local rows={}
+  local control={Font={},Canvas={Font={}},ItemIndex=-1}
+  control.Columns={add=function() return {} end}
+  control.Items={}
+  control.Items.clear=function()
+    rows={};control.ItemIndex=-1;control.Items.Count=0
+  end
+  control.Items.add=function()
+    local row={Index=#rows};rows[#rows+1]=row
+    control.Items[row.Index]=row;control.Items.Count=#rows;return row
+  end
+  control.values=function()
+    local captions={};for i,row in ipairs(rows) do captions[i]=row.Caption end;return captions
+  end
+  box=control;return control
+end
 function showMessage(e) errors[#errors+1]=e end
 local detectedPID=0
 function getProcessIDFromProcessName() return detectedPID end
@@ -510,6 +527,24 @@ buttons[32].OnClick()
 assert(#box.values()==2 and store.world_0100000000000000:find('10|20|30',1,true),'Current-position save failed')
 buttons[31].OnClick()
 assert(#box.values()==2,'Saved location did not persist across refresh')
+local favoriteButton
+for _,button in ipairs(buttons) do if button.Caption=='Favorite' then favoriteButton=button end end
+assert(favoriteButton and favoriteButton.ShowHint,'Missing favorite toggle')
+box.ItemIndex=1;box.OnSelectItem()
+favoriteButton.OnClick()
+assert(box.ItemIndex==0 and box.values()[1]:find('Home',1,true),'Favorite pin must move to top and retain selection')
+assert(favoriteButton.Caption=='Unfavorite' and box.values()[1]:sub(1,1)=='*','Favorite indicator missing')
+box.OnCustomDrawItem(box,{Index=0})
+assert(box.Canvas.Font.Color==0x00D7FF,'Favorite row must be gold')
+buttons[31].OnClick()
+assert(box.ItemIndex==0 and box.values()[1]:find('Home',1,true),'Favorite pin did not persist across refresh')
+favoriteButton.OnClick()
+assert(box.ItemIndex==1 and favoriteButton.Caption=='Favorite','Unfavorite must restore normal order and selection')
+box.OnCustomDrawItem(box,{Index=1})
+assert(box.Canvas.Font.Color==0xE6E6E6,'Normal row must restore normal color')
+box.ItemIndex=0;box.OnSelectItem();favoriteButton.OnClick()
+assert(store.favorites_0100000000000000:find('location|Saved',1,true),'Saved favorite did not persist')
+print('PASS: location favorite toggle, gold row color, favorite-first order, selection retention and persistence')
 box.ItemIndex=1;buttons[33].OnClick()
 assert(active and mem[buffer]==1 and mem[buffer+8]==0x2000,'Teleport not queued: '..tostring(errors[#errors]))
 assert(mem[buffer+0x20]==100 and mem[buffer+0x28]==300 and mem[buffer+0x3c]==1,'Wrong position or quaternion')
@@ -532,6 +567,7 @@ assert(not timers[5].Enabled and mem[buffer+8]==0,'World change must cancel pend
 buttons[31].OnClick();assert(#box.values()==1,'Saved locations leaked between worlds')
 worldID=1;buttons[31].OnClick();assert(#box.values()==2,'Original world locations missing')
 box.ItemIndex=0;buttons[35].OnClick();assert(#box.values()==1 and store.world_0100000000000000=='','Delete saved location failed')
+assert(store.favorites_0100000000000000=='','Deleted saved location left a stale favorite')
 box.ItemIndex=0;buttons[33].OnClick();ValheimInventoryWindow.OnClose()
 assert(not active and not timers[5].Enabled,'Main window close must stop teleport tools')
 print('PASS: pins, persistent per-world saves/deletion, coordinates, request lifecycle, duplicate guard, cancellation and world-change cleanup')
@@ -571,6 +607,14 @@ for i=0,2 do
 end
 buttons[1].OnClick();buttons[20].OnClick()
 assert(#box.values()==2 and box.values()[2]:find('Player',1,true),'Shared player missing or self/private player included')
+box.ItemIndex=1;box.OnSelectItem();favoriteButton.OnClick()
+assert(box.values()[1]:find('Player',1,true) and box.ItemIndex==0,'Favorite player did not move to top')
+mem[0x43074]=850;buttons[37].OnClick()
+assert(box.values()[1]:find('Player',1,true) and box.values()[1]:sub(1,1)=='*','Moving player lost favorite')
+box.OnCustomDrawItem(box,{Index=0});assert(box.Canvas.Font.Color==0x00D7FF,'Favorite player is not gold')
+favoriteButton.OnClick()
+assert(box.ItemIndex==1 and box.values()[2]:sub(1,1)~='*','Unfavorite player failed')
+print('PASS: player favorite follows name across position changes, sorting, gold color and unfavorite')
 box.ItemIndex=1;mem[0x43074]=900
 buttons[33].OnClick()
 assert(mem[buffer+0x20]==903 and mem[buffer+0x24]==41,'Player teleport did not reread latest position with offset')
