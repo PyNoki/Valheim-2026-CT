@@ -1,6 +1,7 @@
 from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
+import runpy
 
 # Assemble the current release from the base Lua and extension sources.
 s = Path('outputs/ValheimInventory.lua').read_text(encoding='utf-8')
@@ -20,11 +21,11 @@ s = "if ValheimPortalItemsStop then pcall(ValheimPortalItemsStop) end\n"+s
 s = s.replace('b.OnClick=fn;return b', 'b.OnClick=fn;if styleToggle then styleToggle(b) end;return b')
 s = s.replace('b.OnClick=function() action(fn) end', 'b.OnClick=function() action(fn) end\n    if styleToggle then styleToggle(b) end')
 s = s.replace("rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)", "rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)\n  if styleToggle then styleToggle(rowControl) end")
-s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV21')
-s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v30 |")
+s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV23')
+s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v32 |")
 s = s.replace('Death Beam 16000/tick, 120m.', 'Death Beam 16000/tick, 2000m.')
 s = s.replace('Death Beam: hold bow attack. 80m terrain excavation;', 'Death Beam: hold bow attack. 2000m surface-contact terrain excavation;')
-s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV21.dll').read_bytes().hex() + "'", s)
+s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV23.dll').read_bytes().hex() + "'", s)
 s = s.replace("queue=matchingMethod(class,'Queue',{18,8,14},1),", "queue=matchingMethod(class,'Queue',{18,8,14},1),summon=matchingMethod(class,'QueueSummon',{18,14,14},1),")
 s = s.replace("  button('Refresh players',refreshLocations)", """  button('Refresh players',refreshLocations)
   button('Summon selected player',function()
@@ -50,9 +51,9 @@ s = s.replace('{dragButton}}', '{dragButton,spawnButton,tamingButton,planterButt
 s = s.replace("local spawnButton=createButton(form)", "local boatButton=createButton(form)\nboatButton.Caption='Pixie boat...'\nlocal spawnButton=createButton(form)")
 s = s.replace("local minerButton=createButton(form)", "local rapidButton=createButton(form)\nrapidButton.Caption='Rapid tools: OFF'\nlocal minerButton=createButton(form)")
 s = s.replace('pair(minerButton,hoeButton,4)', 'pair(rapidButton,boatButton,4)')
-s = s.replace('local freezeAll = createButton(form)', "local freezeReplenishButton=createButton(form)\nfreezeReplenishButton.Caption='Freeze inventory + replenish: OFF'\nlocal freezeAll = createButton(form)")
-s = s.replace('{maxStacksButton,freezeAll,depositButton,keepFlagsButton}', '{maxStacksButton,freezeReplenishButton,keepFlagsButton}')
-s = s.replace('local y=6+(row-1)*(buttonH+5)', 'local bw=row==2 and math.floor((iw-24-labelW-2*gap)/3) or bw\n      local y=6+(row-1)*(buttonH+5)')
+s = s.replace('local freezeAll = createButton(form)', "local lootMagnetButton=createButton(form)\nlootMagnetButton.Caption='Loot magnet...'\nlocal freezeReplenishButton=createButton(form)\nfreezeReplenishButton.Caption='Freeze inventory + replenish: OFF'\nlocal freezeAll = createButton(form)")
+s = s.replace('{maxStacksButton,freezeAll,depositButton,keepFlagsButton}', '{maxStacksButton,freezeReplenishButton,keepFlagsButton,lootMagnetButton}')
+s = s.replace('local y=6+(row-1)*(buttonH+5)', '      local y=6+(row-1)*(buttonH+5)')
 s = s.replace('-- Persistent notices stay separate', '''-- Yellow frames remain visible regardless of ON/OFF caption changes.
 local cheatWarningMarkers={}
 for _,entry in ipairs({{godButton,'God mode: monster kills can flag the used item as cheated.'},
@@ -73,6 +74,10 @@ s = s.replace('local y=10+4*(buttonH+6)', '''for _,entry in ipairs(cheatWarningM
         local y=10+4*(buttonH+6)''')
 s = s.replace("subtitle.Caption = 'Inventory loads automatically when your world is ready. Green Refresh reloads it anytime.'", "subtitle.Caption = 'Green = active. Yellow outline = cheated-alert risk. Hover or open Help for details.'")
 s = s.replace('local helpText=[[', '''local helpText=[[
+FARMING AND LOOT
+Auto harvest is in Auto planter: harvests ripe cultivator crops on cultivated ground within 20m and attracts their native drops. Growth timers are not changed. Close the farming window to stop both farming controls.
+Inventory Loot magnet has separate cheated-only and all-loot toggles (one mode at a time), with a 5-500m radius. Only loaded loose drops are collected; flags stay unchanged. Full inventories, placed items, protected loot and tar-stuck drops are skipped. Close the magnet window to stop it.
+
 BUTTON COLORS
 Green means a toggle is active. Gray means it is inactive or is a one-time action. Yellow outlines identify cheated-alert risks and remain visible whether a feature is active or inactive.
 
@@ -87,13 +92,13 @@ If an item is flagged, use the inventory item-flag controls. Clearing an item fl
 
 ''')
 s = s.replace('label.Font.Color=0x75BDFF', 'label.Font.Color=0x00D7FF')
-s = s.replace("state=matchingMethod(class,'GetState',{},8)", "plant=matchingMethod(class,'QueuePlant',{18,14,14},1),plantCatalogue=matchingMethod(class,'PlantCatalogue',{},14),plantStatus=matchingMethod(class,'PlantStatus',{},14),plantStop=matchingMethod(class,'StopPlant',{},1),quality=matchingMethod(class,'QueueItemQuality',{18,18,8,14},1),prefab=matchingMethod(class,'QueuePrefab',{18,14,8,14},1),spawnCatalogue=matchingMethod(class,'SpawnCatalogue',{},14),animal=matchingMethod(class,'QueueAnimal',{18,14,14},1),tameCatalogue=matchingMethod(class,'TamingCatalogue',{},14),tameStatus=matchingMethod(class,'TamingStatus',{},14),tameStop=matchingMethod(class,'StopTaming',{},1),boatStop=matchingMethod(class,'StopBoat',{},1),boatStatus=matchingMethod(class,'BoatStatus',{},14),state=matchingMethod(class,'GetState',{},8)")
+s = s.replace("state=matchingMethod(class,'GetState',{},8)", "clearState=matchingMethod(class,'ClearState',{},8),clearStop=matchingMethod(class,'StopClear',{},1),loot=matchingMethod(class,'QueueLoot',{18,8,8,14},1),lootState=matchingMethod(class,'LootState',{},8),lootStop=matchingMethod(class,'StopLoot',{},1),harvestStop=matchingMethod(class,'StopHarvest',{},1),magnetStop=matchingMethod(class,'StopMagnet',{},1),harvestStatus=matchingMethod(class,'HarvestStatus',{},14),magnetStatus=matchingMethod(class,'MagnetStatus',{},14),plant=matchingMethod(class,'QueuePlant',{18,14,14},1),plantCatalogue=matchingMethod(class,'PlantCatalogue',{},14),plantStatus=matchingMethod(class,'PlantStatus',{},14),plantStop=matchingMethod(class,'StopPlant',{},1),quality=matchingMethod(class,'QueueItemQuality',{18,18,8,14},1),prefab=matchingMethod(class,'QueuePrefab',{18,14,8,14},1),spawnCatalogue=matchingMethod(class,'SpawnCatalogue',{},14),animal=matchingMethod(class,'QueueAnimal',{18,14,14},1),tameCatalogue=matchingMethod(class,'TamingCatalogue',{},14),tameStatus=matchingMethod(class,'TamingStatus',{},14),tameStop=matchingMethod(class,'StopTaming',{},1),boatStop=matchingMethod(class,'StopBoat',{},1),boatStatus=matchingMethod(class,'BoatStatus',{},14),state=matchingMethod(class,'GetState',{},8)")
 s = s.replace("local window, destinations, teleportStatus, locationLabel, poll", "local window, destinations, teleportStatus, locationLabel, poll, spawnWindow, spawnStatus, trophyStatus, tamingWindow, tamingStatus")
 s = s.replace("teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))", "teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))\n    if pending.itemQuality then status.Caption=teleportStatus.Caption elseif pending.taming and tamingStatus then tamingStatus.Caption=teleportStatus.Caption elseif pending.trophy and trophyStatus then trophyStatus.Caption=teleportStatus.Caption elseif pending.spawn and spawnStatus then spawnStatus.Caption=teleportStatus.Caption end")
 s = s.replace("if window then window.hide() end\nend\nValheimTeleportStop", "if window then window.hide() end\n  if spawnWindow then spawnWindow.hide() end\nend\nValheimTeleportStop")
 s = s.replace("if window then window.destroy();window=nil end;oldDestroy()", "if spawnWindow then spawnWindow.destroy();spawnWindow=nil end;if window then window.destroy();window=nil end;oldDestroy()")
 marker = "teleportButton.OnClick=function() action(openTeleportWindow) end"
-s = s.replace(marker, marker+'\n'+Path('outputs/ValheimReplenish.lua').read_text(encoding='utf-8')+'\n;(function()\n'+Path('outputs/ValheimSpawn.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimTaming.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimItemQuality.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimAutoPlanter.lua').read_text(encoding='utf-8')+'\nend)()\n')
+s = s.replace(marker, marker+'\n'+Path('outputs/ValheimReplenish.lua').read_text(encoding='utf-8')+'\n;(function()\n'+Path('outputs/ValheimSpawn.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimTaming.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimItemQuality.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimClearView.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimLootMagnet.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimAutoPlanter.lua').read_text(encoding='utf-8')+'\nend)()\n')
 s = s.replace(marker, marker + '''
 local boatWindow,boatTimer,boatHelper
 local function stopBoatUI()
@@ -242,10 +247,18 @@ form.OnClose=function() stopCombined();return close() end
 form.OnDestroy=function() stopCombined();destroy() end
 end
 '''
-s += Path('outputs/ValheimToggleStyle.lua').read_text(encoding='utf-8').replace('spawnButton,tamingButton,trophyButton','spawnButton,tamingButton,planterButton,trophyButton')
+s=s.replace('local beamButton=createButton(form)', "local clearViewButton=createButton(form)\nclearViewButton.Caption='Clear weather: OFF'\nlocal beamButton=createButton(form)")
+s=s.replace('beamButton.Width=math.max(100,beamButton.Width-88)', '')
+s=s.replace('place(kayokenCheck,group,beamButton.Left+beamButton.Width+6,beamButton.Top,82,buttonH)', 'kayokenCheck.Visible=false')
+s=re.sub(r'KAYOKEN\n.*?\n\nPLAYER TOGGLES', 'PLAYER TOGGLES', s, flags=re.S)
+s=s.replace("kayokenCheck.Caption='Kayoken';kayokenCheck.Checked=false;kayokenCheck.Enabled=false","kayokenCheck.Caption='';kayokenCheck.Checked=false;kayokenCheck.Enabled=false;kayokenCheck.Visible=false")
+s=s.replace('local y=10+4*(buttonH+6)', 'place(clearViewButton,group,12,10+4*(buttonH+6),cw-24,buttonH)\n        local y=10+5*(buttonH+6)')
+s += Path('outputs/ValheimToggleStyle.lua').read_text(encoding='utf-8').replace('spawnButton,tamingButton,trophyButton','spawnButton,tamingButton,planterButton,trophyButton').replace('resetMovementButton,teleportButton','lootMagnetButton,resetMovementButton,teleportButton').replace('godButton,staminaButton,craftingButton','clearViewButton,godButton,staminaButton,craftingButton')
+s=re.sub(r'[ \t]+\n','\n',s)
 Path('outputs/ValheimBeta.lua').write_text(s, encoding='utf-8')
 root = ET.fromstring(Path('Valheim 2026 CT.CT').read_bytes())
 root.find('LuaScript').text = s
 Path('Valheim 2026 CT.CT').write_bytes(ET.tostring(root, encoding='utf-8', xml_declaration=True))
 assert ET.parse('Valheim 2026 CT.CT').findtext('LuaScript') == s
+runpy.run_path('work/audit-helper-bindings.py', run_name='__main__')
 print('Valheim 2026 CT.CT packaged and XML verified.')

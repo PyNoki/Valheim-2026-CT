@@ -1,8 +1,8 @@
 param([string]$Managed = 'C:\Program Files (x86)\Steam\steamapps\common\Valheim\valheim_Data\Managed')
 $ErrorActionPreference='Stop'
 $compiler='C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-$references=@('assembly_valheim.dll','Splatform.dll','assembly_utils.dll','SoftReferenceableAssets.dll','UnityEngine.CoreModule.dll','UnityEngine.PhysicsModule.dll','UnityEngine.InputLegacyModule.dll','UnityEngine.dll','netstandard.dll') | ForEach-Object { '/r:'+(Join-Path $Managed $_) }
-& $compiler /nologo /target:library "/out:$pwd\outputs\ValheimRecoverySpawnBetaV21.dll" $references "$pwd\outputs\ValheimRecoverySpawnBeta.cs" "$pwd\outputs\ValheimTrophyBuffs.cs" "$pwd\outputs\ValheimTaming.cs" "$pwd\outputs\ValheimBoatFun.cs" "$pwd\outputs\ValheimBoatJumpInput.cs" "$pwd\outputs\ValheimBoatSupport.cs" "$pwd\outputs\ValheimReplenish.cs" "$pwd\outputs\ValheimSpawnCatalogue.cs" "$pwd\outputs\ValheimItemQuality.cs" "$pwd\outputs\ValheimAutoPlanter.cs"
+$references=@('assembly_valheim.dll','Splatform.dll','assembly_utils.dll','SoftReferenceableAssets.dll','UnityEngine.CoreModule.dll','UnityEngine.PhysicsModule.dll','UnityEngine.InputLegacyModule.dll','UnityEngine.ParticleSystemModule.dll','UnityEngine.dll','netstandard.dll') | ForEach-Object { '/r:'+(Join-Path $Managed $_) }
+& $compiler /nologo /target:library "/out:$pwd\outputs\ValheimRecoverySpawnBetaV23.dll" $references "$pwd\outputs\ValheimRecoverySpawnBeta.cs" "$pwd\outputs\ValheimTrophyBuffs.cs" "$pwd\outputs\ValheimTaming.cs" "$pwd\outputs\ValheimBoatFun.cs" "$pwd\outputs\ValheimBoatJumpInput.cs" "$pwd\outputs\ValheimBoatSupport.cs" "$pwd\outputs\ValheimReplenish.cs" "$pwd\outputs\ValheimSpawnCatalogue.cs" "$pwd\outputs\ValheimItemQuality.cs" "$pwd\outputs\ValheimAutoPlanter.cs" "$pwd\outputs\ValheimHarvestLoot.cs" "$pwd\outputs\ValheimLootPolicy.cs" "$pwd\outputs\ValheimClearView.cs"
 if($LASTEXITCODE){throw 'Beta compilation failed'}
 & $compiler /nologo "/out:$pwd\work\test-boat-jump.exe" "$pwd\outputs\ValheimBoatJumpInput.cs" "$pwd\outputs\ValheimBoatSupport.cs" "$pwd\work\test-boat-jump.cs"
 if($LASTEXITCODE){throw 'Boat jump test compilation failed'}
@@ -32,3 +32,7 @@ if($LASTEXITCODE){throw 'Spawn catalogue tests failed'}
 if($LASTEXITCODE){throw 'Item quality test compilation failed'}
 & "$pwd\work\test-item-quality.exe"
 if($LASTEXITCODE){throw 'Item quality tests failed'}
+& $compiler /nologo "/out:$pwd\work\test-loot-policy.exe" "$pwd\outputs\ValheimLootPolicy.cs" "$pwd\work\test-loot-policy.cs"
+if($LASTEXITCODE){throw 'Loot policy test compilation failed'}
+& "$pwd\work\test-loot-policy.exe"
+if($LASTEXITCODE){throw 'Loot policy tests failed'}

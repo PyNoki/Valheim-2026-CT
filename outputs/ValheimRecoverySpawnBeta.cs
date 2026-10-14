@@ -6,7 +6,7 @@ using UnityEngine;
 namespace ValheimSoloToolkit
 {
     // CE queues requests; all Unity and world operations run in Player.UpdateTeleport.
-    public static class RecoverySpawnBetaV21
+    public static class RecoverySpawnBetaV23
     {
         static readonly object Gate = new object();
         static Player owner;
@@ -15,7 +15,7 @@ namespace ValheimSoloToolkit
         static string status = "Idle", prefab;
         static string summonTarget;
         static string animalTarget;
-        static string spawnTarget;static int spawnKind;
+        static string spawnTarget;static int spawnKind;static int lootRadius;
         static ItemDrop.ItemData qualityItem;static int chosenQuality;
         static readonly FieldInfo UserKey = typeof(ZDOID).GetField("<UserKey>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
         static readonly List<ZDO> stones = new List<ZDO>();
@@ -29,6 +29,15 @@ namespace ValheimSoloToolkit
         public static string TamingCatalogue(){return TamingV1.Catalogue();}
         public static string TamingStatus(){return TamingV1.Status();}
         public static void StopTaming(){TamingV1.Stop();}
+        public static int ClearState(){return ClearViewV1.Enabled;}
+        public static void StopClear(){ClearViewV1.Stop();}
+        public static string HarvestStatus(){return HarvestLootV1.HarvestStatus;}
+        public static string MagnetStatus(){return HarvestLootV1.MagnetStatus;}
+        public static int LootState(){return HarvestLootV1.State();}
+        public static void StopLoot(){HarvestLootV1.StopAll();}
+        public static void StopHarvest(){HarvestLootV1.StopHarvest();}
+        public static void StopMagnet(){HarvestLootV1.StopMagnet();}
+        public static void QueueLoot(Player player,int mode,int radius,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");if(mode<36||mode>38||radius<5||radius>500)throw new ArgumentException("Invalid loot action or radius.");Queue(player,mode,worldHex);lootRadius=radius;}}
         public static string PlantCatalogue(){return AutoPlanterV1.Catalogue();}
         public static string PlantStatus(){return AutoPlanterV1.Status;}
         public static void StopPlant(){AutoPlanterV1.Stop();}
@@ -44,7 +53,7 @@ namespace ValheimSoloToolkit
         {
             lock (Gate)
             {
-                if (mode < 1 || mode > 35 || mode == 5 || worldHex == null || worldHex.Length != 16) throw new ArgumentException("Invalid toolkit request");
+                if (mode < 1 || mode > 39 || mode == 5 || worldHex == null || worldHex.Length != 16) throw new ArgumentException("Invalid toolkit request");
                 byte[] bytes = new byte[8];
                 for (int i = 0; i < 8; ++i) bytes[i] = Convert.ToByte(worldHex.Substring(i * 2, 2), 16);
                 world = BitConverter.ToInt64(bytes, 0);
@@ -127,6 +136,8 @@ namespace ValheimSoloToolkit
                     if(action==31){Finish(TamingV1.EnableHotkey(p),true);return;}
                     if(action==32){Finish(SpawnCatalogueV1.Refresh(),true);return;}
                     if(action==33){Finish(SpawnCatalogueV1.Spawn(p,spawnTarget,spawnKind,spawnKind==2?p.transform.position:Landing(p)),true);return;}
+                    if(action==39){Finish(ClearViewV1.Toggle(p),true);return;}
+                    if(action>=36&&action<=38){Finish(HarvestLootV1.Configure(p,action,lootRadius),true);return;}
                     if(action==35){Finish(AutoPlanterV1.Start(p,spawnTarget),true);return;}
                     if(action==34){try{Finish(ItemQualityV1.Set(p,qualityItem,chosenQuality),true);}finally{qualityItem=null;}return;}
                     if (action >= 10 && action <= 19) { Finish(TrophyBuffsV1.Apply(p,action-10),true);return; }

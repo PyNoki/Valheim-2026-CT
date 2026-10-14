@@ -1753,7 +1753,7 @@ local function loadRecovery()
     local assembly=mono_loadAssemblyFromFile(path);os.remove(path)
     class=pointer(mono_image_findClass(mono_getImageFromAssembly(pointer(assembly,'Death recovery assembly')),'ValheimSoloToolkit','DeathRecoveryV2'),'Death recovery class')
   end
-  recoveryHelper={pid=session,queue=matchingMethod(class,'Queue',{18,8,14},1),
+  recoveryHelper={pid=session,class=class,queue=matchingMethod(class,'Queue',{18,8,14},1),
     tick=matchingMethod(class,'Tick',{18},1),cancel=matchingMethod(class,'Cancel',{},1),
     state=matchingMethod(class,'GetState',{},8),status=matchingMethod(class,'GetStatus',{},14)}
   return recoveryHelper
