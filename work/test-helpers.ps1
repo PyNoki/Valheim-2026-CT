@@ -6,7 +6,7 @@ $cases = @(
     @{ Name='boat-support'; Sources=@('ValheimBoatSupport') },
     @{ Name='replenish'; Sources=@('ValheimReplenish') },
     @{ Name='trophy-buffs'; Sources=@('ValheimTrophyBuffs') },
-    @{ Name='taming'; Sources=@('ValheimTaming') },
+    @{ Name='taming'; Sources=@('ValheimTaming','ValheimSpawnCatalogue') },
     @{ Name='spawn-catalogue'; Sources=@('ValheimSpawnCatalogue') },
     @{ Name='item-quality'; Sources=@('ValheimItemQuality') },
     @{ Name='loot-policy'; Sources=@('ValheimLootPolicy') }
