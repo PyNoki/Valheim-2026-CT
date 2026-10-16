@@ -74,7 +74,7 @@ Select an item, choose an action and get back to playing.
 | **Rapid miner** | Speeds up pickaxe swing animations to 10×, refills stamina and keeps the equipped pickaxe at full durability. |
 | **Rapid hoe** | Hold use to repeat hoe terrain actions up to 20 times per second, with stamina refill and full hoe durability. |
 | **Building tools** | Auto-build snapped rows, capture furnished blueprints, preview/rotate/paste saved structures, and undo the last paste. |
-| **Enemy form** | Choose from 26 creature forms with native movement and attack weapons, including Sea Serpent, Fuling Berserker, Cultist, Abomination and Asksvin. |
+| **Enemy form** | Choose from 28 creature forms with native movement and attacks, including Drake and Moder with flight controls. |
 | **Free crafting** | Bypasses crafting and building material requirements. |
 | **Unlimited carry** | Prevents encumbrance, even when you exceed the normal weight limit. |
 | **Kameha** | The original cyan bow beam, with swirling particles, wind ribbons and bright impact effects. Targets hostile monsters. |
@@ -124,6 +124,8 @@ Blueprints include furniture, beds, containers, lights, crafting stations, decor
 
 **Enemy form** is under **Skills and movement**. Finish any attack or teleport, open **Enemy form...**, select a form and settings, click **Transform into selected form**, then return to Valheim and unpause. Your original player is hidden and suspended while you control a newly spawned enemy body. This is experimental; compilation and mocked tests pass, but live travel, camera, animations and multiplayer combat still need an in-game check. Form selection, setting changes, weapon cycling and returning never open Teleport tools.
 
+**Flying forms (v9):** Drake is form 27 and Moder is form 28. Drake starts airborne; Moder starts grounded. Hold **Space** to climb (press it to take off as Moder), hold **Left Ctrl** to descend, and use the normal movement/run controls to fly. Press **G** near the ground to land as Moder. **Use** cycles attacks compatible with the current ground/air state; native takeoff/landing attack items are excluded in favor of the explicit flight controls. Flight speed follows the speed multiplier. The camera starts farther back and its previous settings are restored on return. **F8** restores your player on the ground below the creature when loaded terrain is available, otherwise at the last known ground return point. Choose open ground before transforming. Compilation and mocked flight/attack/camera/return checks pass; live flying, breath/projectile aim, collision and multiplayer replication need in-game verification.
+
 **Turning fix (v5):** Forms face the movement direction while moving, and follow camera aim while idle or attacking. Facing updates no longer restart an unfinished look transition every frame. The game still applies each creature's native turn speed and attack restrictions. Return from any active form and unpause before reloading the updated table.
 
 **Expanded roster (v6):** The original six choices keep their numbers. Added forms use the same turning controls, identity hiding and F8 return. Large creatures need open space; native area attacks can affect nearby objects. Added forms are experimental and still need in-game checks. Missing or incompatible prefabs cancel before suspending the player.
@@ -143,6 +145,7 @@ Blueprints include furniture, beds, containers, lights, crafting stations, decor
 | 11 | Draugr Elite | 24 | Seeker Soldier |
 | 12 | Draugr Archer | 25 | Abomination |
 | 13 | Rancid Remains | 26 | Asksvin |
+| 27 | Drake | 28 | Moder (dragon) |
 
 **Sea Serpent** is option **6** in Enemy form. Transform in deep water with room for the body. Normal movement steers its native surface swimming, and Attack uses its native attack weapon. This transforms you at your current location; it does not teleport you to an existing serpent or automatically find the ocean. F8 returns your player at the serpent’s last position, including in water. Return to your player and unpause before loading the new table; the window title should show **Enemy form v8**. Sea Serpent still needs an in-game check.
 
@@ -221,6 +224,10 @@ After dying, finish respawning and wait until you can move, then click the recov
 
 <br>
 
+## What's new in v37
+
+Enemy form v9 adds Drake and Moder, bringing the list to 28 forms. Includes native flight controls, near-ground landing for Moder, flight speed scaling, ground/air attack selection, a wider camera and ground return when leaving a flying form. The previous 26 forms remain available.
+
 ## What's new in v36
 
 Fixed HP 999 replaces God Mode, preserves normal saved health and food behavior, and keeps the health bar at its normal food-based size. The toggle uses the normal border. Hooks no longer request nearby allocations, removing the allocation warning. Styled buttons redraw after returning from the game and avoid repeated reparenting.
@@ -271,13 +278,13 @@ Download **[Valheim 2026 CT.CT](Valheim%202026%20CT.CT)** for the current toolki
 
 ### Custom teleport
 
-Our custom Teleport tools call the game teleport method directly and bypass carried-item teleport restrictions. Items and their icons remain unchanged. The separate item-permission toggle has been removed. Remove cheated item flags remains a separate inventory action. Reload Valheim 2026 CT.CT and confirm Valheim 2026 CT | v36; the previous icon override is stopped and restored during reload.
+Our custom Teleport tools call the game teleport method directly and bypass carried-item teleport restrictions. Items and their icons remain unchanged. The separate item-permission toggle has been removed. Remove cheated item flags remains a separate inventory action. Reload Valheim 2026 CT.CT and confirm Valheim 2026 CT | v37; the previous icon override is stopped and restored during reload.
 
 The toolkit uses consistent rectangular buttons with thin outlines. Toggle fills turn green when active and gray when inactive; action buttons stay gray. Yellow outlines identify cheated-alert risks for Flight and Free crafting regardless of their active state. Fixed HP 999 uses the normal border. ON/OFF text is omitted from the visible buttons. Hover or open Help for the meaning and feature-specific details.
 
 ### Freeze inventory + replenish
 
-Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v36** in the title. In Inventory, **Freeze inventory + replenish** replaces the separate Freeze inventory and Auto refill buttons. Enabling freezes current stacks and retains their source items when dropping on the ground or transferring into another inventory. Both Ctrl-click and drag deposits, including partial stacks, use a copy in a temporary source inventory so the normal destination transfer rules still apply. A full destination does not remove your original stack. Ground drops create the requested quantity without consuming the source; quest-item drop restrictions remain native.
+Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v37** in the title. In Inventory, **Freeze inventory + replenish** replaces the separate Freeze inventory and Auto refill buttons. Enabling freezes current stacks and retains their source items when dropping on the ground or transferring into another inventory. Both Ctrl-click and drag deposits, including partial stacks, use a copy in a temporary source inventory so the normal destination transfer rules still apply. A full destination does not remove your original stack. Ground drops create the requested quantity without consuming the source; quest-item drop restrictions remain native.
 
 Turning the button off or closing the toolkit disables both effects. New stacks start unfrozen; toggle off/on to include them. If enabling either effect fails, both are stopped. This covers player-inventory transfers and ground drops; it does not intercept machine-feeding, crafting or other generic item consumption. Compilation, Lua syntax and mocked deposit/drop checks pass; the new hooks still need an in-game check with full/partial ground drops and Ctrl-click/drag chest deposits.
 
@@ -285,7 +292,7 @@ Turning the button off or closing the toolkit disables both effects. New stacks 
 
 In the toolkit, **Pixie boat...** is in **Skills and movement**, beside **Rapid tools**. **Rapid tools** toggles rapid mining, axe swings, hoe actions and cultivator actions together; equip a pickaxe, axe, hoe or cultivator to use the corresponding effect. Cultivation and planting receive rapid actions, stamina protection and tool durability refill; normal seed/material costs and placement rules apply. If either helper stops or fails to enable, the combined toggle turns both off. Building mode remains incompatible with Rapid hoe and therefore turns off Rapid tools.
 
-Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v36** in the title. Click **Pixie boat... → Toggle pixie boat**, return to Valheim and unpause, then take the helm. **W/S** keeps the normal boat throttle steps, **A/D** steers, each tap of **Left Ctrl** gives one high jump with no cooldown, and **Shift** boosts speed. Holding the key does not repeat jumps. Rapid taps and repeat jumps in the air are allowed. Forward speed targets 25 m/s, or 40 m/s with boost; throttle steps scale that speed and reverse is slower.
+Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v37** in the title. Click **Pixie boat... → Toggle pixie boat**, return to Valheim and unpause, then take the helm. **W/S** keeps the normal boat throttle steps, **A/D** steers, each tap of **Left Ctrl** gives one high jump with no cooldown, and **Shift** boosts speed. Holding the key does not repeat jumps. Rapid taps and repeat jumps in the air are allowed. Forward speed targets 25 m/s, or 40 m/s with boost; throttle steps scale that speed and reverse is slower.
 
 Land driving adds spring lift above terrain and keeps the hull upright. Rocks and buildings still collide with the boat; steep cliffs are not automatically climbed. While driving, native propulsion/horizontal damping and water-impact/upside-down damage settings are temporarily overridden. Native vertical water damping, buoyancy, gravity and normal collision physics remain active. Land lift only runs above dry terrain, never against the submerged seabed, and is suspended during a jump. Leaving the helm, losing ownership, or opening menus restores the boat settings. Stop/close the boat window or close the toolkit to disable the mode; return to the game and unpause for restoration to execute. Changing player/world also ends it.
 

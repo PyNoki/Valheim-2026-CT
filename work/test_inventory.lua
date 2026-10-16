@@ -922,7 +922,7 @@ print('PASS: rapid hoe toggle, local-player guard, world unload, independent min
 end
 
 do
-classes.EnemyFormV8=42;classes.GameCamera=43;classes.Projectile=45;vtDword=2
+classes.EnemyFormV9=42;classes.GameCamera=43;classes.Projectile=45;vtDword=2
 mem[0x90008]=0xa0000;mem[0xa0010]=10
 defs[42]={{name='Enabled',offset=0,isStatic=true,staticAddress=0x90000,typename='System.Int32'},{name='Status',offset=8,isStatic=true,staticAddress=0x90008,typename='System.String'}}
 local methodsBefore=mono_class_enumMethods
@@ -981,7 +981,7 @@ end
 local shownBefore=#shownForms
 buttons[27].OnClick();local enemyForm=forms[#forms];local choices=box
 assert(enemyForm.Caption=='Valheim | Enemy transformation' and #shownForms==shownBefore+1,'Enemy popup missing')
-assert(not active and not selected and #choices.values()==26,'Opening popup must only show choices')
+assert(not active and not selected and #choices.values()==28,'Opening popup must only show choices')
 local startButton,returnButton,cycleButton,monster,duel
 for _,b in ipairs(buttons) do
  if b.Caption=='Transform into selected form' then startButton=b end
@@ -994,7 +994,7 @@ for _,c in ipairs(checkboxes) do
 end
 assert(startButton and returnButton and cycleButton and monster and duel,'Enemy popup controls missing')
 choices.ItemIndex=-1;startButton.OnClick();assert(not active and not selected,'Missing choice enabled form')
-choices.ItemIndex=26;startButton.OnClick();assert(not active and not selected,'Invalid choice enabled form')
+choices.ItemIndex=28;startButton.OnClick();assert(not active and not selected,'Invalid choice enabled form')
 function inputQuery() return '2' end
 buttons[17].OnClick()
 function inputQuery() return '3' end
@@ -1029,7 +1029,7 @@ startButton.OnClick();mem[0x90000]=0;morphTimer.OnTimer();assert(not active and 
 startButton.OnClick();mem[0x1030]=0;morphTimer.OnTimer();assert(not active and mem[0x90000]==0,'World unload did not disable form')
 mem[0x1030]=0x2000;startButton.OnClick();ValheimInventoryWindow.OnClose();assert(not active and mem[0x90000]==0,'Closing did not stop transformation')
 for i=shownBefore+1,#shownForms do assert(shownForms[i]==enemyForm,'Monster action opened teleport or another popup') end
-print('PASS: dedicated enemy popup, pre-transform/live speed/jump/reset with sync-failure rollback, all 26 forms, bounds, live red/green and duel options, weapon cycle, no teleport popup, camera guard, status and lifecycle cleanup')
+print('PASS: dedicated enemy popup, pre-transform/live speed/jump/reset with sync-failure rollback, all 28 forms, bounds, live red/green and duel options, weapon cycle, no teleport popup, camera guard, status and lifecycle cleanup')
 end
 
 do
