@@ -6,7 +6,7 @@ using UnityEngine;
 namespace ValheimSoloToolkit
 {
     // CE queues requests; all Unity and world operations run in Player.UpdateTeleport.
-    public static class RecoverySpawnBetaV23
+    public static class RecoverySpawnBetaV24
     {
         static readonly object Gate = new object();
         static Player owner;
@@ -15,7 +15,7 @@ namespace ValheimSoloToolkit
         static string status = "Idle", prefab;
         static string summonTarget;
         static string animalTarget;
-        static string spawnTarget;static int spawnKind;static int lootRadius;
+        static string spawnTarget;static int spawnKind;static int spawnStars;static int lootRadius;
         static ItemDrop.ItemData qualityItem;static int chosenQuality;
         static readonly FieldInfo UserKey = typeof(ZDOID).GetField("<UserKey>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
         static readonly List<ZDO> stones = new List<ZDO>();
@@ -43,7 +43,7 @@ namespace ValheimSoloToolkit
         public static void StopPlant(){AutoPlanterV1.Stop();}
         public static void QueuePlant(Player player,string name,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");Queue(player,35,worldHex);spawnTarget=name;}}
         public static string SpawnCatalogue(){return SpawnCatalogueV1.Catalogue();}
-        public static void QueuePrefab(Player player,string name,int kind,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");if(kind<0||kind>3)throw new ArgumentException("Invalid spawn category.");Queue(player,33,worldHex);spawnTarget=name;spawnKind=kind;}}
+        public static void QueuePrefab(Player player,string name,int kind,int stars,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");if(kind<0||kind>3)throw new ArgumentException("Invalid spawn category.");if(stars<0||stars>2||((kind!=0&&kind!=3)&&stars!=0))throw new ArgumentException("Choose 0, 1 or 2 stars for creatures only.");Queue(player,33,worldHex);spawnTarget=name;spawnKind=kind;spawnStars=stars;}}
         public static void QueueItemQuality(Player player,ItemDrop.ItemData item,int quality,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");if(quality<1||quality>1000)throw new ArgumentException("Choose quality 1-1000.");Queue(player,34,worldHex);qualityItem=item;chosenQuality=quality;}}
         public static void QueueAnimal(Player player,string target,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");Queue(player,28,worldHex);animalTarget=target;}}
         public static Inventory PrepareTransfer(Inventory target, Inventory source, ItemDrop.ItemData item) { return ReplenishV1.Prepare(target, source, item); }
@@ -135,7 +135,7 @@ namespace ValheimSoloToolkit
                     if(action==30){TamingV1.Stop();Finish("Taming map markers hidden.",true);return;}
                     if(action==31){Finish(TamingV1.EnableHotkey(p),true);return;}
                     if(action==32){Finish(SpawnCatalogueV1.Refresh(),true);return;}
-                    if(action==33){Finish(SpawnCatalogueV1.Spawn(p,spawnTarget,spawnKind,spawnKind==2?p.transform.position:Landing(p)),true);return;}
+                    if(action==33){Finish(SpawnCatalogueV1.Spawn(p,spawnTarget,spawnKind,spawnKind==2?p.transform.position:Landing(p),spawnStars),true);return;}
                     if(action==39){Finish(ClearViewV1.Toggle(p),true);return;}
                     if(action>=36&&action<=38){Finish(HarvestLootV1.Configure(p,action,lootRadius),true);return;}
                     if(action==35){Finish(AutoPlanterV1.Start(p,spawnTarget),true);return;}

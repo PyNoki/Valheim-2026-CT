@@ -7,7 +7,7 @@ root = Path(__file__).resolve().parent.parent
 lua = (root / 'outputs/ValheimBeta.lua').read_text(encoding='utf-8')
 assert ET.parse(root / 'Valheim 2026 CT.CT').findtext('LuaScript') == lua
 helpers = [
-    ('recoveryHelperHex', 'RecoverySpawnBetaV23', 'ValheimRecoverySpawnBetaV23.dll', 'ValheimRecoverySpawnBeta.cs'),
+    ('recoveryHelperHex', 'RecoverySpawnBetaV24', 'ValheimRecoverySpawnBetaV24.dll', 'ValheimRecoverySpawnBeta.cs'),
     ('helperHex', 'BowBeamV13', 'ValheimBowBeamV13.dll', 'ValheimBowBeam.cs'),
     ('deleteHelperHex', 'InventoryDeleteV1', 'ValheimInventoryDelete.dll', 'ValheimInventoryDelete.cs'),
     ('minerHelperHex', 'RapidMinerV2', 'ValheimRapidMinerV2.dll', 'ValheimRapidMiner.cs'),
@@ -37,7 +37,7 @@ for variable, classname, dllname, filename in helpers:
     assert marker in lua
     start = lua.index(marker)
     section = lua[start:start+2500]
-    if classname == 'RecoverySpawnBetaV23':
+    if classname == 'RecoverySpawnBetaV24':
         replenish = (root / 'outputs/ValheimReplenish.lua').read_text(encoding='utf-8')
         assert "pointer(h.class,'Replenish helper')" in replenish
         section += '\n' + replenish
