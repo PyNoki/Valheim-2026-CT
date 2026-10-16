@@ -36,7 +36,8 @@ namespace ValheimSoloToolkit {
    catalogue=string.Join("\n",rows.ToArray());
    return "Loaded "+groups[0].Count+" creatures, "+groups[1].Count+" merchants, "+groups[2].Count+" resources and "+groups[3].Count+" native tameable creatures.";
   }
-  public static string Spawn(Player player,string name,int kind,Vector3 point){
+  public static string Spawn(Player player,string name,int kind,Vector3 point,int stars){
+   if(stars<0||stars>2||((kind!=0&&kind!=3)&&stars!=0))throw new InvalidOperationException("Choose 0, 1 or 2 stars for creatures only.");
    if(kind<0||kind>3||name==null||!groups[kind].Contains(name))throw new InvalidOperationException("Select a registered prefab from the current catalogue; refresh the list first.");
    var prefab=ZNetScene.instance.GetPrefab(name);
    if(!prefab||!prefab.GetComponent<ZNetView>())throw new InvalidOperationException("Selected prefab is no longer available.");
@@ -44,7 +45,8 @@ namespace ValheimSoloToolkit {
    if(kind==3&&!prefab.GetComponent<Tameable>())throw new InvalidOperationException("This creature no longer has native taming support.");
    var spawned=UnityEngine.Object.Instantiate(prefab,point,player.transform.rotation);
    if(!spawned)throw new InvalidOperationException("Game did not create the selected prefab.");
-   return "Spawned "+name+"."+(kind==3?" Native default tame state applies; use wheel-click taming if needed.":"");
+   if(kind==0||kind==3)spawned.GetComponent<Character>().SetLevel(stars+1);
+   return "Spawned "+name+((kind==0||kind==3)?" ("+stars+" stars)":"")+"."+(kind==3?" Native default tame state applies; use wheel-click taming if needed.":"");
   }
  }
 }

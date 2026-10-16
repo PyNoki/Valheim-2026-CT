@@ -300,13 +300,15 @@ Only the locally controlled, normally network-owned boat receives the effect. Th
 
 ### Taming tools
 
-Open **Building row → Taming...**. Its spawn dropdown lists every registered creature with native Tameable support, including compatible modded creatures. Refresh the spawn list and unpause once to populate it; newly spawned creatures keep their native default tame state, so wheel-click tame them if needed. **Refresh + show on map** scans known network records for tamed creatures, lists their custom names (or species name when unnamed), and adds temporary map markers. Markers update while Taming mode is active. **Bring selected to me** moves the existing animal beside you, preserves its identity/name, updates its home point, and clears an old patrol destination. Stand on open ground with enough space for the animal.
+Open **Building row → Taming...**. Choose **0 stars (normal)**, **1 star**, or **2 stars** beside the spawn dropdown before spawning. Its spawn dropdown lists every registered creature with native Tameable support, including compatible modded creatures. Refresh the spawn list and unpause once to populate it; newly spawned creatures keep their native default tame state, so wheel-click tame them if needed. **Refresh + show on map** scans known network records for tamed creatures, lists their custom names (or species name when unnamed), and adds temporary map markers. Markers update while Taming mode is active. **Bring selected to me** moves the existing animal beside you, preserves its identity/name, updates its home point, and clears an old patrol destination. Stand on open ground with enough space for the animal.
 
 Click **Enable wheel taming**, return to Valheim and unpause, then aim at a live creature within 10m and **click the mouse wheel in game**. Looking alone never tames it. Wheel-click taming uses the native taming method and shows in-game feedback; creatures without native taming support are rejected. Menus, chat and focus loss block the key. Closing the Taming window leaves wheel-click taming active; **Stop / hide markers**, leaving the world, or closing the toolkit disables it and removes only the toolkit's temporary markers when the game next updates.
 
 Connected clients can only list world records synchronized to them; distant animals never seen by the client may be absent. Hosts generally have more complete world data. There is no admin/host gate, but animal ownership and server synchronization still matter. Compilation and mocked scanning, name preservation, movement, taming and cleanup checks pass; shared-server behavior still needs in-game testing.
 
 ### Categorized spawning
+
+**Spawn box...** lets you choose **0 stars (normal)**, **1 star**, or **2 stars** for monsters/creatures, including tameable animals. Choose the stars before clicking **Spawn selected**. Merchants and resources use their normal defaults. The table title is **Valheim 2026 CT | v38**. The helper compiles against the installed game, and C# behavior tests and Lua checks pass for star levels, both selectors, request signatures and cancellation. Live appearance and multiplayer persistence still need in-game verification.
 
 **Spawn box...** has separate **Monsters / creatures**, **Merchants**, and **Resources / plants** dropdowns. The catalogue is generated from registered prefabs in your loaded game rather than a fixed monster list. Open it and unpause Valheim once to fill the lists, or use **Refresh spawn catalogue** after changes. Creatures include bosses, wildlife and other registered characters; players are excluded. Resources include harvest nodes, plants/bushes, ore rocks, materials, food and trophies. Merchants retain normal shop/progression rules. Creatures/merchants spawn beside you on clear ground; resources spawn at your feet. Results remain in Spawn box.
 
@@ -386,3 +388,11 @@ Build and test enemy transformation with `pwsh -File work/build-enemy-form.ps1`,
   <strong>Explore a little further. Build something bigger. Have fun.</strong><br>
   <sub>An unofficial community toolkit for server admins and solo play. Not affiliated with Valheim's developers.</sub>
 </p>
+
+### Automated tests with Smart App Control enabled
+
+The **Valheim tests** GitHub Actions workflow runs C# helper behavior tests on a GitHub Windows runner and Lua UI/request tests on a Linux runner. Pushes and pull requests that change `outputs/`, `work/`, or the workflow trigger it automatically. After the workflow reaches the default branch, you can also select **Actions → Valheim tests → Run workflow** on GitHub.
+
+These tests use mocked game objects and need neither Valheim nor Cheat Engine installed on the runners. They do not compile the production helper against game assemblies or perform live game checks. Production helper compilation still uses your local Valheim installation. Your PC can keep Smart App Control enabled because the unsigned test executables run on GitHub's machines. This does not grant trust to unsigned programs on your PC or change Windows security settings.
+
+To run the C# mock tests in a development environment that permits locally compiled programs, use `pwsh -File work/test-helpers.ps1` and `python work/test-beta.py --skip-lua`. The local Lua suite uses `python work/run-lua-tests.py` with Cheat Engine installed.

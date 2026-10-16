@@ -1,0 +1,53 @@
+name: Valheim tests
+
+on:
+  push:
+    paths:
+      - 'outputs/**'
+      - 'work/**'
+      - '.github/workflows/tests.yml'
+  pull_request:
+    paths:
+      - 'outputs/**'
+      - 'work/**'
+      - '.github/workflows/tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  helpers:
+    name: C# helper behavior
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Compile and run helper tests
+        shell: pwsh
+        run: ./work/test-helpers.ps1
+      - name: Test queued game actions
+        run: python work/test-beta.py --skip-lua
+
+  lua:
+    name: Lua controls and request wiring
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Install Lua 5.3
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes lua5.3
+      - name: Test inventory and spawn controls
+        run: |
+          lua5.3 work/test_inventory.lua
+          lua5.3 work/test_spawn_stars.lua
+          luac5.3 -p outputs/ValheimBeta.lua
