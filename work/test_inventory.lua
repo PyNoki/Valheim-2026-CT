@@ -1,10 +1,15 @@
 local buttons, box, errors, writes = {}, nil, {}, 0
 -- Distinct CE types matter: a managed reference cannot be passed as a numeric Int64.
-vtPointer=12;vtQword=3;vtDword=2;vtString=6
+vtPointer=12;vtQword=3;vtDword=2;vtString=6;vtSingle=4
 local timer
 local timers={}
 function createTimer() local t={Enabled=false}; timers[#timers+1]=t; timer=timer or t; return t end
-function createForm() return {Font={},Constraints={},show=function() end, hide=function() end, destroy=function() end} end
+local forms,shownForms={},{}
+function createForm()
+ local f={Font={},Constraints={}}
+ f.show=function() shownForms[#shownForms+1]=f end;f.hide=function() end;f.destroy=function() end
+ forms[#forms+1]=f;return f
+end
 function createButton() local b={}; buttons[#buttons+1]=b; return b end
 local labels,helpMemo={},nil
 function createLabel() local l={Font={}};labels[#labels+1]=l;return l end
@@ -917,25 +922,38 @@ print('PASS: rapid hoe toggle, local-player guard, world unload, independent min
 end
 
 do
-classes.EnemyFormV6=42;classes.GameCamera=43;vtDword=2
+classes.EnemyFormV8=42;classes.GameCamera=43;classes.Projectile=45;vtDword=2
 mem[0x90008]=0xa0000;mem[0xa0010]=10
 defs[42]={{name='Enabled',offset=0,isStatic=true,staticAddress=0x90000,typename='System.Int32'},{name='Status',offset=8,isStatic=true,staticAddress=0x90008,typename='System.String'}}
 local methodsBefore=mono_class_enumMethods
 function mono_class_enumMethods(c)
- if c==42 then return {{name='Configure',method=601},{name='Disable',method=602},{name='Tick',method=603}} end
+ if c==42 then return {{name='Configure',method=601},{name='Disable',method=602},{name='Tick',method=603},{name='SetOptions',method=605},{name='NextWeapon',method=606},{name='TuneProjectile',method=608},{name='SetMovement',method=609}} end
  if c==43 then return {{name='LateUpdate',method=604}} end
+ if c==45 then return {{name='Setup',method=607}} end
  return methodsBefore(c)
 end
 local paramsBefore=mono_method_get_parameters
 function mono_method_get_parameters(m)
+ if m==609 then return {returntype=1,parameters={{type=12},{type=12}}} end
+ if m==607 then return {returntype=1,parameters={{type=18},{type=17},{type=12},{type=18},{type=18},{type=18}}} end
+ if m==608 then return {returntype=1,parameters={{type=18},{type=18}}} end
+ if m==605 then return {returntype=1,parameters={{type=8},{type=8}}} end
+ if m==606 then return {returntype=1,parameters={}} end
  if m==601 then return {returntype=1,parameters={{type=18},{type=8}}} end
  if m==603 then return {returntype=1,parameters={{type=18}}} end
  if m==602 or m==604 then return {returntype=1,parameters={}} end
  return paramsBefore(m)
 end
 local invokeBefore=mono_invoke_method
-local selected
+local selected,options,cycles,movement,movementSyncFail
 function mono_invoke_method(d,m,obj,args)
+ if m==609 then
+  assert(args[1].type==vtSingle and args[2].type==vtSingle,'Movement must marshal floats')
+  if movementSyncFail then return nil,'simulated movement sync failure' end
+  movement={args[1].value,args[2].value};return nil
+ end
+ if m==605 then options={args[1].value,args[2].value};return nil end
+ if m==606 then cycles=(cycles or 0)+1;return nil end
  if m==601 then assert(args[1].value==0x2000);selected=args[2].value;mem[0x90000]=1;return nil end
  if m==602 then mem[0x90000]=0;return nil end
  return invokeBefore(d,m,obj,args)
@@ -944,26 +962,74 @@ local assembleBefore=autoAssemble
 local active=false
 function autoAssemble(script,self,disable)
  if script:find('alloc(vhEnemyForm,',1,true) then
+  assert(script:find('alloc(vhEnemyForm,4096)',1,true) and script:find('alloc(vhEnemyProjectile,4096)',1,true),'Enemy hooks must allocate without a nearby-address hint')
+  for _,name in ipairs({'vhEnemyForm','vhEnemyProjectile'}) do
+   assert(script:find('call qword ptr ['..name..'Callback]',1,true),'Callback must support addresses beyond 2 GB')
+   assert(script:find('jmp qword ptr ['..name..'Return]',1,true),'Return must support addresses beyond 2 GB')
+   assert(script:find('label('..name..'Callback)',1,true) and script:find('label('..name..'Return)',1,true),'Absolute pointer labels missing')
+  end
   assert(script:find('cmp [rax],r11',1,true),'Enemy form must validate local-player storage')
+  assert(script:find('alloc(vhEnemyProjectile,',1,true),'Ranged duel setup hook missing')
+  local _,enableSections=script:gsub('%[ENABLE%]','');local _,disableSections=script:gsub('%[DISABLE%]','')
+  assert(enableSections==1 and disableSections==1,'Combined hooks must have one enable/disable section')
   assert(script:find('mov [rsp+28],rcx',1,true) and script:find('mov rcx,[rsp+28]',1,true),'Camera instance must survive the callback')
   assert(not script:find('dealloc(',1,true),'Do not free in-flight camera hook memory')
   active=not disable;return true,{}
  end
  return assembleBefore(script,self,disable)
 end
-function inputQuery() return nil end
-buttons[27].OnClick();assert(not active and not selected,'Cancel enabled transformation')
-function inputQuery() return '27' end
-buttons[27].OnClick();assert(not active and not selected,'Invalid form enabled transformation')
-function inputQuery() return '26' end
-buttons[27].OnClick();local morphTimer=timers[#timers]
-assert(active and selected==25 and buttons[27].Caption=='Enemy form: ON','Enemy form toggle failed: '..tostring(errors[#errors]))
+local shownBefore=#shownForms
+buttons[27].OnClick();local enemyForm=forms[#forms];local choices=box
+assert(enemyForm.Caption=='Valheim | Enemy transformation' and #shownForms==shownBefore+1,'Enemy popup missing')
+assert(not active and not selected and #choices.values()==26,'Opening popup must only show choices')
+local startButton,returnButton,cycleButton,monster,duel
+for _,b in ipairs(buttons) do
+ if b.Caption=='Transform into selected form' then startButton=b end
+ if b.Caption=='Return to player (F8)' then returnButton=b end
+ if b.Caption=='Cycle native weapon' then cycleButton=b end
+end
+for _,c in ipairs(checkboxes) do
+ if c.Caption=='Red monster allegiance' then monster=c end
+ if c.Caption=='Monster duel / friendly hits' then duel=c end
+end
+assert(startButton and returnButton and cycleButton and monster and duel,'Enemy popup controls missing')
+choices.ItemIndex=-1;startButton.OnClick();assert(not active and not selected,'Missing choice enabled form')
+choices.ItemIndex=26;startButton.OnClick();assert(not active and not selected,'Invalid choice enabled form')
+function inputQuery() return '2' end
+buttons[17].OnClick()
+function inputQuery() return '3' end
+buttons[18].OnClick()
+choices.ItemIndex=25;startButton.OnClick();local morphTimer=timers[#timers]
+assert(active and selected==25 and buttons[27].Caption=='Enemy form: ON','Enemy transform failed: '..tostring(errors[#errors]))
+assert(options[1]==0 and options[2]==0,'Default allegiance/duel options')
+assert(movement[1]==2 and movement[2]==3,'Pre-transform modifiers were not forwarded')
+local movementShows=#shownForms
+function inputQuery() return '4' end
+buttons[17].OnClick();assert(movement[1]==4 and movement[2]==3,'Live speed change lost jump')
+function inputQuery() return '5' end
+buttons[18].OnClick();assert(movement[1]==4 and movement[2]==5,'Live jump change lost speed')
+local priorPlayerSpeed=mem[0x2820]
+movementSyncFail=true
+function inputQuery() return '6' end
+buttons[17].OnClick()
+assert(movement[1]==4 and movement[2]==5 and mem[0x2820]==priorPlayerSpeed,'Movement sync failure must roll back player fields')
+movementSyncFail=false
+buttons[19].OnClick();assert(movement[1]==1 and movement[2]==1,'Reset did not restore transformed movement')
+assert(#shownForms==movementShows,'Movement controls opened another popup')
+local snapshot=#shownForms
+monster.Checked=true;monster.OnChange();duel.Checked=true;duel.OnChange()
+assert(options[1]==1 and options[2]==1,'Live options missing')
+cycleButton.OnClick();assert(cycles==1,'Weapon cycle not requested')
 morphTimer.OnTimer();assert(active,'Status polling failed')
-buttons[27].OnClick();assert(not active and mem[0x90000]==0 and not morphTimer.Enabled,'Toggle did not request restoration/remove hook')
-buttons[27].OnClick();mem[0x90000]=0;morphTimer.OnTimer();assert(not active and buttons[27].Caption=='Enemy form: OFF','F8/death/fault did not retire hook')
-buttons[27].OnClick();mem[0x1030]=0;morphTimer.OnTimer();assert(not active and mem[0x90000]==0,'World unload did not disable form')
-mem[0x1030]=0x2000;buttons[27].OnClick();ValheimInventoryWindow.OnClose();assert(not active and mem[0x90000]==0,'Closing did not stop transformation')
-print('PASS: enemy selection/cancel/bounds, camera hook guard/argument preservation, status, return/death/fault/world unload and close')
+buttons[27].OnClick();assert(active and shownForms[#shownForms]==enemyForm,'Reopening popup must preserve form')
+assert(#shownForms==snapshot+1,'Selection/settings/weapon cycle opened an unexpected popup')
+startButton.OnClick();assert(active and selected==25,'Repeated transform must keep active body')
+returnButton.OnClick();assert(not active and mem[0x90000]==0 and not morphTimer.Enabled,'Return did not restore/remove hook')
+startButton.OnClick();mem[0x90000]=0;morphTimer.OnTimer();assert(not active and buttons[27].Caption=='Enemy form...','F8/death/fault did not retire hook')
+startButton.OnClick();mem[0x1030]=0;morphTimer.OnTimer();assert(not active and mem[0x90000]==0,'World unload did not disable form')
+mem[0x1030]=0x2000;startButton.OnClick();ValheimInventoryWindow.OnClose();assert(not active and mem[0x90000]==0,'Closing did not stop transformation')
+for i=shownBefore+1,#shownForms do assert(shownForms[i]==enemyForm,'Monster action opened teleport or another popup') end
+print('PASS: dedicated enemy popup, pre-transform/live speed/jump/reset with sync-failure rollback, all 26 forms, bounds, live red/green and duel options, weapon cycle, no teleport popup, camera guard, status and lifecycle cleanup')
 end
 
 do

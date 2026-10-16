@@ -14,6 +14,9 @@ s = s.replace("..(stopped and '' or (' Cleanup failed: '..tostring(stopError)))"
 s = s.replace('BowBeamV6','BowBeamV13')
 s = re.sub(r"local helperHex='[0-9a-f]+'", "local helperHex='" + Path('outputs/ValheimBowBeamV13.dll').read_bytes().hex() + "'", s)
 s = 'local styleToggle\n'+s
+s = 'if ValheimFixedHealthStop then ValheimFixedHealthStop() end\n'+s
+s = s.replace('local staminaButton = createButton(form)', "local fixedHealthButton=createButton(form)\nfixedHealthButton.Caption='Fixed HP 999: OFF'\nlocal staminaButton = createButton(form)")
+s = s.replace('God mode blocks local player damage.', 'Fixed HP 999 holds local health at 999/999 without enabling God Mode. Food timers, stamina, eitr, armor wear and hit effects continue. Normal saved HP is preserved, capped as food expires, and restored when disabled. Character saving uses normal health values. Cannot be combined with God Mode. Other cheat features and flagged items can still trigger item flags; fixed-HP item-flag behavior needs in-game verification.\n\nGod mode blocks local player damage.')
 s = s.replace('Clear all flags', 'Remove cheated item flags')
 s = s.replace('Teleport queued. Return to the game and unpause; distant areas may take 15+ seconds to load.', 'Teleport queued; carried-item restrictions are bypassed. Return to Valheim and unpause; distant areas may take 15+ seconds to load.')
 s = s.replace('local function installHook(s,recovery)\n  if hook then', 'local function installHook(s,recovery)\n  if hook and recovery and not hook.recovery then ValheimTeleportStop() end\n  if hook then')
@@ -22,7 +25,7 @@ s = s.replace('b.OnClick=fn;return b', 'b.OnClick=fn;if styleToggle then styleTo
 s = s.replace('b.OnClick=function() action(fn) end', 'b.OnClick=function() action(fn) end\n    if styleToggle then styleToggle(b) end')
 s = s.replace("rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)", "rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)\n  if styleToggle then styleToggle(rowControl) end")
 s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV23')
-s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v33 |")
+s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v36 |")
 s = s.replace('Death Beam 16000/tick, 120m.', 'Death Beam 16000/tick, 2000m.')
 s = s.replace('Death Beam: hold bow attack. 80m terrain excavation;', 'Death Beam: hold bow attack. 2000m surface-contact terrain excavation;')
 s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV23.dll').read_bytes().hex() + "'", s)
@@ -56,8 +59,7 @@ s = s.replace('{maxStacksButton,freezeAll,depositButton,keepFlagsButton}', '{max
 s = s.replace('local y=6+(row-1)*(buttonH+5)', '      local y=6+(row-1)*(buttonH+5)')
 s = s.replace('-- Persistent notices stay separate', '''-- Yellow frames remain visible regardless of ON/OFF caption changes.
 local cheatWarningMarkers={}
-for _,entry in ipairs({{godButton,'God mode: monster kills can flag the used item as cheated.'},
-  {flightButton,'Flight: cheated alerts have been observed while using this feature.'},
+for _,entry in ipairs({{flightButton,'Flight: cheated alerts have been observed while using this feature.'},
   {craftingButton,'Free crafting: crafted or upgraded items may be flagged as cheated.'}}) do
   local marker=createPanel(playerGroup);marker.Caption='';marker.BevelOuter='bvNone'
   marker.ParentColor=false;marker.Color=0x00D7FF
@@ -252,8 +254,24 @@ s=s.replace('beamButton.Width=math.max(100,beamButton.Width-88)', '')
 s=s.replace('place(kayokenCheck,group,beamButton.Left+beamButton.Width+6,beamButton.Top,82,buttonH)', 'kayokenCheck.Visible=false')
 s=re.sub(r'KAYOKEN\n.*?\n\nPLAYER TOGGLES', 'PLAYER TOGGLES', s, flags=re.S)
 s=s.replace("kayokenCheck.Caption='Kayoken';kayokenCheck.Checked=false;kayokenCheck.Enabled=false","kayokenCheck.Caption='';kayokenCheck.Checked=false;kayokenCheck.Enabled=false;kayokenCheck.Visible=false")
+s=s.replace('pair(godButton,staminaButton,1)', 'pair(fixedHealthButton,staminaButton,1)')
 s=s.replace('local y=10+4*(buttonH+6)', 'place(clearViewButton,group,12,10+4*(buttonH+6),cw-24,buttonH)\n        local y=10+5*(buttonH+6)')
-s += Path('outputs/ValheimToggleStyle.lua').read_text(encoding='utf-8').replace('spawnButton,tamingButton,trophyButton','spawnButton,tamingButton,planterButton,trophyButton').replace('resetMovementButton,teleportButton','lootMagnetButton,resetMovementButton,teleportButton').replace('godButton,staminaButton,craftingButton','clearViewButton,godButton,staminaButton,craftingButton')
+s=s.replace('26+12+4*(buttonH+6)+line*2', '26+12+5*(buttonH+6)+line*2')
+# Fixed health replaces the legacy God Mode control in the release UI.
+s=s.replace("godButton.Caption = 'God mode: OFF'", "godButton.Caption = '';godButton.Visible=false")
+s=s.replace("godWarning.Caption='GOD MODE: Monster kills can flag the used item as cheated.'", "godWarning.Caption='';godWarning.Visible=false")
+s=s.replace('place(godWarning,group,12,y,cw-24,warningH)', 'godWarning.Visible=false')
+s=s.replace('place(craftingWarning,group,12,y+warningH,cw-24,warningH)', 'place(craftingWarning,group,12,y,cw-24,warningH)')
+s=s.replace('place(flagWarningHelp,group,12,y+warningH*2,cw-24,warningH)', 'place(flagWarningHelp,group,12,y+warningH,cw-24,warningH)')
+s=s.replace('warningH*3+8', 'warningH*2+8')
+s=s.replace('ITEM FLAGS AND GOD MODE\nValheim can flag items as cheated when you kill monsters with them while God mode is enabled. The item flag controls are provided to manage that flag.', 'ITEM FLAGS')
+s=s.replace('God mode: killing monsters can flag the item used. ', '')
+s=s.replace('without enabling God Mode. ', '')
+s=s.replace('999/999 Food timers', '999/999. Food timers')
+s=re.sub(r"  \{godButton,'Block local player damage\.[^\n]*\n", '', s)
+s=s.replace('Cannot be combined with God Mode. Other cheat features and flagged items can still trigger item flags; fixed-HP item-flag behavior needs in-game verification.\n\nGod mode blocks local player damage. See the item-flag notice above.', '')
+s += Path('outputs/ValheimFixedHealth.lua').read_text(encoding='utf-8')
+s += Path('outputs/ValheimToggleStyle.lua').read_text(encoding='utf-8').replace('spawnButton,tamingButton,trophyButton','spawnButton,tamingButton,planterButton,trophyButton').replace('resetMovementButton,teleportButton','lootMagnetButton,resetMovementButton,teleportButton').replace('staminaButton,craftingButton','fixedHealthButton,clearViewButton,staminaButton,craftingButton')
 s=re.sub(r'[ \t]+\n','\n',s)
 Path('outputs/ValheimBeta.lua').write_text(s, encoding='utf-8')
 root = ET.fromstring(Path('Valheim 2026 CT.CT').read_bytes())

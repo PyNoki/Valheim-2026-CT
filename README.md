@@ -69,7 +69,7 @@ Select an item, choose an action and get back to playing.
 
 | Player tool | What it does |
 | :--- | :--- |
-| **God mode** | Blocks damage to your local player. |
+| **Fixed HP 999** | Holds local health at 999/999 with a normal food-based health bar. Food timers, stamina, eitr and hit effects continue normally. Turning it off restores normal saved HP, capped to the current food maximum. |
 | **Unlimited stamina** | Replenishes stamina while enabled. |
 | **Rapid miner** | Speeds up pickaxe swing animations to 10×, refills stamina and keeps the equipped pickaxe at full durability. |
 | **Rapid hoe** | Hold use to repeat hoe terrain actions up to 20 times per second, with stamina refill and full hoe durability. |
@@ -122,7 +122,7 @@ Blueprints include furniture, beds, containers, lights, crafting stations, decor
 
 **Undo last blueprint paste** removes only the exact network objects created by the most recent paste, including a partial paste. It does not delete the original building or other nearby pieces, and does not refund materials. Empty any pasted containers and remove newly displayed equipment before undoing them. Return to the pasted structure if a piece has left the loaded area. Cancelling previews preserves Undo; starting another paste replaces it. Disabling Building, switching to Auto rows/Rapid Hoe, closing the toolkit or changing worlds clears Undo history. Blueprint files remain in `%LOCALAPPDATA%\ValheimSoloToolkit\Blueprints` as `.vbp` files. Capture/load previews, placement, sign restoration and Undo are experimental and still need live game verification; compiler, persistence validation and mocked UI/lifecycle tests cover the offline checks.
 
-**Enemy form** is under **Skills and movement**. Finish any attack or teleport, click the toggle, choose a form, then return to Valheim and unpause. Your original player is hidden and suspended while you control a newly spawned enemy body. This is an experimental solo feature; compilation and mocked tests pass, but live camera, animations and combat still need an in-game check.
+**Enemy form** is under **Skills and movement**. Finish any attack or teleport, open **Enemy form...**, select a form and settings, click **Transform into selected form**, then return to Valheim and unpause. Your original player is hidden and suspended while you control a newly spawned enemy body. This is experimental; compilation and mocked tests pass, but live travel, camera, animations and multiplayer combat still need an in-game check. Form selection, setting changes, weapon cycling and returning never open Teleport tools.
 
 **Turning fix (v5):** Forms face the movement direction while moving, and follow camera aim while idle or attacking. Facing updates no longer restart an unfinished look transition every frame. The game still applies each creature's native turn speed and attack restrictions. Return from any active form and unpause before reloading the updated table.
 
@@ -144,11 +144,11 @@ Blueprints include furniture, beds, containers, lights, crafting stations, decor
 | 12 | Draugr Archer | 25 | Abomination |
 | 13 | Rancid Remains | 26 | Asksvin |
 
-**Sea Serpent** is option **6** in Enemy form. Transform in deep water with room for the body. Normal movement steers its native surface swimming, and Attack uses its native attack weapon. This transforms you at your current location; it does not teleport you to an existing serpent or automatically find the ocean. F8 returns your player at the serpent’s last position, including in water. Return to your player and unpause before loading the new table; the window title should show **Enemy form v6**. Sea Serpent still needs an in-game check.
+**Sea Serpent** is option **6** in Enemy form. Transform in deep water with room for the body. Normal movement steers its native surface swimming, and Attack uses its native attack weapon. This transforms you at your current location; it does not teleport you to an existing serpent or automatically find the ocean. F8 returns your player at the serpent’s last position, including in water. Return to your player and unpause before loading the new table; the window title should show **Enemy form v8**. Sea Serpent still needs an in-game check.
 
 The transformation waits for Valheim to initialize the enemy's native weapons before suspending your player, including built-in unarmed attacks. If no attack becomes available within three seconds of game time, it cancels and leaves your player unchanged. The V2 helper fixes the early “no usable native attack weapons” error; reload the updated table to load the new helper even in an existing game session.
 
-**Enemy form v6** also hides your player nameplate and local map/minimap position markers, temporarily blanks the player's network display name, and turns off shared map position. Returning restores your original display name and map-sharing preference. Other players' markers and nameplates are unaffected. This remains a solo-oriented transformation: it does **not** guarantee that other clients see only the enemy model, and shared-map changes depend on normal network updates. Your account and saved character-profile name are not changed.
+**Enemy form v8** also hides your player nameplate and local map/minimap position markers, temporarily blanks the player's network display name, and turns off shared map position. Returning restores your original display name and map-sharing preference. Other players' markers and nameplates are unaffected. This does **not** guarantee that other clients see only the enemy model, and shared-map changes depend on normal network updates. Your account and saved character-profile name are not changed.
 
 | Enemy-form control | Action |
 | :--- | :--- |
@@ -156,15 +156,24 @@ The transformation waits for Valheim to initialize the enemy's native weapons be
 | Attack | Use its currently equipped native attack weapon. |
 | Secondary attack or Block | Use the weapon's secondary attack, or its primary if none exists. |
 | Use / interact | Cycle the enemy's available native weapons. Different forms have different attack sets. |
-| **F8** or click the toggle again | Return to your player at the enemy body's last position. |
+| **F8** or **Return to player** in the popup | Return to your player at the enemy body's last position. |
 
-The enemy body belongs to the player faction and uses its own health. Its death returns you to your original player. Inventory, skills and original health stay with your player; the ordinary HUD still represents that player, so check the toolkit status for enemy health and the selected weapon. Menus or lost game focus stop movement and new attacks. Normal building and interaction controls are unavailable while transformed.
+**Speed and jump modifiers also work while transformed (v8).** Use the existing **Movement speed**, **Jump force**, and **Reset speed and jump** controls. Settings chosen before transforming carry over, and changes apply on the next game update while transformed. Each creature scales its own native walk/run/crouch/swim speeds and jump force; values do not compound when changing settings or forms. Reset restores the current creature's native values. Creatures with no native jump retain that limitation. Returning to your player keeps your selected player modifiers.
 
-Returning restores the original camera anchor, visibility, collision and controls, and removes the spawned body. Closing the toolkit also queues restoration: **return to Valheim and unpause for cleanup to finish**. Choose another form by returning first, then enabling the toggle again.
+The popup has two independent settings, which also apply while transformed:
+
+- **Red monster allegiance** unchecked keeps the green/player faction behavior. Checked restores the creature's native faction for its red hostile nameplate and excludes your form from local creature AI target searches. AI controlled by another client still follows that creature's native faction relationships; rival monster factions can remain hostile there. This table does not synchronize custom faction/AI flags to unmodified clients.
+- **Monster duel / friendly hits** enables native melee, secondary and projectile hits against allies, including two identical monster forms. Both duelists transform and enable the option. Creature attackers use the game's creature damage path, so neither player's PvP switch needs changing. Red/native monster attacks against ordinary players already follow creature damage rules even with duel mode off. Friendly hits can also damage nearby players or pets. Turning duel mode off restores native attack flags, including for tracked projectiles still in flight. Only your spawned body's attack data and its projectiles are changed.
+
+**Movement streaming:** v7 explicitly updates the world loading position from the controlled monster, replacing the suspended player's normal `LateUpdate` update. New terrain and network objects can load as you travel beyond the transformation area; normal game streaming delays still apply.
+
+The enemy body uses its own health. Its death returns you to your original player. Inventory, skills and original health stay with your player; the ordinary HUD still represents that player, so check the toolkit status for enemy health and the selected weapon. Menus or lost game focus stop movement and new attacks. Normal building and interaction controls are unavailable while transformed.
+
+Returning restores the original camera anchor, visibility, collision and controls, and removes the spawned body. Closing the toolkit also queues restoration: **return to Valheim and unpause for cleanup to finish**. Choose another form by returning first, unpausing for restoration, then selecting the next form in the popup.
 
 > [!IMPORTANT]
-> **God mode and Free crafting can affect item flags.**
-> Killing monsters with an item while God mode is enabled can flag that item as cheated. Crafted or upgraded items can also receive the flag when using Free crafting.
+> **Free crafting can affect item flags.**
+> Crafted or upgraded items can receive the flag when using Free crafting.
 > Select the affected item and use **Item flags → Clear selected flag**, then **drop it and pick it up again**. Use the normal drop action, not Inventory delete.
 > **Keep item flags off** continuously clears flags on carried items.
 
@@ -212,6 +221,18 @@ After dying, finish respawning and wait until you can move, then click the recov
 
 <br>
 
+## What's new in v36
+
+Fixed HP 999 replaces God Mode, preserves normal saved health and food behavior, and keeps the health bar at its normal food-based size. The toggle uses the normal border. Hooks no longer request nearby allocations, removing the allocation warning. Styled buttons redraw after returning from the game and avoid repeated reparenting.
+
+## What's new in v35
+
+Movement speed and jump force now apply to transformed creatures, including settings selected beforehand, live changes and Reset. Enemy form v8 scales each creature's own native values without compounding, and leaves the teleport popup closed.
+
+## What's new in v34
+
+Enemy form now has a dedicated 26-form popup, live green/red allegiance and monster duel settings, and a loading-position fix for travel beyond the transformation area. Duel attacks cover native melee, secondary attacks and ranged projectiles without changing player PvP settings. Enemy menu actions do not open Teleport tools. Reload the table and confirm **Enemy form v8**; return to your player and unpause before replacing an older active transformation.
+
 ## What's new in v33
 
 - **Teleport favorites:** Favorite or unfavorite locations and shared players with one button. Favorites appear first in gold, persist per world, and keep your selection when the list reorders.
@@ -250,13 +271,13 @@ Download **[Valheim 2026 CT.CT](Valheim%202026%20CT.CT)** for the current toolki
 
 ### Custom teleport
 
-Our custom Teleport tools call the game teleport method directly and bypass carried-item teleport restrictions. Items and their icons remain unchanged. The separate item-permission toggle has been removed. Remove cheated item flags remains a separate inventory action. Reload Valheim 2026 CT.CT and confirm Valheim 2026 CT | v33; the previous icon override is stopped and restored during reload.
+Our custom Teleport tools call the game teleport method directly and bypass carried-item teleport restrictions. Items and their icons remain unchanged. The separate item-permission toggle has been removed. Remove cheated item flags remains a separate inventory action. Reload Valheim 2026 CT.CT and confirm Valheim 2026 CT | v36; the previous icon override is stopped and restored during reload.
 
-The toolkit uses consistent rectangular buttons with thin outlines. Toggle fills turn green when active and gray when inactive; action buttons stay gray. Yellow outlines identify cheated-alert risks for God mode, Flight and Free crafting regardless of their active state. ON/OFF text is omitted from the visible buttons. Hover or open Help for the meaning and feature-specific details.
+The toolkit uses consistent rectangular buttons with thin outlines. Toggle fills turn green when active and gray when inactive; action buttons stay gray. Yellow outlines identify cheated-alert risks for Flight and Free crafting regardless of their active state. Fixed HP 999 uses the normal border. ON/OFF text is omitted from the visible buttons. Hover or open Help for the meaning and feature-specific details.
 
 ### Freeze inventory + replenish
 
-Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v33** in the title. In Inventory, **Freeze inventory + replenish** replaces the separate Freeze inventory and Auto refill buttons. Enabling freezes current stacks and retains their source items when dropping on the ground or transferring into another inventory. Both Ctrl-click and drag deposits, including partial stacks, use a copy in a temporary source inventory so the normal destination transfer rules still apply. A full destination does not remove your original stack. Ground drops create the requested quantity without consuming the source; quest-item drop restrictions remain native.
+Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v36** in the title. In Inventory, **Freeze inventory + replenish** replaces the separate Freeze inventory and Auto refill buttons. Enabling freezes current stacks and retains their source items when dropping on the ground or transferring into another inventory. Both Ctrl-click and drag deposits, including partial stacks, use a copy in a temporary source inventory so the normal destination transfer rules still apply. A full destination does not remove your original stack. Ground drops create the requested quantity without consuming the source; quest-item drop restrictions remain native.
 
 Turning the button off or closing the toolkit disables both effects. New stacks start unfrozen; toggle off/on to include them. If enabling either effect fails, both are stopped. This covers player-inventory transfers and ground drops; it does not intercept machine-feeding, crafting or other generic item consumption. Compilation, Lua syntax and mocked deposit/drop checks pass; the new hooks still need an in-game check with full/partial ground drops and Ctrl-click/drag chest deposits.
 
@@ -264,7 +285,7 @@ Turning the button off or closing the toolkit disables both effects. New stacks 
 
 In the toolkit, **Pixie boat...** is in **Skills and movement**, beside **Rapid tools**. **Rapid tools** toggles rapid mining, axe swings, hoe actions and cultivator actions together; equip a pickaxe, axe, hoe or cultivator to use the corresponding effect. Cultivation and planting receive rapid actions, stamina protection and tool durability refill; normal seed/material costs and placement rules apply. If either helper stops or fails to enable, the combined toggle turns both off. Building mode remains incompatible with Rapid hoe and therefore turns off Rapid tools.
 
-Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v33** in the title. Click **Pixie boat... → Toggle pixie boat**, return to Valheim and unpause, then take the helm. **W/S** keeps the normal boat throttle steps, **A/D** steers, each tap of **Left Ctrl** gives one high jump with no cooldown, and **Shift** boosts speed. Holding the key does not repeat jumps. Rapid taps and repeat jumps in the air are allowed. Forward speed targets 25 m/s, or 40 m/s with boost; throttle steps scale that speed and reverse is slower.
+Reload **Valheim 2026 CT.CT** and confirm **Valheim 2026 CT | v36** in the title. Click **Pixie boat... → Toggle pixie boat**, return to Valheim and unpause, then take the helm. **W/S** keeps the normal boat throttle steps, **A/D** steers, each tap of **Left Ctrl** gives one high jump with no cooldown, and **Shift** boosts speed. Holding the key does not repeat jumps. Rapid taps and repeat jumps in the air are allowed. Forward speed targets 25 m/s, or 40 m/s with boost; throttle steps scale that speed and reverse is slower.
 
 Land driving adds spring lift above terrain and keeps the hull upright. Rocks and buildings still collide with the boat; steep cliffs are not automatically climbed. While driving, native propulsion/horizontal damping and water-impact/upside-down damage settings are temporarily overridden. Native vertical water damping, buoyancy, gravity and normal collision physics remain active. Land lift only runs above dry terrain, never against the submerged seabed, and is suspended during a jump. Leaving the helm, losing ownership, or opening menus restores the boat settings. Stop/close the boat window or close the toolkit to disable the mode; return to the game and unpause for restoration to execute. Changing player/world also ends it.
 

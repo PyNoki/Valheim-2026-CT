@@ -13,7 +13,7 @@ helpers = [
     ('minerHelperHex', 'RapidMinerV2', 'ValheimRapidMinerV2.dll', 'ValheimRapidMiner.cs'),
     ('hoeHelperHex', 'RapidHoeV2', 'ValheimRapidHoeV2.dll', 'ValheimRapidHoe.cs'),
     ('dragHelperHex', 'DragBuildV6', 'ValheimDragBuildV6.dll', 'ValheimDragBuild.cs'),
-    ('enemyHelperHex', 'EnemyFormV6', 'ValheimEnemyFormV6.dll', 'ValheimEnemyForm.cs'),
+    ('enemyHelperHex', 'EnemyFormV8', 'ValheimEnemyFormV8.dll', 'ValheimEnemyForm.cs'),
 ]
 referenced = set(re.findall(r"mono_(?:findClass|image_findClass)\([^\n]*?'ValheimSoloToolkit','([^']+)'", lua))
 assert referenced == {item[1] for item in helpers}, referenced
