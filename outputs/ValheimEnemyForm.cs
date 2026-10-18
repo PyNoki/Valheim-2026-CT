@@ -6,26 +6,27 @@ using UnityEngine;
 
 namespace ValheimSoloToolkit
 {
-    public static class EnemyFormV9
+    public static class EnemyFormV11
     {
         public static int Enabled;
         public static string Status, LastError;
         internal static Player Owner;
-        internal static int Generation, Choice;
+        internal static int Generation, Choice, Stars;
         internal static bool CycleRequested;
         internal static bool MonsterAllegiance, Duel;
         internal static float MovementSpeed=1f, JumpForce=1f;
-        internal static EnemyFormDriverV9 Driver;
+        internal static EnemyFormDriverV11 Driver;
         internal const BindingFlags Flags=BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic;
         internal static readonly MethodInfo CameraLook=typeof(PlayerController).GetMethod("LateUpdate",Flags);
         internal static readonly MethodInfo EyeRotation=typeof(Player).GetMethod("UpdateEyeRotation",Flags);
         internal static readonly MethodInfo CanInput=typeof(Player).GetMethod("TakeInput",Flags);
         internal static readonly FieldInfo SkipTarget=typeof(Character).GetField("m_aiSkipTarget",Flags);
-        public static void Configure(Player player,int form)
+        public static void Configure(Player player,int form,int stars)
         {
-            if(form<0||form>=EnemyFormDriverV9.Forms.Length)throw new ArgumentException("Choose a supported enemy form.");
+            if(form<0||form>=EnemyFormDriverV11.Forms.Length)throw new ArgumentException("Choose a supported enemy form.");
+            if(stars<0||stars>2)throw new ArgumentException("Choose 0, 1 or 2 stars.");
             if(CameraLook==null||EyeRotation==null||CanInput==null||SkipTarget==null)throw new MissingMemberException("Enemy form control methods unavailable.");
-            Owner=player;Choice=form;Generation++;CycleRequested=false;LastError=null;Enabled=1;Status="Queued. Return to the game and unpause to transform.";
+            Owner=player;Choice=form;Stars=stars;Generation++;CycleRequested=false;LastError=null;Enabled=1;Status="Queued. Return to the game and unpause to transform.";
         }
         public static void SetOptions(int monster,int duel)
         {
@@ -60,8 +61,8 @@ namespace ValheimSoloToolkit
                 if(Driver&&(Driver.Owner!=Owner||Driver.Generation!=Generation)){Driver.Restore();UnityEngine.Object.Destroy(Driver.gameObject);Driver=null;}
                 if(!Driver)
                 {
-                    Driver=new GameObject("SoloToolkit_EnemyForm").AddComponent<EnemyFormDriverV9>();
-                    Driver.Owner=Owner;Driver.Generation=Generation;Driver.Setup(Choice);
+                    Driver=new GameObject("SoloToolkit_EnemyForm").AddComponent<EnemyFormDriverV11>();
+                    Driver.Owner=Owner;Driver.Generation=Generation;Driver.Setup(Choice,Stars);
                 }
                 Driver.Step();
                 Driver.ApplyCamera(camera);
@@ -70,11 +71,11 @@ namespace ValheimSoloToolkit
         }
     }
 
-    public sealed class EnemyFormDriverV9:MonoBehaviour
+    public sealed class EnemyFormDriverV11:MonoBehaviour
     {
         public Player Owner;
         internal int Generation;
-        internal static readonly string[] Forms={"Greydwarf","Skeleton","Draugr","Wolf","Troll","Serpent","Greyling","Neck","Greydwarf_Elite","Greydwarf_Shaman","Draugr_Elite","Draugr_Ranged","Skeleton_Poison","Blob","BlobElite","Surtling","Fenring","Fenring_Cultist","Goblin","GoblinBrute","GoblinShaman","Lox","SeekerBrood","SeekerBrute","Abomination","Asksvin","Hatchling","Dragon"};
+        internal static readonly string[] Forms={"Greydwarf","Skeleton","Draugr","Wolf","Troll","Serpent","Greyling","Neck","Greydwarf_Elite","Greydwarf_Shaman","Draugr_Elite","Draugr_Ranged","Skeleton_Poison","Blob","BlobElite","Surtling","Fenring","Fenring_Cultist","Goblin","GoblinBrute","GoblinShaman","Lox","SeekerBrood","SeekerBrute","Abomination","Asksvin","Hatchling","Dragon","StoneGolem","Seeker","Tick","Morgen","BlobTar","BlobLava","Dverger","DvergerMageFire","DvergerMageIce","DvergerMageSupport","Charred_Melee","Charred_Archer","Charred_Mage","Charred_Twitcher","Eikthyr","gd_king","Bonemass","GoblinKing","SeekerQueen","Fader"};
         private GameObject bodyObject;
         private Humanoid body;
         private PlayerController controller;
@@ -95,7 +96,7 @@ namespace ValheimSoloToolkit
         private Vector3 eyeLocal,returnPosition;
         private int weaponIndex;
         private float nextAttack,nextStatus;
-        private int spawnFrame,formChoice;
+        private int spawnFrame,formChoice,formStars;
         private float initializationDeadline;
         private bool flyer;
         private Vector3 safeReturnPosition;
@@ -110,7 +111,7 @@ namespace ValheimSoloToolkit
             // Validate every field before changing any camera setting.
             for(int i=0;i<CameraNames.Length;i++)
             {
-                cameraFields[i]=typeof(GameCamera).GetField(CameraNames[i],EnemyFormV9.Flags);
+                cameraFields[i]=typeof(GameCamera).GetField(CameraNames[i],EnemyFormV11.Flags);
                 if(cameraFields[i]==null||cameraFields[i].FieldType!=typeof(float))throw new MissingFieldException("GameCamera."+CameraNames[i]);
                 cameraValues[i]=(float)cameraFields[i].GetValue(camera);
             }
@@ -131,8 +132,8 @@ namespace ValheimSoloToolkit
         private ZNetView playerView;
         private ZDO playerZdo;
         private string originalName;
-        private static readonly FieldInfo PublicPosition=typeof(ZNet).GetField("m_publicReferencePosition",EnemyFormV9.Flags);
-        private static readonly FieldInfo Huds=typeof(EnemyHud).GetField("m_huds",EnemyFormV9.Flags);
+        private static readonly FieldInfo PublicPosition=typeof(ZNet).GetField("m_publicReferencePosition",EnemyFormV11.Flags);
+        private static readonly FieldInfo Huds=typeof(EnemyHud).GetField("m_huds",EnemyFormV11.Flags);
         private static readonly string[] MapMarkers={"m_smallMarker","m_largeMarker","m_smallShipMarker","m_largeShipMarker"};
         private void HideUi(GameObject obj)
         {
@@ -161,7 +162,7 @@ namespace ValheimSoloToolkit
             var map=Minimap.instance;
             if(map)foreach(var name in MapMarkers)
             {
-                var field=typeof(Minimap).GetField(name,EnemyFormV9.Flags);
+                var field=typeof(Minimap).GetField(name,EnemyFormV11.Flags);
                 if(field==null)throw new MissingFieldException("Minimap."+name);
                 var marker=field.GetValue(map) as Component;if(marker)HideUi(marker.gameObject);
             }
@@ -171,7 +172,7 @@ namespace ValheimSoloToolkit
                 var entries=Huds.GetValue(hud) as IDictionary;
                 if(entries!=null && entries.Contains(Owner))
                 {
-                    var entry=entries[Owner];var field=entry.GetType().GetField("m_gui",EnemyFormV9.Flags);
+                    var entry=entries[Owner];var field=entry.GetType().GetField("m_gui",EnemyFormV11.Flags);
                     if(field!=null)HideUi(field.GetValue(entry) as GameObject);
                 }
             }
@@ -189,7 +190,7 @@ namespace ValheimSoloToolkit
                 disguiseSaved=false;
             }
         }
-        public void Setup(int choice)
+        public void Setup(int choice,int stars)
         {
             if(!Owner.enabled)throw new InvalidOperationException("Return from the previous enemy form and unpause before transforming again.");
             if(Owner.IsDead()||Owner.InAttack()||Owner.InDodge()||Owner.IsTeleporting())throw new InvalidOperationException("Finish your action/teleport and stand still before transforming.");
@@ -198,17 +199,20 @@ namespace ValheimSoloToolkit
             controller=Owner.GetComponent<PlayerController>();playerBody=Owner.GetComponent<Rigidbody>();
             if(!controller||!playerBody||!Owner.m_eye)throw new InvalidOperationException("Player controller, body or camera anchor unavailable.");
             returnPosition=Owner.transform.position;
-            safeReturnPosition=returnPosition;flyer=choice>=26;
+            // New entries follow the two original flyers; appended ground forms
+            // must not inherit flight controls just because their index is higher.
+            safeReturnPosition=returnPosition;flyer=choice==26||choice==27;
             bodyObject=UnityEngine.Object.Instantiate(prefab,returnPosition+Vector3.up*0.2f,Owner.transform.rotation);
             body=bodyObject.GetComponent<Humanoid>();
             var view=bodyObject.GetComponent<ZNetView>();
             if(!view||!view.IsValid()||!view.IsOwner())throw new InvalidOperationException("The transformed body is not locally owned.");
+            body.SetLevel(stars+1);
             // Only this newly spawned body loses AI. Existing enemies are untouched.
             foreach(var ai in bodyObject.GetComponents<BaseAI>())ai.enabled=false;
             // Humanoid.Start gives default/random equipment AFTER Instantiate returns.
             // Keep the real player active until Unity has initialized the new body.
-            spawnFrame=Time.frameCount;initializationDeadline=Time.time+3f;formChoice=choice;
-            EnemyFormV9.Status="Waiting for "+Forms[choice]+" native weapons to initialize...";
+            spawnFrame=Time.frameCount;initializationDeadline=Time.time+3f;formChoice=choice;formStars=stars;
+            EnemyFormV11.Status="Waiting for "+Forms[choice]+" native weapons to initialize...";
         }
         private bool FinishSetup()
         {
@@ -229,7 +233,7 @@ namespace ValheimSoloToolkit
             nativeFaction=body.m_faction;
             for(int i=0;i<MovementNames.Length;i++)
             {
-                movementFields[i]=typeof(Character).GetField(MovementNames[i],EnemyFormV9.Flags);
+                movementFields[i]=typeof(Character).GetField(MovementNames[i],EnemyFormV11.Flags);
                 if(movementFields[i]==null||movementFields[i].FieldType!=typeof(float))throw new MissingFieldException("Character."+MovementNames[i]);
                 nativeMovement[i]=(float)movementFields[i].GetValue(body);
             }
@@ -250,12 +254,12 @@ namespace ValheimSoloToolkit
             weaponIndex=weapons.IndexOf(body.GetCurrentWeapon());
             if(weaponIndex<0){weaponIndex=0;if(!body.EquipItem(weapons[0],false))throw new InvalidOperationException("Could not equip the enemy's native weapon.");}
             playerEnabled=Owner.enabled;controllerEnabled=controller.enabled;kinematic=playerBody.isKinematic;
-            skipTarget=(bool)EnemyFormV9.SkipTarget.GetValue(Owner);eyeLocal=Owner.m_eye.localPosition;saved=true;
-            controller.enabled=false;Owner.enabled=false;EnemyFormV9.SkipTarget.SetValue(Owner,true);
+            skipTarget=(bool)EnemyFormV11.SkipTarget.GetValue(Owner);eyeLocal=Owner.m_eye.localPosition;saved=true;
+            controller.enabled=false;Owner.enabled=false;EnemyFormV11.SkipTarget.SetValue(Owner,true);
             playerBody.linearVelocity=Vector3.zero;playerBody.angularVelocity=Vector3.zero;playerBody.isKinematic=true;
             HidePlayer();
             HideIdentity();
-            EnemyFormV9.Status=Forms[formChoice]+" form. Move/run/jump normally; Attack = native attack; Block = secondary; Use = cycle weapon; F8 = return.";
+            EnemyFormV11.Status=Forms[formChoice]+" ("+formStars+" stars) form. Move/run/jump normally; Attack = native attack; Block = secondary; Use = cycle weapon; F8 = return.";
             return true;
         }
         private void HidePlayer()
@@ -267,28 +271,28 @@ namespace ValheimSoloToolkit
         }
         private bool InputAllowed()
         {
-            return Application.isFocused && (bool)EnemyFormV9.CanInput.Invoke(Owner,null)
+            return Application.isFocused && (bool)EnemyFormV11.CanInput.Invoke(Owner,null)
                 && !InventoryGui.IsVisible() && !Menu.IsVisible() && !Console.IsVisible() && !Minimap.IsOpen()
                 && !Hud.IsPieceSelectionVisible() && !Hud.InRadial() && !(Chat.instance&&Chat.instance.HasFocus());
         }
         private void ApplyOptions()
         {
-            body.m_faction=EnemyFormV9.MonsterAllegiance?nativeFaction:Character.Faction.Players;
+            body.m_faction=EnemyFormV11.MonsterAllegiance?nativeFaction:Character.Faction.Players;
             // Red disguise is ignored by creature target searches, including rival factions.
-            EnemyFormV9.SkipTarget.SetValue(body,EnemyFormV9.MonsterAllegiance);
-            foreach(var attack in duelAttacks)attack.Key.m_hitFriendly=EnemyFormV9.Duel||attack.Value;
+            EnemyFormV11.SkipTarget.SetValue(body,EnemyFormV11.MonsterAllegiance);
+            foreach(var attack in duelAttacks)attack.Key.m_hitFriendly=EnemyFormV11.Duel||attack.Value;
             expiredProjectiles.Clear();
             foreach(var entry in projectiles)
             {
                 if(!entry.Key){expiredProjectiles.Add(entry.Key);continue;}
-                entry.Key.m_hitFriendly=EnemyFormV9.Duel||entry.Value[0];
-                entry.Key.m_noDamageFriendly=!EnemyFormV9.Duel&&entry.Value[1];
+                entry.Key.m_hitFriendly=EnemyFormV11.Duel||entry.Value[0];
+                entry.Key.m_noDamageFriendly=!EnemyFormV11.Duel&&entry.Value[1];
             }
             foreach(var expired in expiredProjectiles)projectiles.Remove(expired);
         }
         private void ApplyMovement()
         {
-            float speed=EnemyFormV9.MovementSpeed,jump=EnemyFormV9.JumpForce;
+            float speed=EnemyFormV11.MovementSpeed,jump=EnemyFormV11.JumpForce;
             if(speed==appliedSpeed&&jump==appliedJump)return;
             // Each form retains its own native speeds/jump, including zero values.
             // Always scale that snapshot, never already-multiplied player/body values.
@@ -300,7 +304,7 @@ namespace ValheimSoloToolkit
         {
             if(!projectile||restored)return;
             if(!projectiles.ContainsKey(projectile))projectiles.Add(projectile,new[]{projectile.m_hitFriendly,projectile.m_noDamageFriendly});
-            if(EnemyFormV9.Duel){projectile.m_hitFriendly=true;projectile.m_noDamageFriendly=false;}
+            if(EnemyFormV11.Duel){projectile.m_hitFriendly=true;projectile.m_noDamageFriendly=false;}
         }
         private void FollowBody()
         {
@@ -325,10 +329,10 @@ namespace ValheimSoloToolkit
         public void Step()
         {
             if(restored)return;
-            if(!EnemyFormV9.Owns(Owner)||Generation!=EnemyFormV9.Generation){Restore();return;}
+            if(!EnemyFormV11.Owns(Owner)||Generation!=EnemyFormV11.Generation){Restore();return;}
             if(!body||body.IsDead()||Owner.IsDead())
-            {EnemyFormV9.Disable();Restore();EnemyFormV9.Status="Enemy body ended. Your player has been restored.";return;}
-            if(Input.GetKeyDown(KeyCode.F8)){EnemyFormV9.Disable();Restore();return;}
+            {EnemyFormV11.Disable();Restore();EnemyFormV11.Status="Enemy body ended. Your player has been restored.";return;}
+            if(Input.GetKeyDown(KeyCode.F8)){EnemyFormV11.Disable();Restore();return;}
             if(!saved && !FinishSetup())return;
             // Stream/save around the controlled body's location; do not replace the local-player singleton.
             FollowBody();ApplyMovement();ApplyOptions();
@@ -337,7 +341,7 @@ namespace ValheimSoloToolkit
             if(input)
             {
                 // Reuse the game's camera input preferences, including gamepad sensitivity/inversion.
-                EnemyFormV9.CameraLook.Invoke(controller,null);EnemyFormV9.EyeRotation.Invoke(Owner,null);
+                EnemyFormV11.CameraLook.Invoke(controller,null);EnemyFormV11.EyeRotation.Invoke(Owner,null);
                 Vector3 forward=Owner.m_eye.forward;forward.y=0;forward.Normalize();Vector3 right=Vector3.Cross(Vector3.up,forward);
                 var stick=ZInput.GetJoyLeftStick();
                 float x=(ZInput.GetButton("Right")?1:0)-(ZInput.GetButton("Left")?1:0)+stick.x;
@@ -356,7 +360,7 @@ namespace ValheimSoloToolkit
                         {
                             RaycastHit ground;
                             if(GroundBelow(5f,out ground))body.Land();
-                            else EnemyFormV9.Status="Descend close to the ground before pressing G to land.";
+                            else EnemyFormV11.Status="Descend close to the ground before pressing G to land.";
                         }
                     }
                 }
@@ -368,10 +372,10 @@ namespace ValheimSoloToolkit
                 Vector3 facing=movement.sqrMagnitude>0.01f&&!primary&&!secondary&&!body.InAttack()?movement:Owner.m_eye.forward;
                 body.SetLookDir(facing,0f);body.SetRun(ZInput.GetButton("Run")||ZInput.GetButton("JoyRun"));body.SetWalk(false);
                 if(!flyer&&jumpDown)body.Jump(false);
-                if(ZInput.GetButtonDown("Use")||ZInput.GetButtonDown("JoyUse"))EnemyFormV9.CycleRequested=true;
-                if(EnemyFormV9.CycleRequested&&!body.InAttack())
+                if(ZInput.GetButtonDown("Use")||ZInput.GetButtonDown("JoyUse"))EnemyFormV11.CycleRequested=true;
+                if(EnemyFormV11.CycleRequested&&!body.InAttack())
                 {
-                    EnemyFormV9.CycleRequested=false;SelectWeapon(true);
+                    EnemyFormV11.CycleRequested=false;SelectWeapon(true);
                 }
                 if((primary||secondary)&&Time.time>=nextAttack&&!body.InAttack())
                 {
@@ -384,10 +388,10 @@ namespace ValheimSoloToolkit
             if(Time.time>=nextStatus)
             {
                 nextStatus=Time.time+0.5f;
-                EnemyFormV9.Status="Enemy health: "+Mathf.CeilToInt(body.GetHealth())+" / "+Mathf.CeilToInt(body.GetMaxHealth())+
+                EnemyFormV11.Status=Forms[formChoice]+" ("+formStars+" stars). Enemy health: "+Mathf.CeilToInt(body.GetHealth())+" / "+Mathf.CeilToInt(body.GetMaxHealth())+
                     ". Weapon "+(weaponIndex+1)+"/"+weapons.Count+": "+weapons[weaponIndex].m_shared.m_name+
-                    (EnemyFormV9.MonsterAllegiance?". Red monster allegiance (creatures ignore you)":". Green player allegiance")+
-                    (EnemyFormV9.Duel?". Duel ON: attacks can hit friendly creatures/players.":". Duel OFF: native targeting.")+
+                    (EnemyFormV11.MonsterAllegiance?". Red monster allegiance (creatures ignore you)":". Green player allegiance")+
+                    (EnemyFormV11.Duel?". Duel ON: attacks can hit friendly creatures/players.":". Duel OFF: native targeting.")+
                     (flyer?" Space: take off/rise; Left Ctrl: descend; "+(formChoice==27?"G: land near ground; ":""):"")+"Use cycles attacks; F8 returns.";
             }
         }
@@ -407,7 +411,7 @@ namespace ValheimSoloToolkit
                 if(Owner==Player.m_localPlayer && disguiseNet && disguiseNet==ZNet.instance)disguiseNet.SetReferencePosition(returnPosition);
                 foreach(var entry in renderers)if(entry.Key)entry.Key.forceRenderingOff=entry.Value;
                 foreach(var entry in colliders)if(entry.Key)entry.Key.enabled=entry.Value;
-                EnemyFormV9.SkipTarget.SetValue(Owner,skipTarget);
+                EnemyFormV11.SkipTarget.SetValue(Owner,skipTarget);
                 if(playerBody){playerBody.isKinematic=kinematic;if(!kinematic){playerBody.linearVelocity=Vector3.zero;playerBody.angularVelocity=Vector3.zero;}}
                 Owner.SetMoveDir(Vector3.zero);Owner.SetRun(false);
                 Owner.enabled=playerEnabled;if(controller)controller.enabled=controllerEnabled;
@@ -418,12 +422,12 @@ namespace ValheimSoloToolkit
         }
         private void Update()
         {
-            if(!EnemyFormV9.Owns(Owner)||Generation!=EnemyFormV9.Generation)
+            if(!EnemyFormV11.Owns(Owner)||Generation!=EnemyFormV11.Generation)
             {Restore();Destroy(gameObject);}
         }
         private void FixedUpdate()
         {
-            if(saved&&!restored&&body&&EnemyFormV9.Owns(Owner)&&Generation==EnemyFormV9.Generation){FollowBody();ApplyMovement();}
+            if(saved&&!restored&&body&&EnemyFormV11.Owns(Owner)&&Generation==EnemyFormV11.Generation){FollowBody();ApplyMovement();}
         }
         private void OnDestroy(){Restore();}
     }

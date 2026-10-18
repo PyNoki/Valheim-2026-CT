@@ -8,6 +8,8 @@ $cases = @(
     @{ Name='trophy-buffs'; Sources=@('ValheimTrophyBuffs') },
     @{ Name='taming'; Sources=@('ValheimTaming','ValheimSpawnCatalogue') },
     @{ Name='spawn-catalogue'; Sources=@('ValheimSpawnCatalogue') },
+    @{ Name='enemy-form'; Sources=@('ValheimEnemyForm') },
+    @{ Name='chest-sorting'; Sources=@('ValheimChestSorting','ValheimChestSortingUI','ValheimChestSortingInventory') },
     @{ Name='item-quality'; Sources=@('ValheimItemQuality') },
     @{ Name='loot-policy'; Sources=@('ValheimLootPolicy') }
 )

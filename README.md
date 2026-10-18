@@ -74,7 +74,7 @@ Select an item, choose an action and get back to playing.
 | **Rapid miner** | Speeds up pickaxe swing animations to 10×, refills stamina and keeps the equipped pickaxe at full durability. |
 | **Rapid hoe** | Hold use to repeat hoe terrain actions up to 20 times per second, with stamina refill and full hoe durability. |
 | **Building tools** | Auto-build snapped rows, capture furnished blueprints, preview/rotate/paste saved structures, and undo the last paste. |
-| **Enemy form** | Choose from 28 creature forms with native movement and attacks, including Drake and Moder with flight controls. |
+| **Enemy form** | Choose from 48 creature forms with native movement and attacks, including Drake and Moder with flight controls, and 0/1/2-star options. |
 | **Free crafting** | Bypasses crafting and building material requirements. |
 | **Unlimited carry** | Prevents encumbrance, even when you exceed the normal weight limit. |
 | **Kameha** | The original cyan bow beam, with swirling particles, wind ribbons and bright impact effects. Targets hostile monsters. |
@@ -306,9 +306,35 @@ Click **Enable wheel taming**, return to Valheim and unpause, then aim at a live
 
 Connected clients can only list world records synchronized to them; distant animals never seen by the client may be absent. Hosts generally have more complete world data. There is no admin/host gate, but animal ownership and server synchronization still matter. Compilation and mocked scanning, name preservation, movement, taming and cleanup checks pass; shared-server behavior still needs in-game testing.
 
+### Chest sorting — new in v41
+
+Enable **Chest sorting** in the toolkit's Building row. The button turns **green** while active and shows **STARTING** until Valheim processes the request. Keep the game unpaused when enabling tools.
+
+1. Open a chest normally with **E**, then click **Chest sorting** beside its Take All / Stack All actions. Choose **Make this a sorting chest** to create a drop-off chest for mixed items.
+2. Put sample items in a destination chest, open its **Chest sorting** panel, tick every type it should receive, then click **Save selected items**. One chest can accept multiple types; **Select all** makes setup quicker.
+3. Put mixed items in any master sorting chest and click **SORT ITEMS**. All master chests in the current world share the same destinations. Matching chests provide nearest-first overflow; unmatched items and anything without room remain in the sorting chest.
+
+Use **Back to chest** to return to normal storage and continue with the next chest. Sorting stays enabled. **F9** remains available as a shortcut. Assignments save with the world, including existing single-item and multi-item assignments. Reopen a destination's panel to add or untick types, then save again. **Remove chest assignment** clears its sorting role without changing its contents.
+
+There is **no toolkit sorting distance cap**. Destinations must still be loaded, accessible, locally owned and not in use by someone else. Saved IDs do not force distant chests to load. Click **SORT ITEMS** again after unavailable destinations become loaded. Existing destinations saved under different masters automatically join the shared route; no reassignment is needed.
+
+The update also fixes the clipped sorting button, active-button color, cursor capture, open-chest assignment and quick-toggle behavior. Native inventory input is temporarily blocked while selecting filters, then restored on return. Dragging an item disables the setup button. Stopping sorting restores the original chest-button layout and preserves saved assignments.
+
+Production compilation and automated tests pass for shared routing, multiple masters, item filters, quantity conservation, overflow, access/ownership, the native chest interface, cursor cleanup, toggle colors and button layout. The latest native UI and multiplayer behavior still need live game verification. Disable active tools, let Valheim update once, reload the table and confirm **v41** in the window title.
+
+### Enemy forms and catalogue fixes — new in v40
+
+Enemy form now offers **48 forms**, including six additional bosses, four Charred enemies, four Dvergr variants, Stone Golem, Seeker, Tick, Morgen, Growth and Lava Blob. Choose **0, 1 or 2 stars** before transforming, then return to Valheim and unpause. Drake and Moder retain their flight controls; the new ground forms do not inherit them. Bosses need open space. Native star visuals vary by creature.
+
+Fixed a shared catalogue bug that could leave Spawn box dropdowns empty after using Taming. Each window tracks its own displayed list, and empty or failed refreshes preserve valid lists. Spawn box and Taming retain their **0-, 1- and 2-star** options.
+
+Refresh requests need a game update to run: tab back into Valheim and press **Esc** if needed to close the pause menu. Returning focus alone can leave the game paused. Return to your player and disable active tools before reloading.
+
+All 20 added prefab names were checked against the installed game and the [Jötunn character catalogue](https://valheim-modding.github.io/Jotunn/data/prefabs/character-list.html). Compilation and mocked control, cleanup and star-level tests pass for all 48 forms; actual attacks, appearance and multiplayer still need live verification.
+
 ### Categorized spawning
 
-**Spawn box...** lets you choose **0 stars (normal)**, **1 star**, or **2 stars** for monsters/creatures, including tameable animals. Choose the stars before clicking **Spawn selected**. Merchants and resources use their normal defaults. The table title is **Valheim 2026 CT | v38**. The helper compiles against the installed game, and C# behavior tests and Lua checks pass for star levels, both selectors, request signatures and cancellation. Live appearance and multiplayer persistence still need in-game verification.
+**Spawn box...** lets you choose **0 stars (normal)**, **1 star**, or **2 stars** for monsters/creatures, including tameable animals. Choose the stars before clicking **Spawn selected**. Merchants and resources use their normal defaults. The current table title includes **Valheim 2026 CT | v41**. The helper compiles against the installed game, and C# behavior tests and Lua checks pass for star levels, both selectors, request signatures and cancellation. Live appearance and multiplayer persistence still need in-game verification.
 
 **Spawn box...** has separate **Monsters / creatures**, **Merchants**, and **Resources / plants** dropdowns. The catalogue is generated from registered prefabs in your loaded game rather than a fixed monster list. Open it and unpause Valheim once to fill the lists, or use **Refresh spawn catalogue** after changes. Creatures include bosses, wildlife and other registered characters; players are excluded. Resources include harvest nodes, plants/bushes, ore rocks, materials, food and trophies. Merchants retain normal shop/progression rules. Creatures/merchants spawn beside you on clear ground; resources spawn at your feet. Results remain in Spawn box.
 

@@ -44,6 +44,15 @@ class TestSpawnCatalogue {
   Check(Reject(()=>SpawnCatalogueV1.Spawn(player,"Wood",2,new Vector3(),1)),"resource stars rejected");
   Check(UnityEngine.Object.spawns==before,"invalid selections never instantiate");
   SpawnCatalogueV1.Spawn(player,"Haldor",1,new Vector3(),0);SpawnCatalogueV1.Spawn(player,"Wood",2,new Vector3(),0);
+  string valid=SpawnCatalogueV1.Catalogue();var registered=ZNetScene.instance.m_namedPrefabs;
+  ZNetScene.instance.m_namedPrefabs=new Dictionary<string,GameObject>();
+  Check(Reject(()=>SpawnCatalogueV1.Refresh()),"empty registry reports not ready");
+  Check(SpawnCatalogueV1.Catalogue()==valid,"empty refresh preserves catalogue");
+  ZNetScene.instance.m_namedPrefabs=registered;
+  SpawnCatalogueV1.Spawn(player,"Troll",0,new Vector3(),0);
+  Check(Reject(()=>{ZNetScene.instance=null;SpawnCatalogueV1.Refresh();}),"world unavailable refresh rejected");
+  Check(SpawnCatalogueV1.Catalogue()==valid,"failed refresh preserves catalogue");
+  ZNetScene.instance=new ZNetScene{m_namedPrefabs=registered};
   Console.WriteLine("PASS: 0/1/2 stars and native levels, unchanged prefabs, star guards, dynamic monster/merchant/resource/tameable categories, modded pet discovery, selection/position and invalid/player/missing guards.");
  }
 }

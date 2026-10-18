@@ -10,6 +10,15 @@ r=r or l.lua_pcallk(s,0,0,0,0,None)
 if r==0:
  r=l.luaL_loadfilex(s,b'work/test_spawn_stars.lua',None)
  r=r or l.lua_pcallk(s,0,0,0,0,None)
+if r==0:
+ r=l.luaL_loadfilex(s,b'work/test_chest_sorting.lua',None)
+ r=r or l.lua_pcallk(s,0,0,0,0,None)
+if r==0:
+ r=l.luaL_loadfilex(s,b'work/test_chest_sorting_layout.lua',None)
+ r=r or l.lua_pcallk(s,0,0,0,0,None)
+if r==0:
+ r=l.luaL_loadfilex(s,b'work/test_toggle_style.lua',None)
+ r=r or l.lua_pcallk(s,0,0,0,0,None)
 l.lua_tolstring.argtypes=[ctypes.c_void_p,ctypes.c_int,ctypes.c_void_p];l.lua_tolstring.restype=ctypes.c_char_p
 print('Tests passed' if r==0 else l.lua_tolstring(s,-1,None).decode())
 raise SystemExit(r)

@@ -24,8 +24,9 @@ local function installHook(s,h)hook={recovery=h}end
 local function stopTeleport()pending=nil;hook=nil end
 ]]
 env.testHelper=helper
+local catalogue='0|Wolf\n1|Haldor\n2|Wood\n3|Wolf'
 env.invoke=function(method,_,args)
- if method=='catalogue'then return '0|Wolf\n1|Haldor\n2|Wood\n3|Wolf' end
+ if method=='catalogue'then return catalogue end
  if method=='tameStatus'then return 'Ready' end
  if method=='animals'then return '' end
  calls[#calls+1]={method=method,args=args}
@@ -42,15 +43,26 @@ local function checkCall(kind,stars)
  local call=calls[#calls];assert(call.method=='prefab','Expected prefab request')
  local a=call.args;assert(#a==5 and a[1].value==123 and a[3].value==kind and a[4].value==stars and a[4].type==8 and a[5].value=='0100000000000000','Wrong spawn signature or star value')
 end
+-- Loading Taming first used to consume the shared cache and leave Spawn empty.
+ui.openTaming();local taming=form('Valheim | Taming');tick(taming);ui.reset()
 ui.openSpawn();local spawn=form('Valheim | Spawn');tick(spawn);ui.reset()
+for _,top in ipairs({116,170,224})do assert(#find(spawn,'Top',top).Items==1,'Taming-first must populate every Spawn dropdown')end
 local stars=find(spawn,'Top',76);assert(stars.kind=='ComboBox' and stars.ItemIndex==0 and #stars.Items==3,'Default normal stars and all choices')
 local creature=find(spawn,'Top',116);creature.ItemIndex=0
 local function spawnButtonAt(top)for _,c in ipairs(controls)do if c.Parent==spawn and c.kind=='Button' and c.Top==top then return c end end end
 for value=0,2 do stars.ItemIndex=value;spawnButtonAt(116).OnClick();checkCall(0,value);ui.reset()end
 stars.ItemIndex=2
 for _,entry in ipairs({{170,1},{224,2}})do spawnButtonAt(entry[1]).OnClick();checkCall(entry[2],0);ui.reset()end
-ui.openTaming();local taming=form('Valheim | Taming');tick(taming);ui.reset()
+ui.openTaming();tick(taming);ui.reset()
 local tameStars=find(taming,'Left',355);assert(tameStars.ItemIndex==0 and #tameStars.Items==3,'Taming stars default and choices')
 local tameSpawn=find(taming,'Caption','Spawn selected tameable')
 for value=0,2 do tameStars.ItemIndex=value;tameSpawn.OnClick();checkCall(3,value);ui.reset()end
 print('PASS: both spawn windows send 0/1/2 stars with the exact helper signature; merchants/resources always send zero.')
+creature.Text='Wolf'
+catalogue='0|Troll\n0|Wolf\n1|Hildir\n2|CarrotPlant\n3|Wolf'
+tick(taming);tick(spawn)
+assert(#creature.Items==2 and creature.Items[1]=='Troll' and creature.ItemIndex==1,'Other window must not consume Spawn refresh')
+assert(find(spawn,'Top',170).Items[1]=='Hildir' and find(spawn,'Top',224).Items[1]=='CarrotPlant','Merchant/plant refresh lost')
+catalogue='';tick(taming);tick(spawn)
+assert(#creature.Items==2 and #tameStars.Items==3,'Empty helper response must retain valid lists')
+print('PASS: Taming-first, interleaved catalogue refreshes and empty responses retain populated Spawn dropdowns.')

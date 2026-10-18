@@ -6,7 +6,7 @@ using UnityEngine;
 namespace ValheimSoloToolkit
 {
     // CE queues requests; all Unity and world operations run in Player.UpdateTeleport.
-    public static class RecoverySpawnBetaV24
+    public static class RecoverySpawnBetaV31
     {
         static readonly object Gate = new object();
         static Player owner;
@@ -29,6 +29,9 @@ namespace ValheimSoloToolkit
         public static string TamingCatalogue(){return TamingV1.Catalogue();}
         public static string TamingStatus(){return TamingV1.Status();}
         public static void StopTaming(){TamingV1.Stop();}
+        public static int SortingState(){return ChestSortingV1.Enabled;}
+        public static string SortingStatus(){return ChestSortingV1.Status;}
+        public static void StopSorting(){ChestSortingV1.Stop();}
         public static int ClearState(){return ClearViewV1.Enabled;}
         public static void StopClear(){ClearViewV1.Stop();}
         public static string HarvestStatus(){return HarvestLootV1.HarvestStatus;}
@@ -53,7 +56,7 @@ namespace ValheimSoloToolkit
         {
             lock (Gate)
             {
-                if (mode < 1 || mode > 39 || mode == 5 || worldHex == null || worldHex.Length != 16) throw new ArgumentException("Invalid toolkit request");
+                if (mode < 1 || mode > 40 || mode == 5 || worldHex == null || worldHex.Length != 16) throw new ArgumentException("Invalid toolkit request");
                 byte[] bytes = new byte[8];
                 for (int i = 0; i < 8; ++i) bytes[i] = Convert.ToByte(worldHex.Substring(i * 2, 2), 16);
                 world = BitConverter.ToInt64(bytes, 0);
@@ -136,6 +139,7 @@ namespace ValheimSoloToolkit
                     if(action==31){Finish(TamingV1.EnableHotkey(p),true);return;}
                     if(action==32){Finish(SpawnCatalogueV1.Refresh(),true);return;}
                     if(action==33){Finish(SpawnCatalogueV1.Spawn(p,spawnTarget,spawnKind,spawnKind==2?p.transform.position:Landing(p),spawnStars),true);return;}
+                    if(action==40){Finish(ChestSortingV1.Start(p),true);return;}
                     if(action==39){Finish(ClearViewV1.Toggle(p),true);return;}
                     if(action>=36&&action<=38){Finish(HarvestLootV1.Configure(p,action,lootRadius),true);return;}
                     if(action==35){Finish(AutoPlanterV1.Start(p,spawnTarget),true);return;}

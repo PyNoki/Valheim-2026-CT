@@ -11,6 +11,8 @@ end
 local function readSpawnNames(h)
   local value=invoke(h.spawnCatalogue,0,{})
   local text=readCatalogueString(value,'Spawn catalogue')
+  -- An uninitialized helper must not erase a previously loaded catalogue.
+  if text=='' then return false end
   if text==lastSpawnCatalogue then return false end
   spawnNames={{},{},{},{}}
   for row in text:gmatch('[^\r\n]+') do
@@ -42,7 +44,7 @@ local function queueSpawnAction(kind,name,route,stars)
   return h
 end
 do
-local helper,timer,combos
+local helper,timer,combos,renderedCatalogue
 local close,destroy=form.OnClose,form.OnDestroy
 form.OnClose=function() if timer then timer.Enabled=false end;return close() end
 form.OnDestroy=function() if timer then timer.Enabled=false end;destroy() end
@@ -52,7 +54,7 @@ spawnButton.OnClick=function() action(function()
   spawnWindow=createForm(false);spawnWindow.Caption='Valheim | Spawn';spawnWindow.Width=800;spawnWindow.Height=435;spawnWindow.Position='poScreenCenter'
   spawnWindow.Color=0x202020;spawnWindow.Font.Color=0xE6E6E6
   local guide=createLabel(spawnWindow);guide.Left=16;guide.Top=16;guide.Width=745;guide.Height=52;guide.AutoSize=false;guide.WordWrap=true
-  guide.Caption='Lists come from registered prefabs in your loaded game. Refresh the catalogue, then return to Valheim and unpause once to populate them. Creatures and merchants spawn beside you; resources spawn at your feet.'
+  guide.Caption='Lists come from your loaded game. Refresh, tab back into Valheim and press Esc if needed to close the pause menu; let the game run once. Creatures and merchants spawn beside you; resources spawn at your feet.'
   local starLabel=createLabel(spawnWindow);starLabel.Left=16;starLabel.Top=80;starLabel.Caption='Creature stars'
   local stars=createSpawnStars(spawnWindow,170,76,190)
   combos={}
@@ -87,10 +89,19 @@ spawnButton.OnClick=function() action(function()
   timer=createTimer(spawnWindow,false);timer.Interval=500
   timer.OnTimer=function()
     if not helper or getOpenedProcessID()~=helper.pid or getProcessIDFromProcessName('valheim.exe')~=helper.pid then timer.Enabled=false;return end
-    local ok,err=pcall(function() if readSpawnNames(helper) then for i,combo in ipairs(combos) do fillSpawnDropdown(combo,i-1) end end end)
+    local ok,err=pcall(function()
+      readSpawnNames(helper)
+      -- Taming can update the shared data before this window polls it.
+      if lastSpawnCatalogue and renderedCatalogue~=lastSpawnCatalogue then
+        for i,combo in ipairs(combos) do fillSpawnDropdown(combo,i-1) end
+        renderedCatalogue=lastSpawnCatalogue
+      end
+    end)
     if not ok then timer.Enabled=false;spawnStatus.Caption=tostring(err) end
   end
   spawnWindow.OnClose=function() if pending and pending.spawn then stopTeleport() end;return caHide end
+  for i,combo in ipairs(combos) do fillSpawnDropdown(combo,i-1) end
+  renderedCatalogue=lastSpawnCatalogue
   spawnWindow.show();refresh.OnClick()
 end) end
 end

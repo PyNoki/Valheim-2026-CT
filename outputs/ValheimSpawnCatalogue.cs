@@ -5,7 +5,7 @@ using System.Reflection;
 using UnityEngine;
 namespace ValheimSoloToolkit {
  public static class SpawnCatalogueV1 {
-  static readonly HashSet<string>[] groups={new HashSet<string>(),new HashSet<string>(),new HashSet<string>(),new HashSet<string>()};
+  static HashSet<string>[] groups={new HashSet<string>(),new HashSet<string>(),new HashSet<string>(),new HashSet<string>()};
   static string catalogue="";
   public static string Catalogue(){return catalogue;}
   static bool Merchant(string name){return name=="Haldor"||name=="Hildir"||name=="BogWitch";}
@@ -14,7 +14,8 @@ namespace ValheimSoloToolkit {
    var field=typeof(ZNetScene).GetField("m_namedPrefabs",BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic);
    var prefabs=field==null?null:field.GetValue(ZNetScene.instance) as IDictionary;
    if(prefabs==null)throw new InvalidOperationException("Registered prefab catalogue is unavailable.");
-   foreach(var group in groups)group.Clear();
+   // Build privately so an incomplete/failed refresh keeps the last valid lists.
+   var groups=new[]{new HashSet<string>(),new HashSet<string>(),new HashSet<string>(),new HashSet<string>()};
    foreach(GameObject prefab in prefabs.Values){
     if(!prefab||!prefab.GetComponent<ZNetView>())continue;
     string name=prefab.name;if(string.IsNullOrEmpty(name)||name.IndexOfAny(new[]{'|','\r','\n'})>=0)continue;
@@ -33,7 +34,9 @@ namespace ValheimSoloToolkit {
    }
    var rows=new List<string>();
    for(int kind=0;kind<groups.Length;kind++){var names=new List<string>(groups[kind]);names.Sort(StringComparer.OrdinalIgnoreCase);foreach(var name in names)rows.Add(kind+"|"+name);}
+   if(rows.Count==0)throw new InvalidOperationException("World prefabs are not ready. Return to Valheim, press Esc to close the pause menu, then refresh the spawn catalogue again.");
    catalogue=string.Join("\n",rows.ToArray());
+   SpawnCatalogueV1.groups=groups;
    return "Loaded "+groups[0].Count+" creatures, "+groups[1].Count+" merchants, "+groups[2].Count+" resources and "+groups[3].Count+" native tameable creatures.";
   }
   public static string Spawn(Player player,string name,int kind,Vector3 point,int stars){

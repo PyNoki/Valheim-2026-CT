@@ -65,12 +65,13 @@ s = s.replace('static void Main(){', '''static void Main(){
   Console.WriteLine("PASS: spawn queued on game thread, exact feet position, one-shot execution, remote client success and prefab/death/world/teleport/position guards and cancellation.");
 ''')
 s = s.replace('RecoverySpawnBetaV2', 'RecoverySpawnBetaV3')
-s = s.replace('RecoverySpawnBetaV3', 'RecoverySpawnBetaV24')
+s = s.replace('RecoverySpawnBetaV3', 'RecoverySpawnBetaV31')
 s = s.replace('if(name!="BlueberryBush")throw new Exception("Wrong prefab");', 'if(Array.IndexOf(new[]{"BlueberryBush","RaspberryBush","CloudberryBush","LingonberryBush","VineAsh","VineGreen","Bush01","Bush01_deepnorth","Haldor","Hildir","BogWitch"},name)<0)throw new Exception("Wrong prefab");')
 s = s.replace('return missing?null:new GameObject();', 'return missing?null:new GameObject{name=name};')
 s = s.replace('public static int spawns;', 'public static string lastPrefab;public static int spawns;')
 s = s.replace('spawns++;last=position;', 'spawns++;lastPrefab=prefab.name;last=position;')
 s += '''
+namespace ValheimSoloToolkit {public static class ChestSortingV1 {public static int Enabled,starts;public static string Status="Off";public static void Stop(){Enabled=0;}public static string Start(Player p){Enabled=1;starts++;return Status="Ready";}}}
 namespace ValheimSoloToolkit {public static class TrophyBuffsV1 {public static string Apply(Player p,int choice){return "Buffs applied";}}}
 namespace ValheimSoloToolkit {public static class ClearViewV1 {public static int Enabled;public static void Stop(){}public static int toggles;public static string Toggle(Player p){toggles++;Enabled=1-Enabled;return "Clear";}}}
 namespace ValheimSoloToolkit {public static class HarvestLootV1 {public static string HarvestStatus="",MagnetStatus="";public static int State(){return 0;}public static void StopAll(){}public static void StopHarvest(){}public static void StopMagnet(){}public static int calls,lastMode,lastRadius;public static string Configure(Player p,int mode,int radius){calls++;lastMode=mode;lastRadius=radius;return "Ready";}}}
@@ -93,32 +94,33 @@ namespace ValheimSoloToolkit { public static class BoatFunV4 {
 '''
 s = s.replace('static void Main(){', '''static void Main(){
   foreach(int kind in new[]{0,3})foreach(int stars in new[]{0,1,2}){
-   Reset();int calls=SpawnCatalogueV1.calls;RecoverySpawnBetaV24.QueuePrefab(p,"Wolf",kind,stars,"0100000000000000");Check(SpawnCatalogueV1.calls==calls,"spawn waits for game thread");RecoverySpawnBetaV24.Tick(p);RecoverySpawnBetaV24.Tick(p);Check(SpawnCatalogueV1.calls==calls+1&&SpawnCatalogueV1.lastStars==stars&&SpawnCatalogueV1.lastKind==kind,"star selection survives queue and runs once");
+   Reset();int calls=SpawnCatalogueV1.calls;RecoverySpawnBetaV31.QueuePrefab(p,"Wolf",kind,stars,"0100000000000000");Check(SpawnCatalogueV1.calls==calls,"spawn waits for game thread");RecoverySpawnBetaV31.Tick(p);RecoverySpawnBetaV31.Tick(p);Check(SpawnCatalogueV1.calls==calls+1&&SpawnCatalogueV1.lastStars==stars&&SpawnCatalogueV1.lastKind==kind,"star selection survives queue and runs once");
   }
-  Reset();int spawnBefore=SpawnCatalogueV1.calls;RecoverySpawnBetaV24.QueuePrefab(p,"Wolf",3,2,"0100000000000000");RecoverySpawnBetaV24.Cancel();RecoverySpawnBetaV24.Tick(p);Check(SpawnCatalogueV1.calls==spawnBefore,"cancelled starred spawn never runs");
-  foreach(int stars in new[]{-1,3}){Reset();bool rejected=false;try{RecoverySpawnBetaV24.QueuePrefab(p,"Wolf",0,stars,"0100000000000000");}catch(ArgumentException){rejected=true;}Check(rejected&&RecoverySpawnBetaV24.GetState()==0,"invalid stars rejected before queue");}
-  Reset();bool badMerchant=false;try{RecoverySpawnBetaV24.QueuePrefab(p,"Haldor",1,2,"0100000000000000");}catch(ArgumentException){badMerchant=true;}Check(badMerchant,"merchant stars rejected");
+  Reset();int spawnBefore=SpawnCatalogueV1.calls;RecoverySpawnBetaV31.QueuePrefab(p,"Wolf",3,2,"0100000000000000");RecoverySpawnBetaV31.Cancel();RecoverySpawnBetaV31.Tick(p);Check(SpawnCatalogueV1.calls==spawnBefore,"cancelled starred spawn never runs");
+  foreach(int stars in new[]{-1,3}){Reset();bool rejected=false;try{RecoverySpawnBetaV31.QueuePrefab(p,"Wolf",0,stars,"0100000000000000");}catch(ArgumentException){rejected=true;}Check(rejected&&RecoverySpawnBetaV31.GetState()==0,"invalid stars rejected before queue");}
+  Reset();bool badMerchant=false;try{RecoverySpawnBetaV31.QueuePrefab(p,"Haldor",1,2,"0100000000000000");}catch(ArgumentException){badMerchant=true;}Check(badMerchant,"merchant stars rejected");
   Console.WriteLine("PASS: normal/starred monster and tameable queue, one-shot execution, cancellation and invalid stars.");
-  Reset();Run(7);Check(RecoverySpawnBetaV24.GetState()==3&&UnityEngine.Object.lastPrefab=="Haldor"&&UnityEngine.Object.last.x==3,"Haldor spawned beside player");
-  Reset();Run(8);Check(RecoverySpawnBetaV24.GetState()==3&&UnityEngine.Object.lastPrefab=="Hildir","Hildir prefab");
-  Reset();Run(9);Check(RecoverySpawnBetaV24.GetState()==3&&UnityEngine.Object.lastPrefab=="BogWitch","Bog Witch prefab");
+  Reset();Run(7);Check(RecoverySpawnBetaV31.GetState()==3&&UnityEngine.Object.lastPrefab=="Haldor"&&UnityEngine.Object.last.x==3,"Haldor spawned beside player");
+  Reset();Run(8);Check(RecoverySpawnBetaV31.GetState()==3&&UnityEngine.Object.lastPrefab=="Hildir","Hildir prefab");
+  Reset();Run(9);Check(RecoverySpawnBetaV31.GetState()==3&&UnityEngine.Object.lastPrefab=="BogWitch","Bog Witch prefab");
   string[] plants={"RaspberryBush","CloudberryBush","LingonberryBush","VineAsh","VineGreen","Bush01","Bush01_deepnorth"};
-  for(int i=0;i<plants.Length;i++){Reset();Run(20+i);Check(RecoverySpawnBetaV24.GetState()==3&&UnityEngine.Object.lastPrefab==plants[i]&&UnityEngine.Object.last.x==0,"plant selection and feet placement: "+plants[i]);}
-  int count=UnityEngine.Object.spawns;RecoverySpawnBetaV24.Tick(p);Check(UnityEngine.Object.spawns==count,"merchant spawn is one-shot");
+  for(int i=0;i<plants.Length;i++){Reset();Run(20+i);Check(RecoverySpawnBetaV31.GetState()==3&&UnityEngine.Object.lastPrefab==plants[i]&&UnityEngine.Object.last.x==0,"plant selection and feet placement: "+plants[i]);}
+  int count=UnityEngine.Object.spawns;RecoverySpawnBetaV31.Tick(p);Check(UnityEngine.Object.spawns==count,"merchant spawn is one-shot");
   Reset();ZNetScene.instance.missing=true;Run(7);Failed("merchant prefab unavailable");Check(UnityEngine.Object.spawns==count,"missing merchant does not spawn");
   Reset();ZNetScene.instance.missing=true;Run(21);Failed("plant prefab unavailable");Check(UnityEngine.Object.spawns==count,"missing cloudberry bush does not spawn");
   Console.WriteLine("PASS: berry bushes, berry vines and decorative variants select native prefabs, place at feet and reject missing plants.");
   Console.WriteLine("PASS: Haldor/Hildir/Bog Witch queue, native prefab selection, beside-player placement and missing/one-shot guards.");
-  Reset();RecoverySpawnBetaV24.Queue(p,6,"0100000000000000");Check(BoatFunV4.toggles==0,"boat queue waits for game thread");
-  RecoverySpawnBetaV24.Tick(p);RecoverySpawnBetaV24.Tick(p);Check(BoatFunV4.toggles==1,"one boat toggle per request");
-  Reset();RecoverySpawnBetaV24.Queue(p,6,"0100000000000000");RecoverySpawnBetaV24.Cancel();RecoverySpawnBetaV24.Tick(p);Check(BoatFunV4.toggles==1,"cancelled boat toggle not executed");
+  Reset();RecoverySpawnBetaV31.Queue(p,6,"0100000000000000");Check(BoatFunV4.toggles==0,"boat queue waits for game thread");
+  RecoverySpawnBetaV31.Tick(p);RecoverySpawnBetaV31.Tick(p);Check(BoatFunV4.toggles==1,"one boat toggle per request");
+  Reset();RecoverySpawnBetaV31.Queue(p,6,"0100000000000000");RecoverySpawnBetaV31.Cancel();RecoverySpawnBetaV31.Tick(p);Check(BoatFunV4.toggles==1,"cancelled boat toggle not executed");
   Console.WriteLine("PASS: boat activation queued on game thread, one-shot toggle and cancellation.");
-  Reset();int before=HarvestLootV1.calls;RecoverySpawnBetaV24.QueueLoot(p,36,20,"0100000000000000");Check(HarvestLootV1.calls==before,"harvest waits for game thread");RecoverySpawnBetaV24.Tick(p);RecoverySpawnBetaV24.Tick(p);Check(HarvestLootV1.calls==before+1&&HarvestLootV1.lastMode==36,"harvest one-shot toggle");
-  Reset();RecoverySpawnBetaV24.QueueLoot(p,37,500,"0100000000000000");RecoverySpawnBetaV24.Tick(p);Check(HarvestLootV1.lastMode==37&&HarvestLootV1.lastRadius==500,"cheated magnet mode and radius preserved");
-  Reset();before=HarvestLootV1.calls;RecoverySpawnBetaV24.QueueLoot(p,38,100,"0100000000000000");RecoverySpawnBetaV24.Cancel();RecoverySpawnBetaV24.Tick(p);Check(HarvestLootV1.calls==before,"cancelled loot request not run");
+  Reset();int before=HarvestLootV1.calls;RecoverySpawnBetaV31.QueueLoot(p,36,20,"0100000000000000");Check(HarvestLootV1.calls==before,"harvest waits for game thread");RecoverySpawnBetaV31.Tick(p);RecoverySpawnBetaV31.Tick(p);Check(HarvestLootV1.calls==before+1&&HarvestLootV1.lastMode==36,"harvest one-shot toggle");
+  Reset();RecoverySpawnBetaV31.QueueLoot(p,37,500,"0100000000000000");RecoverySpawnBetaV31.Tick(p);Check(HarvestLootV1.lastMode==37&&HarvestLootV1.lastRadius==500,"cheated magnet mode and radius preserved");
+  Reset();before=HarvestLootV1.calls;RecoverySpawnBetaV31.QueueLoot(p,38,100,"0100000000000000");RecoverySpawnBetaV31.Cancel();RecoverySpawnBetaV31.Tick(p);Check(HarvestLootV1.calls==before,"cancelled loot request not run");
   Console.WriteLine("PASS: harvest/magnet queued game-thread activation, exact mode/radius, one-shot execution and cancellation.");
-  Reset();int clearBefore=ClearViewV1.toggles;RecoverySpawnBetaV24.Queue(p,39,"0100000000000000");Check(ClearViewV1.toggles==clearBefore,"weather waits for game thread");RecoverySpawnBetaV24.Tick(p);RecoverySpawnBetaV24.Tick(p);Check(ClearViewV1.toggles==clearBefore+1,"weather toggles once");
-  Reset();RecoverySpawnBetaV24.Queue(p,39,"0100000000000000");RecoverySpawnBetaV24.Cancel();RecoverySpawnBetaV24.Tick(p);Check(ClearViewV1.toggles==clearBefore+1,"cancelled weather does not apply");Console.WriteLine("PASS: clear weather game-thread toggle, one-shot execution and cancellation.");
+  Reset();int sortBefore=ChestSortingV1.starts;RecoverySpawnBetaV31.Queue(p,40,"0100000000000000");Check(ChestSortingV1.starts==sortBefore,"sorting waits for game update");RecoverySpawnBetaV31.Cancel();RecoverySpawnBetaV31.Tick(p);Check(ChestSortingV1.starts==sortBefore,"cancelled sorting never starts");RecoverySpawnBetaV31.Queue(p,40,"0100000000000000");RecoverySpawnBetaV31.Tick(p);RecoverySpawnBetaV31.Tick(p);Check(ChestSortingV1.starts==sortBefore+1&&RecoverySpawnBetaV31.SortingState()==1,"sorting starts once");RecoverySpawnBetaV31.StopSorting();Check(RecoverySpawnBetaV31.SortingState()==0,"sorting stop binding");
+  Reset();int clearBefore=ClearViewV1.toggles;RecoverySpawnBetaV31.Queue(p,39,"0100000000000000");Check(ClearViewV1.toggles==clearBefore,"weather waits for game thread");RecoverySpawnBetaV31.Tick(p);RecoverySpawnBetaV31.Tick(p);Check(ClearViewV1.toggles==clearBefore+1,"weather toggles once");
+  Reset();RecoverySpawnBetaV31.Queue(p,39,"0100000000000000");RecoverySpawnBetaV31.Cancel();RecoverySpawnBetaV31.Tick(p);Check(ClearViewV1.toggles==clearBefore+1,"cancelled weather does not apply");Console.WriteLine("PASS: clear weather game-thread toggle, one-shot execution and cancellation.");
 ''')
 s = s.replace('public long GetLong(int key,long fallback)', 'public long GetOwner(){return networkOwner;} public long GetLong(int key,long fallback)')
 Path('work/test-beta.generated.cs').write_text(s)
