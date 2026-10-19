@@ -7,7 +7,7 @@ local function control(values)
  return setmetatable({}, {__index=data,__newindex=function(_,k,v)if k=='Parent' then parentWrites=parentWrites+1 end;data[k]=v end})
 end
 local group=control();env.playerGroup=group
-local names={'godButton','staminaButton','craftingButton','flightButton','beamButton','carryButton','deleteButton','enemyButton','keepFlagsButton','rapidButton','freezeReplenishButton','freeze','speedButton','jumpButton','boatButton','edit','cloneButton','maxItemQualityButton','refresh','maxStacksButton','dragButton','spawnButton','tamingButton','trophyButton','maxSkills','customSkills','resetMovementButton','teleportButton','sortingButton'}
+local names={'godButton','staminaButton','craftingButton','flightButton','beamButton','carryButton','deleteButton','enemyButton','keepFlagsButton','rapidButton','freezeReplenishButton','freeze','speedButton','jumpButton','boatButton','edit','cloneButton','maxItemQualityButton','refresh','maxStacksButton','dragButton','spawnButton','tamingButton','trophyButton','maxSkills','customSkills','resetMovementButton','teleportButton','sortingButton','minerButton'}
 for _,n in ipairs(names)do env[n]=control({Parent=group,Left=12,Top=20,Width=180,Height=28,Caption=n..': OFF',OnClick=function()clicks=clicks+1 end})end
 function env.createPanel(parent)local p=control({Parent=parent});panels[#panels+1]=p;return p end
 function env.createTimer()local t={};timers[#timers+1]=t;return t end

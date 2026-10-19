@@ -5,7 +5,7 @@ local timer
 local comboControls={}
 function createComboBox() local c={ItemIndex=-1,Items={}};c.Items.add=function(v)table.insert(c.Items,v)end;comboControls[#comboControls+1]=c;return c end
 local timers={}
-function createTimer() local t={Enabled=false}; timers[#timers+1]=t; timer=timer or t; return t end
+function createTimer(owner) local t={Enabled=false,Owner=owner};t.destroy=function() t.Enabled=false;t.Destroyed=true end; timers[#timers+1]=t; timer=timer or t; return t end
 local forms,shownForms={},{}
 function createForm()
  local f={Font={},Constraints={}}
@@ -834,7 +834,7 @@ print('PASS: deletion UI toggle, local-player guard, world unload and cleanup')
 end
 
 do
-classes.RapidMinerV2=40
+classes.RapidMinerV5=40
 defs[40]={{name='Enabled',offset=0,isStatic=true,staticAddress=0x70000,typename='System.Int32'}}
 local methodsBefore=mono_class_enumMethods
 function mono_class_enumMethods(c)
@@ -864,7 +864,7 @@ function autoAssemble(script,self,disable)
  return assembleBefore(script,self,disable)
 end
 buttons[25].OnClick();local deleteTimer=timers[#timers]
-assert(active and buttons[25].Caption=='Rapid miner: ON','Rapid miner enable failed: '..tostring(errors[#errors]))
+assert(active and buttons[25].Caption=='Fast attacks: ON','Rapid miner enable failed: '..tostring(errors[#errors]))
 buttons[25].OnClick();assert(not active and mem[0x70000]==0 and not deleteTimer.Enabled,'Rapid miner disable failed')
 buttons[25].OnClick();mem[0x1030]=0;deleteTimer.OnTimer()
 assert(not active and mem[0x70000]==0,'World unload did not disable rapid miner')
@@ -913,9 +913,9 @@ assert(not active and mem[0x80000]==0,'World unload did not disable rapid hoe')
 mem[0x1030]=0x2000;buttons[26].OnClick();ValheimInventoryWindow.OnClose()
 assert(not active and not deleteTimer.Enabled,'Close did not stop rapid hoe')
 buttons[25].OnClick();buttons[26].OnClick()
-assert(buttons[25].Caption=='Rapid miner: ON' and buttons[26].Caption=='Rapid hoe: ON','Both tool toggles must enable together')
+assert(buttons[25].Caption=='Fast attacks: ON' and buttons[26].Caption=='Rapid hoe: ON','Both tool toggles must enable together')
 buttons[26].OnClick()
-assert(buttons[25].Caption=='Rapid miner: ON' and mem[0x70000]==1,'Disabling hoe disturbed miner')
+assert(buttons[25].Caption=='Fast attacks: ON' and mem[0x70000]==1,'Disabling hoe disturbed miner')
 buttons[26].OnClick();buttons[25].OnClick()
 assert(buttons[26].Caption=='Rapid hoe: ON' and active and mem[0x80000]==1,'Disabling miner disturbed hoe')
 ValheimInventoryWindow.OnClose()
@@ -924,18 +924,24 @@ print('PASS: rapid hoe toggle, local-player guard, world unload, independent min
 end
 
 do
-classes.EnemyFormV11=42;classes.GameCamera=43;classes.Projectile=45;vtDword=2
+classes.EnemyFormV12=42;classes.GameCamera=43;classes.Projectile=45;vtDword=2
 mem[0x90008]=0xa0000;mem[0xa0010]=10
 defs[42]={{name='Enabled',offset=0,isStatic=true,staticAddress=0x90000,typename='System.Int32'},{name='Status',offset=8,isStatic=true,staticAddress=0x90008,typename='System.String'}}
 local methodsBefore=mono_class_enumMethods
 function mono_class_enumMethods(c)
- if c==42 then return {{name='Configure',method=601},{name='Disable',method=602},{name='Tick',method=603},{name='SetOptions',method=605},{name='NextWeapon',method=606},{name='TuneProjectile',method=608},{name='SetMovement',method=609}} end
+ if c==42 then return {{name='Configure',method=601},{name='Disable',method=602},{name='Tick',method=603},{name='SetOptions',method=605},{name='NextWeapon',method=606},{name='TuneProjectile',method=608},{name='SetMovement',method=609},{name='SetSafety',method=610},{name='SafetyState',method=611},{name='BlockDamage',method=612},{name='BlockDeath',method=613}} end
+ if c==13 then local a=methodsBefore(c);a[#a+1]={name='ApplyDamage',method=614};a[#a+1]={name='CheckDeath',method=615};return a end
  if c==43 then return {{name='LateUpdate',method=604}} end
  if c==45 then return {{name='Setup',method=607}} end
  return methodsBefore(c)
 end
 local paramsBefore=mono_method_get_parameters
 function mono_method_get_parameters(m)
+ if m==610 then return {returntype=1,parameters={{type=8},{type=8},{type=8}}} end
+ if m==611 then return {returntype=8,parameters={}} end
+ if m==612 or m==613 then return {returntype=2,parameters={{type=18}}} end
+ if m==614 then return {returntype=1,parameters={{type=18},{type=2},{type=2},{type=17}}} end
+ if m==615 then return {returntype=1,parameters={}} end
  if m==609 then return {returntype=1,parameters={{type=12},{type=12}}} end
  if m==607 then return {returntype=1,parameters={{type=18},{type=17},{type=12},{type=18},{type=18},{type=18}}} end
  if m==608 then return {returntype=1,parameters={{type=18},{type=18}}} end
@@ -947,8 +953,13 @@ function mono_method_get_parameters(m)
  return paramsBefore(m)
 end
 local invokeBefore=mono_invoke_method
-local selected,selectedStars,options,cycles,movement,movementSyncFail
+local selected,selectedStars,options,cycles,movement,movementSyncFail,safety
+local returning=0
+local compileBefore=mono_compile_method
+function mono_compile_method(m) if m>=601 and m<=615 then return 0x100000+m*0x100 end;return compileBefore(m) end
 function mono_invoke_method(d,m,obj,args)
+ if m==610 then safety={args[1].value,args[2].value,args[3].value};return nil end
+ if m==611 then return returning end
  if m==609 then
   assert(args[1].type==vtSingle and args[2].type==vtSingle,'Movement must marshal floats')
   if movementSyncFail then return nil,'simulated movement sync failure' end
@@ -965,11 +976,12 @@ local active=false
 function autoAssemble(script,self,disable)
  if script:find('alloc(vhEnemyForm,',1,true) then
   assert(script:find('alloc(vhEnemyForm,4096)',1,true) and script:find('alloc(vhEnemyProjectile,4096)',1,true),'Enemy hooks must allocate without a nearby-address hint')
-  for _,name in ipairs({'vhEnemyForm','vhEnemyProjectile'}) do
+  for _,name in ipairs({'vhEnemyForm','vhEnemyProjectile','vhEnemyDamage','vhEnemyDeath'}) do
    assert(script:find('call qword ptr ['..name..'Callback]',1,true),'Callback must support addresses beyond 2 GB')
    assert(script:find('jmp qword ptr ['..name..'Return]',1,true),'Return must support addresses beyond 2 GB')
    assert(script:find('label('..name..'Callback)',1,true) and script:find('label('..name..'Return)',1,true),'Absolute pointer labels missing')
   end
+  for _,name in ipairs({'vhEnemyDamage','vhEnemyDeath'}) do assert(script:find('jne '..name..'Skip',1,true) and script:find('ret\n'..name..'Callback:',1,true),'Safety guard must skip native damage/death') end
   assert(script:find('cmp [rax],r11',1,true),'Enemy form must validate local-player storage')
   assert(script:find('alloc(vhEnemyProjectile,',1,true),'Ranged duel setup hook missing')
   local _,enableSections=script:gsub('%[ENABLE%]','');local _,disableSections=script:gsub('%[DISABLE%]','')
@@ -986,7 +998,7 @@ assert(enemyForm.Caption=='Valheim | Enemy transformation' and #shownForms==show
 assert(not active and not selected and #choices.values()==48,'Opening popup must only show choices')
 local starChoice=comboControls[#comboControls]
 assert(#starChoice.Items==3 and starChoice.ItemIndex==0,'Form stars choices/default missing')
-local startButton,returnButton,cycleButton,monster,duel
+local startButton,returnButton,cycleButton,monster,duel,immortal,defeat,exit
 for _,b in ipairs(buttons) do
  if b.Caption=='Transform into selected form' then startButton=b end
  if b.Caption=='Return to player (F8)' then returnButton=b end
@@ -995,6 +1007,9 @@ end
 for _,c in ipairs(checkboxes) do
  if c.Caption=='Red monster allegiance' then monster=c end
  if c.Caption=='Monster duel / friendly hits' then duel=c end
+ if c.Caption=='Immortal monster' then immortal=c end
+ if c.Caption=='Return to start on monster defeat' then defeat=c end
+ if c.Caption=='F8 returns to transformation point' then exit=c end
 end
 assert(startButton and returnButton and cycleButton and monster and duel,'Enemy popup controls missing')
 choices.ItemIndex=-1;startButton.OnClick();assert(not active and not selected,'Missing choice enabled form')
@@ -1006,6 +1021,9 @@ buttons[18].OnClick()
 choices.ItemIndex=25;startButton.OnClick();local morphTimer=timers[#timers]
 assert(active and selected==25 and buttons[27].Caption=='Enemy form: ON','Enemy transform failed: '..tostring(errors[#errors]))
 assert(options[1]==0 and options[2]==0,'Default allegiance/duel options')
+assert(safety[1]==0 and safety[2]==1 and safety[3]==0,'Safe return defaults')
+assert(immortal and defeat and exit and not morphTimer.Owner,'Safety controls or unowned return timer missing')
+immortal.Checked=true;immortal.OnChange();defeat.Checked=false;defeat.OnChange();exit.Checked=true;exit.OnChange();assert(safety[1]==1 and safety[2]==0 and safety[3]==1,'Live safety options not forwarded')
 assert(movement[1]==2 and movement[2]==3,'Pre-transform modifiers were not forwarded')
 local movementShows=#shownForms
 function inputQuery() return '4' end
@@ -1038,6 +1056,7 @@ for choice=28,47 do
  end
 end
 assert(choices.values()[48]=='48  Fader','Last form label/mapping missing')
+startButton.OnClick();returning=1;returnButton.OnClick();assert(active and morphTimer.Enabled and ValheimEnemyReturnPending,'Protection removed before safe return');startButton.OnClick();assert(mem[0x90000]==0,'New form started while returning');ValheimInventoryWindow.OnClose();assert(active and morphTimer.Enabled,'Closing window removed return guard');returning=0;morphTimer.OnTimer();assert(not active and not ValheimEnemyReturnPending,'Return did not release guards')
 startButton.OnClick();mem[0x90000]=0;morphTimer.OnTimer();assert(not active and buttons[27].Caption=='Enemy form...','F8/death/fault did not retire hook')
 startButton.OnClick();mem[0x1030]=0;morphTimer.OnTimer();assert(not active and mem[0x90000]==0,'World unload did not disable form')
 mem[0x1030]=0x2000;startButton.OnClick();ValheimInventoryWindow.OnClose();assert(not active and mem[0x90000]==0,'Closing did not stop transformation')
@@ -1104,9 +1123,9 @@ assert(not active and mem[0xb0000]==0,'World unload did not disable drag build')
 mem[0x1030]=0x2000;rowButton.OnClick();ValheimInventoryWindow.OnClose()
 assert(not active and not deleteTimer.Enabled,'Close did not stop drag build')
 buttons[25].OnClick();rowButton.OnClick()
-assert(buttons[25].Caption=='Rapid miner: ON' and rowButton.Caption=='Auto rows: ON','Both tool toggles must enable together')
+assert(buttons[25].Caption=='Fast attacks: ON' and rowButton.Caption=='Auto rows: ON','Both tool toggles must enable together')
 rowButton.OnClick()
-assert(buttons[25].Caption=='Rapid miner: ON' and mem[0x70000]==1,'Disabling hoe disturbed miner')
+assert(buttons[25].Caption=='Fast attacks: ON' and mem[0x70000]==1,'Disabling hoe disturbed miner')
 rowButton.OnClick();buttons[25].OnClick()
 assert(rowButton.Caption=='Auto rows: ON' and active and mem[0xb0000]==1,'Disabling miner disturbed hoe')
 ValheimInventoryWindow.OnClose()

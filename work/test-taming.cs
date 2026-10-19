@@ -123,4 +123,6 @@ public class Plant:Component {}
 public class Pickable:Component {}
 public class MineRock:Component {}
 public class MineRock5:Component {}
-public class ItemDrop:Component {public ItemData m_itemData=new ItemData();public class ItemData {public enum ItemType {Material,Consumable,Trophy,Weapon}public class SharedData {public ItemType m_itemType;}public SharedData m_shared=new SharedData();}}
+public class ItemDrop:Component {public ItemData m_itemData=new ItemData();public class ItemData {public enum ItemType {Material,Consumable,Trophy,Weapon}public class SharedData {public ItemType m_itemType;public string m_name;}public SharedData m_shared=new SharedData();}}
+
+public class Localization {public static Localization instance=new Localization();public string Localize(string key){return key=="$item_gold"?"Bloodgold":key;}}

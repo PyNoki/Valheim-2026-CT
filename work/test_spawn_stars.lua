@@ -66,3 +66,13 @@ assert(find(spawn,'Top',170).Items[1]=='Hildir' and find(spawn,'Top',224).Items[
 catalogue='';tick(taming);tick(spawn)
 assert(#creature.Items==2 and #tameStars.Items==3,'Empty helper response must retain valid lists')
 print('PASS: Taming-first, interleaved catalogue refreshes and empty responses retain populated Spawn dropdowns.')
+catalogue='0|Wolf\n1|Haldor\n2|Gold|Bloodgold\n2|Wood\n3|Wolf'
+tick(taming);tick(spawn)
+local items=find(spawn,'Top',224)
+assert(items.Items[1]=='Bloodgold [Gold]' and items.Items[2]=='Wood','Localized and legacy item rows must display correctly')
+items.ItemIndex=0;spawnButtonAt(224).OnClick();checkCall(2,0)
+assert(calls[#calls].args[2].value=='Gold','Localized labels must send the original prefab name');ui.reset()
+catalogue='0|Wolf\n1|Haldor\n2|Wood\n2|Gold|Renamed gold\n3|Wolf'
+tick(taming);tick(spawn)
+assert(items.ItemIndex==1 and items.Items[2]=='Renamed gold [Gold]','Refresh must retain selected prefab across label and order changes')
+print('PASS: localized item labels preserve native spawn names and selection across catalogue refreshes.')

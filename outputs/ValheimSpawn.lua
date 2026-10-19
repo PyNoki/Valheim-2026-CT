@@ -1,4 +1,4 @@
-local spawnNames={{},{},{},{}}
+local spawnNames,spawnLabels={{},{},{},{}},{{},{},{},{}}
 local lastSpawnCatalogue
 local function readCatalogueString(value,label)
   if type(value)=='string' then return value end
@@ -14,19 +14,23 @@ local function readSpawnNames(h)
   -- An uninitialized helper must not erase a previously loaded catalogue.
   if text=='' then return false end
   if text==lastSpawnCatalogue then return false end
-  spawnNames={{},{},{},{}}
+  spawnNames,spawnLabels={{},{},{},{}},{{},{},{},{}}
   for row in text:gmatch('[^\r\n]+') do
-    local kind,name=row:match('^(%d+)|(.+)$');kind=tonumber(kind)
-    if kind and kind>=0 and kind<=3 then local names=spawnNames[kind+1];names[#names+1]=name end
+    local kind,name,label=row:match('^(%d+)|([^|]+)|?(.*)$');kind=tonumber(kind)
+    if kind and kind>=0 and kind<=3 then
+      local names,labels=spawnNames[kind+1],spawnLabels[kind+1]
+      names[#names+1]=name;labels[#labels+1]=(label and label~='' and label~=name) and (label..' ['..name..']') or name
+    end
   end
   lastSpawnCatalogue=text;return true
 end
 local function fillSpawnDropdown(combo,kind)
-  local previous=combo.Text;combo.Items.clear()
+  local previous=(combo.spawnNames and combo.spawnNames[combo.ItemIndex+1]) or combo.Text;combo.Items.clear()
   local names=spawnNames[kind+1]
-  for _,name in ipairs(names) do combo.Items.add(name) end
+  for i,name in ipairs(names) do combo.Items.add(spawnLabels[kind+1][i] or name) end
   combo.ItemIndex=#names>0 and 0 or -1
-  for i,name in ipairs(names) do if name==previous then combo.ItemIndex=i-1;break end end
+  for i,name in ipairs(names) do if name==previous or (spawnLabels[kind+1][i] or name)==previous then combo.ItemIndex=i-1;break end end
+  combo.spawnNames=names
 end
 local function createSpawnStars(parent,left,top,width)
   local combo=createComboBox(parent);combo.Left=left;combo.Top=top;combo.Width=width;combo.Style='csDropDownList'
@@ -54,11 +58,11 @@ spawnButton.OnClick=function() action(function()
   spawnWindow=createForm(false);spawnWindow.Caption='Valheim | Spawn';spawnWindow.Width=800;spawnWindow.Height=435;spawnWindow.Position='poScreenCenter'
   spawnWindow.Color=0x202020;spawnWindow.Font.Color=0xE6E6E6
   local guide=createLabel(spawnWindow);guide.Left=16;guide.Top=16;guide.Width=745;guide.Height=52;guide.AutoSize=false;guide.WordWrap=true
-  guide.Caption='Lists come from your loaded game. Refresh, tab back into Valheim and press Esc if needed to close the pause menu; let the game run once. Creatures and merchants spawn beside you; resources spawn at your feet.'
+  guide.Caption='Lists come from your loaded game. Refresh, tab back into Valheim and press Esc if needed to close the pause menu; let the game run once. Creatures and merchants spawn beside you; items/resources spawn at your feet. Items show in-game names with prefab names in brackets.'
   local starLabel=createLabel(spawnWindow);starLabel.Left=16;starLabel.Top=80;starLabel.Caption='Creature stars'
   local stars=createSpawnStars(spawnWindow,170,76,190)
   combos={}
-  for kind,title in ipairs({'Monsters / creatures','Merchants','Resources / plants'}) do
+  for kind,title in ipairs({'Monsters / creatures','Merchants','Items / resources'}) do
     local label=createLabel(spawnWindow);label.Left=16;label.Top=120+(kind-1)*54;label.Caption=title
     local combo=createComboBox(spawnWindow);combo.Left=170;combo.Top=116+(kind-1)*54;combo.Width=390;combo.Style='csDropDownList';combos[kind]=combo
     local button=createButton(spawnWindow);button.Left=574;button.Top=116+(kind-1)*54;button.Width=185;button.Height=30;button.Caption='Spawn selected'

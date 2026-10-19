@@ -7,13 +7,14 @@ root = Path(__file__).resolve().parent.parent
 lua = (root / 'outputs/ValheimBeta.lua').read_text(encoding='utf-8')
 assert ET.parse(root / 'Valheim 2026 CT.CT').findtext('LuaScript') == lua
 helpers = [
-    ('recoveryHelperHex', 'RecoverySpawnBetaV31', 'ValheimRecoverySpawnBetaV31.dll', 'ValheimRecoverySpawnBeta.cs'),
+    ('summonHelperHex', 'UnlimitedSummonsV1', 'ValheimUnlimitedSummonsV1.dll', 'ValheimUnlimitedSummons.cs'),
+    ('recoveryHelperHex', 'RecoverySpawnBetaV42', 'ValheimRecoverySpawnBetaV42.dll', 'ValheimRecoverySpawnBeta.cs'),
     ('helperHex', 'BowBeamV13', 'ValheimBowBeamV13.dll', 'ValheimBowBeam.cs'),
     ('deleteHelperHex', 'InventoryDeleteV1', 'ValheimInventoryDelete.dll', 'ValheimInventoryDelete.cs'),
-    ('minerHelperHex', 'RapidMinerV2', 'ValheimRapidMinerV2.dll', 'ValheimRapidMiner.cs'),
+    ('minerHelperHex', 'RapidMinerV5', 'ValheimRapidMinerV5.dll', 'ValheimRapidMiner.cs'),
     ('hoeHelperHex', 'RapidHoeV2', 'ValheimRapidHoeV2.dll', 'ValheimRapidHoe.cs'),
     ('dragHelperHex', 'DragBuildV6', 'ValheimDragBuildV6.dll', 'ValheimDragBuild.cs'),
-    ('enemyHelperHex', 'EnemyFormV11', 'ValheimEnemyFormV11.dll', 'ValheimEnemyForm.cs'),
+    ('enemyHelperHex', 'EnemyFormV12', 'ValheimEnemyFormV12.dll', 'ValheimEnemyForm.cs'),
 ]
 referenced = set(re.findall(r"mono_(?:findClass|image_findClass)\([^\n]*?'ValheimSoloToolkit','([^']+)'", lua))
 assert referenced == {item[1] for item in helpers}, referenced
@@ -37,7 +38,7 @@ for variable, classname, dllname, filename in helpers:
     assert marker in lua
     start = lua.index(marker)
     section = lua[start:lua.index('\n  return ', lua.index('matchingMethod(class,', start))]
-    if classname == 'RecoverySpawnBetaV31':
+    if classname == 'RecoverySpawnBetaV42':
         replenish = (root / 'outputs/ValheimReplenish.lua').read_text(encoding='utf-8')
         assert "pointer(h.class,'Replenish helper')" in replenish
         section += '\n' + replenish

@@ -24,13 +24,15 @@ namespace ValheimSoloToolkit {
  public sealed class ChestSortingDriverV1:MonoBehaviour {
   public Player Owner;public long World;
   Container selected,hover;
+  ChestSortJob sortJob;
   PlayerController controller;bool controllerEnabled,panel;
   bool fromInventory;
   readonly ChestSortInventoryButton native=new ChestSortInventoryButton();
   bool cursorVisible;CursorLockMode cursorLock;
   bool cursorRequested,cameraCapture;GameCamera captureCamera;
   static readonly FieldInfo MouseCapture=typeof(GameCamera).GetField("m_mouseCapture",BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic);
-  Vector2 scroll;
+  Vector2 scroll,statusScroll;
+  string lastStatusMessage;
   readonly List<ItemDrop.ItemData> samples=new List<ItemDrop.ItemData>();
   readonly List<string> destinations=new List<string>();
   readonly List<string> choices=new List<string>();
@@ -46,7 +48,8 @@ namespace ValheimSoloToolkit {
     Container open=ChestSortStorage.OpenChest(Owner);
     if(panel){
      bool menu=fromInventory?(open!=selected||Menu.IsVisible()||Console.IsVisible()||Minimap.IsOpen()||(Chat.instance&&Chat.instance.HasFocus())):GameMenu();
-     if(captureCamera!=GameCamera.instance||!selected||!ChestSortStorage.Accessible(selected,Owner)||menu||Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F9)){Close();return;}
+     if(captureCamera!=GameCamera.instance||(!selected||!ChestSortStorage.Accessible(selected,Owner))||menu||Input.GetKeyDown(KeyCode.Escape)||Input.GetKeyDown(KeyCode.F9)){Close();return;}
+     if(sortJob!=null){sortJob.Tick();message=sortJob.Status;ChestSortingV1.Status=message;if(sortJob.Done)sortJob=null;}
      Owner.SetMoveDir(Vector3.zero);Owner.SetRun(false);return;
     }
     if(open&&ChestSortStorage.IsChest(open)){
@@ -75,7 +78,12 @@ namespace ValheimSoloToolkit {
   void LateUpdate(){if(panel)ReleaseMouse();}
   void Open(Container chest,bool inventory=false){
    if(ChestSortInventoryButton.Dragging())throw new InvalidOperationException("Finish moving the dragged item first.");
-   ChestSortStorage.Ready(chest,Owner);selected=chest;selectedItems.Clear();choices.Clear();samples.Clear();scroll=Vector2.zero;
+   ChestSortStorage.Ready(chest,Owner);selected=chest;RefreshChest();
+   ShowPanel(inventory);
+   message="Click Reassign all items + save to replace old filters with this chest's current contents.";
+  }
+  void RefreshChest(){
+   var chest=selected;selectedItems.Clear();choices.Clear();samples.Clear();scroll=Vector2.zero;
    destinations.Clear();
    if(ChestSortStorage.Role(chest)=="source"){
     foreach(var target in UnityEngine.Object.FindObjectsByType<Container>(FindObjectsSortMode.None))
@@ -91,6 +99,8 @@ namespace ValheimSoloToolkit {
     selectedItems.Add(key);if(!choices.Contains(key))choices.Add(key);
    }
    choices.Sort(delegate(string a,string b){return StringComparer.CurrentCultureIgnoreCase.Compare(DisplayItem(a),DisplayItem(b));});
+  }
+  void ShowPanel(bool inventory){
    controller=Owner.GetComponent<PlayerController>();if(!controller)throw new InvalidOperationException("Player controls unavailable.");
    if(MouseCapture==null||MouseCapture.FieldType!=typeof(bool)||!GameCamera.instance)throw new InvalidOperationException("Game mouse capture is unavailable. Close the panel and try again.");
    captureCamera=GameCamera.instance;cameraCapture=(bool)MouseCapture.GetValue(captureCamera);
@@ -99,11 +109,11 @@ namespace ValheimSoloToolkit {
    Owner.SetMoveDir(Vector3.zero);Owner.SetRun(false);controller.enabled=false;panel=true;fromInventory=inventory;
    if(fromInventory)native.BlockInventory();
    ReleaseMouse();
-   window=new Rect(Math.Max(10,(Screen.width-520)/2),Math.Max(10,(Screen.height-540)/2),520,540);
-   message="Sorting stays enabled. Close this panel to continue with the next chest.";
+   window=new Rect(Math.Max(10,(Screen.width-520)/2),Math.Max(10,(Screen.height-586)/2),520,586);
   }
   static string Name(ItemDrop.ItemData item){return Localization.instance.Localize(item.m_shared.m_name);}
   void Close(){
+   if(sortJob!=null){sortJob.Cancel();sortJob=null;}
    if(!panel)return;panel=false;
    native.UnblockInventory();fromInventory=false;
    if(controller&&Owner&&Owner==Player.m_localPlayer&&Owner.enabled)controller.enabled=controllerEnabled;
@@ -113,48 +123,104 @@ namespace ValheimSoloToolkit {
    ZCursor.LockState=cursorLock;Cursor.visible=cursorVisible;selected=null;samples.Clear();
   }
   void OnDisable(){Close();native.Dispose();}
-  void OnDestroy(){Close();native.Dispose();ChestSortingV1.Retired(this);}
+  void OnDestroy(){Close();native.Dispose();foreach(var texture in themeTextures)if(texture)Destroy(texture);themeTextures.Clear();ChestSortingV1.Retired(this);}
   void Act(Action action){try{action();ChestSortingV1.Status=message;}catch(Exception e){message=e.GetBaseException().Message;ChestSortingV1.Status=message;}}
+  const float PanelWidth=660f,PanelHeight=704f;
+  readonly List<Texture2D> themeTextures=new List<Texture2D>();
+  GUIStyle panelStyle,titleStyle,bodyStyle,mutedStyle,sectionStyle,rowStyle,buttonStyle,primaryStyle,statusStyle,badgeStyle;
+  Texture2D cardTexture,borderTexture,shadeTexture;
+  Texture2D Solid(Color color){var texture=new Texture2D(1,1);texture.hideFlags=HideFlags.HideAndDontSave;texture.SetPixel(0,0,color);texture.Apply();themeTextures.Add(texture);return texture;}
+  GUIStyle Text(int size,Color color,bool bold=false){
+   var style=new GUIStyle(GUI.skin.label);style.fontSize=size;style.fontStyle=bold?FontStyle.Bold:FontStyle.Normal;
+   style.wordWrap=true;style.richText=false;style.alignment=TextAnchor.UpperLeft;style.padding=new RectOffset(0,0,0,0);style.normal.textColor=color;return style;
+  }
+  GUIStyle ButtonStyle(Texture2D normal,Texture2D hover,Texture2D active,Color ink){
+   var style=new GUIStyle(GUI.skin.button);style.fontSize=18;style.fontStyle=FontStyle.Bold;style.wordWrap=true;style.richText=false;
+   style.alignment=TextAnchor.MiddleCenter;style.padding=new RectOffset(14,14,8,8);style.border=new RectOffset(0,0,0,0);style.fixedWidth=0;style.fixedHeight=0;
+   foreach(var state in new[]{style.normal,style.onNormal}){state.background=normal;state.textColor=ink;}
+   foreach(var state in new[]{style.hover,style.onHover,style.focused,style.onFocused}){state.background=hover;state.textColor=ink;}
+   foreach(var state in new[]{style.active,style.onActive}){state.background=active;state.textColor=ink;}
+   return style;
+  }
+  void EnsureTheme(){
+   if(panelStyle!=null)return;
+   var white=new Color(0.95f,0.96f,0.98f,1f);var muted=new Color(0.72f,0.78f,0.86f,1f);var gold=new Color(0.91f,0.73f,0.43f,1f);
+   panelStyle=new GUIStyle();var panelTexture=Solid(new Color(0.065f,0.085f,0.12f,1f));
+   foreach(var state in new[]{panelStyle.normal,panelStyle.onNormal,panelStyle.hover,panelStyle.onHover,panelStyle.active,panelStyle.onActive,panelStyle.focused,panelStyle.onFocused})state.background=panelTexture;
+   cardTexture=Solid(new Color(0.105f,0.14f,0.19f,1f));borderTexture=Solid(new Color(0.23f,0.29f,0.37f,1f));shadeTexture=Solid(new Color(0,0,0,0.6f));
+   titleStyle=Text(28,white,true);bodyStyle=Text(18,white);mutedStyle=Text(16,muted);sectionStyle=Text(14,gold,true);rowStyle=Text(18,white);statusStyle=Text(17,white);badgeStyle=Text(13,gold,true);
+   buttonStyle=ButtonStyle(Solid(new Color(0.19f,0.25f,0.33f,1f)),Solid(new Color(0.26f,0.34f,0.44f,1f)),Solid(new Color(0.13f,0.18f,0.25f,1f)),white);
+   primaryStyle=ButtonStyle(Solid(new Color(0.86f,0.66f,0.34f,1f)),Solid(new Color(0.96f,0.77f,0.45f,1f)),Solid(new Color(0.72f,0.52f,0.25f,1f)),new Color(0.075f,0.09f,0.12f,1f));
+  }
   void OnGUI(){
    if(!Session()||!Application.isFocused)return;
-   if(panel){ReleaseMouse();window=GUI.Window(GetInstanceID(),window,Draw,"Chest sorting");GUI.BringWindowToFront(GetInstanceID());}
+   if(panel){
+    ReleaseMouse();EnsureTheme();
+    Color color=GUI.color,background=GUI.backgroundColor,content=GUI.contentColor;var matrix=GUI.matrix;int depth=GUI.depth;
+    try{
+     // In-game IMGUI colors/skin can be translucent. Use explicit opaque panel
+     // textures and neutral tint, then restore all shared GUI state afterward.
+     GUI.color=Color.white;GUI.backgroundColor=Color.white;GUI.contentColor=Color.white;GUI.depth=-100;
+     GUI.matrix=Matrix4x4.identity;GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),shadeTexture);
+     float scale=Math.Max(0.1f,Math.Min(1.15f,Math.Min((Screen.width-32f)/PanelWidth,(Screen.height-32f)/PanelHeight)));
+     GUI.matrix=Matrix4x4.TRS(Vector3.zero,Quaternion.identity,new Vector3(scale,scale,1));
+     window=new Rect((Screen.width/scale-PanelWidth)/2f,(Screen.height/scale-PanelHeight)/2f,PanelWidth,PanelHeight);
+     window=GUI.Window(GetInstanceID(),window,Draw,"",panelStyle);GUI.BringWindowToFront(GetInstanceID());
+    }finally{GUI.color=color;GUI.backgroundColor=background;GUI.contentColor=content;GUI.matrix=matrix;GUI.depth=depth;}
+   }
    else if(hover&&!GameMenu()){
     string hint=ChestSortStorage.Role(hover)=="source"?"[F9] Open sorting chest":"[F9] Chest sorting setup";
     GUI.Box(new Rect(Screen.width/2-180,Screen.height/2+80,360,36),hint);
    }
   }
+  void Card(Rect rect){GUI.DrawTexture(rect,cardTexture);}
+  void Heading(string title,string subtitle){
+   GUI.Label(new Rect(24,22,540,38),title,titleStyle);
+   GUI.Label(new Rect(24,64,612,24),subtitle,mutedStyle);
+   GUI.DrawTexture(new Rect(24,96,612,1),borderTexture);
+  }
+  void StatusAndBack(){
+   Card(new Rect(24,528,612,96));GUI.Label(new Rect(40,540,580,20),"STATUS",sectionStyle);
+   if(message!=lastStatusMessage){statusScroll=Vector2.zero;lastStatusMessage=message;}
+   float textHeight=Math.Max(52f,statusStyle.CalcHeight(new GUIContent(message),556));
+   statusScroll=GUI.BeginScrollView(new Rect(40,565,580,52),statusScroll,new Rect(0,0,556,textHeight));
+   GUI.Label(new Rect(0,0,556,textHeight),message,statusStyle);GUI.EndScrollView();
+   if(GUI.Button(new Rect(24,644,612,40),fromInventory?"Back to chest":"Close (F9 / Esc)",buttonStyle))Close();
+  }
   void Draw(int id){
-   GUI.Label(new Rect(20,30,480,30),"Shared route: all sorting chests use the same storage");
    bool source=ChestSortStorage.Role(selected)=="source";
-   if(source){
-    GUI.Label(new Rect(20,68,480,30),"SORTING CHEST - shared destination route");
-    GUI.Label(new Rect(20,102,480,48),"All sorting chests feed the same loaded destinations.\nNo distance cap; full chests overflow to the next match.");
-    if(GUI.Button(new Rect(20,162,480,48),"SORT ITEMS"))Act(delegate{message=ChestSortStorage.Sort(selected,Owner,UnityEngine.Object.FindObjectsByType<Container>(FindObjectsSortMode.None));});
-    GUI.Label(new Rect(20,226,480,28),"Loaded item destinations: "+destinations.Count);
-    scroll=GUI.BeginScrollView(new Rect(20,258,480,92),scroll,new Rect(0,0,450,Math.Max(92,destinations.Count*26)));
-    for(int i=0;i<destinations.Count;i++)GUI.Label(new Rect(0,i*26,445,26),destinations[i]);
-    GUI.EndScrollView();
-    GUI.Label(new Rect(20,360,480,42),"To add a chest: open it with E, click Chest sorting,\nthen tick its items and save your selection.");
-   }else{
-    int assigned=ChestSortStorage.Items(selected).Length;
-    GUI.Label(new Rect(20,68,480,30),assigned==0?"This chest has no items assigned.":"Shared destination: receives "+assigned+" item types.");
-    GUI.Label(new Rect(20,106,480,30),"Tick the items this chest should receive ("+selectedItems.Count+" selected):");
-    scroll=GUI.BeginScrollView(new Rect(20,140,480,165),scroll,new Rect(0,0,450,Math.Max(165,choices.Count*36)));
-    for(int i=0;i<choices.Count;i++){
-     string key=choices[i];
-     if(GUI.Button(new Rect(0,i*36,445,32),(selectedItems.Contains(key)?"[x] ":"[ ] ")+DisplayItem(key))){if(!selectedItems.Add(key))selectedItems.Remove(key);}
-    }
-    GUI.EndScrollView();
-    if(choices.Count==0)GUI.Label(new Rect(26,150,445,70),"Put sample items in the chest, then click\nChest sorting again.");
-    bool enabled=GUI.enabled;GUI.enabled=enabled&&selectedItems.Count>0;
-    if(GUI.Button(new Rect(20,316,310,38),"Save selected items"))Act(delegate{ChestSortStorage.AssignItems(selected,Owner,selectedItems);message="Saved! This chest receives "+selectedItems.Count+" item types. Continue with the next chest; sorting stays ON.";});
-    GUI.enabled=enabled;
-    if(GUI.Button(new Rect(340,316,160,38),"Select all"))foreach(var key in choices)selectedItems.Add(key);
-    if(GUI.Button(new Rect(20,365,480,36),"Make this a sorting chest"))Act(delegate{ChestSortStorage.MakeSource(selected,Owner);message="Sorting chest ready. All sorting chests share the same destinations.";});
+   Heading("Chest sorting",source?"Sort mixed items into your shared storage route.":"Choose what this chest receives from sorting chests.");
+   Card(new Rect(24,112,612,52));
+   int assigned=ChestSortStorage.Items(selected).Length;
+   GUI.Label(new Rect(40,127,580,28),source?"Sorting chest  /  shared route":assigned==0?"Destination chest  /  no saved item types":"Destination chest  /  "+assigned+" saved item types",bodyStyle);
+   GUI.Label(new Rect(24,182,612,22),source?"LOADED DESTINATIONS  /  "+destinations.Count:"ITEM FILTERS & CURRENT CONTENTS",sectionStyle);
+   Card(new Rect(24,214,612,174));
+   float height=0;var rows=source?destinations:choices;
+   foreach(var key in rows)height+=Math.Max(40f,rowStyle.CalcHeight(new GUIContent(source?key:DisplayItem(key)),source?560:456)+12f);
+   scroll=GUI.BeginScrollView(new Rect(32,222,596,158),scroll,new Rect(0,0,570,Math.Max(158,height)));
+   float y=0;
+   foreach(var key in rows){
+    string text=source?key:DisplayItem(key);float h=Math.Max(40f,rowStyle.CalcHeight(new GUIContent(text),source?560:456)+12f);
+    if(!source)GUI.Label(new Rect(8,y+8,92,h-8),selectedItems.Contains(key)?"SAVED":"IN CHEST",badgeStyle);
+    GUI.Label(new Rect(source?8:108,y+6,source?552:454,h-6),text,rowStyle);y+=h;
    }
-   if(ChestSortStorage.Role(selected)!=""&&GUI.Button(new Rect(20,410,225,32),"Remove chest assignment"))Act(delegate{ChestSortStorage.Clear(selected,Owner);message="Assignment removed. Items are unchanged.";});
-   if(GUI.Button(new Rect(260,410,240,32),fromInventory?"Back to chest":"Close (F9 / Esc)"))Close();
-   GUI.Label(new Rect(20,457,480,65),message);
+   if(rows.Count==0)GUI.Label(new Rect(8,12,550,96),source?"No loaded destinations yet. Set up another chest to receive its current item types.":"No item types yet. Put sample items in the chest, then use the button below.",mutedStyle);
+   GUI.EndScrollView();
+   bool enabled=GUI.enabled;GUI.enabled=enabled&&sortJob==null;
+   if(source){
+    if(GUI.Button(new Rect(24,404,612,48),sortJob==null?"SORT ITEMS":"REQUESTING CHEST ACCESS...",primaryStyle))Act(delegate{sortJob=new ChestSortJob(selected,Owner,UnityEngine.Object.FindObjectsByType<Container>(FindObjectsSortMode.None));message=sortJob.Status;if(sortJob.Done)sortJob=null;});
+   }else{
+    if(GUI.Button(new Rect(24,404,612,48),"Reassign all items + save",primaryStyle))Act(delegate{
+     int count=ChestSortStorage.ReassignContents(selected,Owner);RefreshChest();
+     message=count>0?"Saved! Replaced old filters with "+count+" item types currently in this chest.":"Saved! No assignable items in this chest; old item filters removed.";
+    });
+   }
+   if(GUI.Button(new Rect(24,468,612,42),source?"Remove sorting role":"Make this a sorting chest",buttonStyle))Act(delegate{
+    if(source){ChestSortStorage.Clear(selected,Owner);message="Sorting role removed. Items are unchanged.";}
+    else {ChestSortStorage.MakeSource(selected,Owner);message="Sorting chest ready. All sorting chests share the same destinations.";}
+    RefreshChest();
+   });
+   GUI.enabled=enabled;StatusAndBack();
   }
   string DisplayItem(string key){foreach(var item in samples)if(ChestSortStorage.ItemKey(item)==key)return Name(item);var prefab=ZNetScene.instance.GetPrefab(key);var drop=prefab?prefab.GetComponent<ItemDrop>():null;return drop?Name(drop.m_itemData):key;}
  }

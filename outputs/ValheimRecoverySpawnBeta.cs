@@ -6,12 +6,13 @@ using UnityEngine;
 namespace ValheimSoloToolkit
 {
     // CE queues requests; all Unity and world operations run in Player.UpdateTeleport.
-    public static class RecoverySpawnBetaV31
+    public static class RecoverySpawnBetaV42
     {
         static readonly object Gate = new object();
         static Player owner;
         static long world, character;
         static int action, state, index;
+        static int boatNoDamage=1;
         static string status = "Idle", prefab;
         static string summonTarget;
         static string animalTarget;
@@ -24,8 +25,15 @@ namespace ValheimSoloToolkit
         public static int GetState() { lock (Gate) return state; }
         public static string GetStatus() { lock (Gate) return status; }
         public static void Cancel() { lock (Gate) { state = 0; owner = null; qualityItem=null; stones.Clear(); } }
-        public static void StopBoat() { BoatFunV4.Stop(); }
-        public static string BoatStatus() { return BoatFunV4.Status; }
+        public static void StopBoat() { BoatFunV5.Stop(); }
+        public static void SetBoatOptions(int noDamage){BoatFunV5.SetOptions(noDamage);}
+        public static bool BoatProtected(WearNTear wear){return BoatFunV5.Protects(wear);}
+        public static void QueueBoat(Player player,int noDamage,string worldHex){lock(Gate){
+            if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");
+            if(noDamage!=0&&noDamage!=1)throw new ArgumentException("Invalid boat option.");
+            Queue(player,6,worldHex);boatNoDamage=noDamage;
+        }}
+        public static string BoatStatus() { return BoatFunV5.Status; }
         public static string TamingCatalogue(){return TamingV1.Catalogue();}
         public static string TamingStatus(){return TamingV1.Status();}
         public static void StopTaming(){TamingV1.Stop();}
@@ -60,7 +68,7 @@ namespace ValheimSoloToolkit
                 byte[] bytes = new byte[8];
                 for (int i = 0; i < 8; ++i) bytes[i] = Convert.ToByte(worldHex.Substring(i * 2, 2), 16);
                 world = BitConverter.ToInt64(bytes, 0);
-                owner = player; action = mode; character = 0; index = 0; prefab = null; stones.Clear();
+                owner = player; action = mode;if(mode==6)boatNoDamage=1; character = 0; index = 0; prefab = null; stones.Clear();
                 status = "Queued: return to Valheim and unpause."; state = 1;
             }
         }
@@ -131,7 +139,7 @@ namespace ValheimSoloToolkit
                     }
                     if (p.IsTeleporting()) throw new InvalidOperationException("Finish the current teleport first.");
                     if (action == 5) { Summon(p); return; }
-                    if (action == 6) { BoatFunV4.Toggle(p); Finish(BoatFunV4.Status, true); return; }
+                    if (action == 6) { BoatFunV5.SetOptions(boatNoDamage);BoatFunV5.Toggle(p); Finish(BoatFunV5.Status, true); return; }
                     if(action==27){TamingV1.Refresh(p);Finish("Taming scan started. Results appear in the Taming window.",true);return;}
                     if(action==28){Finish(TamingV1.Bring(p,animalTarget,Landing(p)),true);return;}
                     if(action==29){Finish(TamingV1.TameAimed(p),true);return;}

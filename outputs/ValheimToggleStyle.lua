@@ -45,7 +45,7 @@ styleToggle=function(b,toggle)
   update(entry)
 end
 for _,b in ipairs({staminaButton,craftingButton,flightButton,beamButton,carryButton,
-  deleteButton,enemyButton,keepFlagsButton,rapidButton,freezeReplenishButton,freeze,speedButton,jumpButton,boatButton,sortingButton}) do styleToggle(b,true) end
+  deleteButton,enemyButton,keepFlagsButton,rapidButton,freezeReplenishButton,freeze,speedButton,jumpButton,boatButton,sortingButton,minerButton}) do styleToggle(b,true) end
 for _,b in ipairs({edit,cloneButton,maxItemQualityButton,refresh,maxStacksButton,dragButton,spawnButton,tamingButton,trophyButton,maxSkills,customSkills,
   resetMovementButton,teleportButton}) do styleToggle(b,false) end
 local function updateAll(redraw) for _,entry in ipairs(entries) do update(entry,redraw) end end

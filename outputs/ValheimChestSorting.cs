@@ -12,8 +12,8 @@ namespace ValheimSoloToolkit {
   static readonly MethodInfo Load=typeof(Container).GetMethod("Load",Flags);
   static readonly FieldInfo CurrentContainer=typeof(InventoryGui).GetField("m_currentContainer",Flags);
   public static Container OpenChest(Player player){return player&&player==Player.m_localPlayer&&InventoryGui.instance&&InventoryGui.IsVisible()&&CurrentContainer!=null?CurrentContainer.GetValue(InventoryGui.instance) as Container:null;}
-  public static bool IsChest(Container chest){return chest&&chest.name.StartsWith("piece_chest",StringComparison.OrdinalIgnoreCase)&&chest.GetComponent<Piece>()&&View(chest)&&View(chest).IsValid();}
-  static ZNetView View(Container chest){return chest?chest.GetComponent<ZNetView>():null;}
+  public static bool IsChest(Container chest){return chest&&(chest.name.StartsWith("piece_chest",StringComparison.OrdinalIgnoreCase)||chest.name.StartsWith("piece_wardrobe",StringComparison.OrdinalIgnoreCase))&&chest.GetComponent<Piece>()&&View(chest)&&View(chest).IsValid();}
+  internal static ZNetView View(Container chest){return chest?chest.GetComponent<ZNetView>():null;}
   static string Read(Container chest,string key){return IsChest(chest)?View(chest).GetZDO().GetString(key,""):"";}
   public static string Role(Container chest){return Read(chest,RoleKey);}
   public static string Item(Container chest){return Read(chest,ItemTagKey);}
@@ -27,11 +27,12 @@ namespace ValheimSoloToolkit {
    return IsChest(chest)&&player
     &&Access!=null&&(bool)Access.Invoke(chest,new object[]{player.GetPlayerID()})&&PrivateArea.CheckAccess(chest.transform.position,0,false,false);
   }
+  public static bool Busy(Container chest,Player player){return OpenChest(player)!=chest&&(chest.IsInUse()||View(chest).GetZDO().GetInt(ZDOVars.s_inUse,0)!=0);}
   public static void Ready(Container chest,Player player){
    if(!Accessible(chest,player))throw new InvalidOperationException("Chest is unavailable or protected.");
    bool localOpen=OpenChest(player)==chest;
-   if(chest.IsInUse()&&!localOpen)throw new InvalidOperationException("Someone is using this chest. Try another chest.");
-   // Never seize a chest from a remote owner or write a stale client inventory.
+   if(Busy(chest,player))throw new InvalidOperationException("Someone is using this chest. Try another chest.");
+   // Remote destinations use the native request/grant handshake before reaching here.
    if(!View(chest).IsOwner())throw new InvalidOperationException("Open and close this chest with E first, then try F9 again.");
    if(Load==null)throw new MissingMethodException("Container.Load is unavailable.");
    if(!localOpen)Load.Invoke(chest,null);
@@ -64,6 +65,25 @@ namespace ValheimSoloToolkit {
    var names=new List<string>(selected);names.Sort(StringComparer.Ordinal);
    var zdo=View(chest).GetZDO();zdo.Set(ItemTagKey,string.Join("\n",names.ToArray()));zdo.Set(NetworkKey,SharedRoute);zdo.Set(RoleKey,"destination");
   }
+  public static int ReassignContents(Container chest,Player player){
+   Ready(chest,player);
+   if(Role(chest)=="source")throw new InvalidOperationException("Remove the sorting role before making this a destination chest.");
+   var selected=new HashSet<string>(StringComparer.Ordinal);
+   foreach(var entry in chest.GetInventory().GetAllItems()){
+    if(entry==null||entry.m_shared.m_questItem||entry.m_equipped)continue;
+    string key=ItemKey(entry);
+    if(string.IsNullOrEmpty(key))continue;
+    if(key.IndexOfAny(new[]{'\n','\r'})>=0)throw new InvalidOperationException("Invalid item type. Existing assignments are unchanged.");
+    selected.Add(key);
+   }
+   // Build the complete replacement before touching saved metadata. Never merge
+   // old filters or clear them before validating the new contents.
+   var names=new List<string>(selected);names.Sort(StringComparer.Ordinal);
+   var zdo=View(chest).GetZDO();
+   zdo.Set(ItemTagKey,string.Join("\n",names.ToArray()));
+   zdo.Set(NetworkKey,names.Count>0?SharedRoute:"");zdo.Set(RoleKey,names.Count>0?"destination":"");
+   return names.Count;
+  }
   public static void Clear(Container chest,Player player){
    Ready(chest,player);var zdo=View(chest).GetZDO();zdo.Set(RoleKey,"");zdo.Set(ItemTagKey,"");zdo.Set(NetworkKey,"");
   }
@@ -72,10 +92,14 @@ namespace ValheimSoloToolkit {
   public static bool Linked(Container chest,Container source){return chest!=source&&IsChest(source)&&Role(source)=="source"&&Role(chest)=="destination";}
   public static string Sort(Container source,Player player,IEnumerable<Container> loaded){
    Ready(source,player);if(Role(source)!="source")throw new InvalidOperationException("Mark a sorting chest first.");
-   var targets=new List<Container>();var seen=new HashSet<string>();int skipped=0;
+   var needed=new HashSet<string>(StringComparer.Ordinal);foreach(var item in source.GetInventory().GetAllItems())if(!item.m_shared.m_questItem&&!item.m_equipped)needed.Add(ItemKey(item));
+   var targets=new List<Container>();var seen=new HashSet<string>();int busy=0,protectedCount=0,remote=0;
    foreach(var chest in loaded){
     if(!Linked(chest,source)||!seen.Add(Identity(chest)))continue;
-    if(!Accessible(chest,player)||chest.IsInUse()||!View(chest).IsOwner()){skipped++;continue;}
+    bool matching=false;foreach(var key in Items(chest))if(needed.Contains(key)){matching=true;break;}if(!matching)continue;
+    if(!Accessible(chest,player)){protectedCount++;continue;}
+    if(Busy(chest,player)){busy++;continue;}
+    if(!View(chest).IsOwner()){remote++;continue;}
     targets.Add(chest);
    }
    targets.Sort(delegate(Container a,Container b){int distance=Vector3.Distance(a.transform.position,source.transform.position).CompareTo(Vector3.Distance(b.transform.position,source.transform.position));return distance!=0?distance:StringComparer.Ordinal.Compare(Identity(a),Identity(b));});
@@ -96,7 +120,7 @@ namespace ValheimSoloToolkit {
     }
    }
    int remaining=0;foreach(var item in inventory.GetAllItems())remaining+=item.m_stack;
-   return "Moved "+moved+" items. "+remaining+" remain (unmatched, unavailable or no room). Loaded chests only."+(skipped>0?" Skipped "+skipped+" busy, protected or remotely owned chests.":"");
+   return "Moved "+moved+" items. "+remaining+" remain (unmatched, unavailable or no room). Loaded chests only."+((busy+protectedCount+remote)>0?" Skipped: "+busy+" busy, "+protectedCount+" protected, "+remote+" awaiting network access.":"");
   }
  }
 }

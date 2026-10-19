@@ -34,7 +34,7 @@ sortingButton.OnClick=function()
   end)
   if not ok then status.Caption=tostring(err) end
 end
-hint(sortingButton,'Enable once. All sorting chests share the same destinations. Open a chest with E, click Chest sorting, tick its items and Save selected items. Multiple matching chests provide overflow. F9 is also available.')
+hint(sortingButton,'Enable once. All sorting chests share the same destinations. Open a chest with E, click Chest sorting, click Reassign all items + save to replace old filters with its current contents. Multiple matching chests provide overflow. F9 opens sorting setup when aiming at a nearby chest.')
 local close,destroy=form.OnClose,form.OnDestroy
 form.OnClose=function() local ok,err=pcall(stopSorting);if not ok then status.Caption=tostring(err) end;return close() end
 form.OnDestroy=function() pcall(stopSorting);destroy() end
