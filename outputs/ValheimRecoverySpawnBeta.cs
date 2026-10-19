@@ -6,16 +6,17 @@ using UnityEngine;
 namespace ValheimSoloToolkit
 {
     // CE queues requests; all Unity and world operations run in Player.UpdateTeleport.
-    public static class RecoverySpawnBetaV23
+    public static class RecoverySpawnBetaV42
     {
         static readonly object Gate = new object();
         static Player owner;
         static long world, character;
         static int action, state, index;
+        static int boatNoDamage=1;
         static string status = "Idle", prefab;
         static string summonTarget;
         static string animalTarget;
-        static string spawnTarget;static int spawnKind;static int lootRadius;
+        static string spawnTarget;static int spawnKind;static int spawnStars;static int lootRadius;
         static ItemDrop.ItemData qualityItem;static int chosenQuality;
         static readonly FieldInfo UserKey = typeof(ZDOID).GetField("<UserKey>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
         static readonly List<ZDO> stones = new List<ZDO>();
@@ -24,11 +25,21 @@ namespace ValheimSoloToolkit
         public static int GetState() { lock (Gate) return state; }
         public static string GetStatus() { lock (Gate) return status; }
         public static void Cancel() { lock (Gate) { state = 0; owner = null; qualityItem=null; stones.Clear(); } }
-        public static void StopBoat() { BoatFunV4.Stop(); }
-        public static string BoatStatus() { return BoatFunV4.Status; }
+        public static void StopBoat() { BoatFunV5.Stop(); }
+        public static void SetBoatOptions(int noDamage){BoatFunV5.SetOptions(noDamage);}
+        public static bool BoatProtected(WearNTear wear){return BoatFunV5.Protects(wear);}
+        public static void QueueBoat(Player player,int noDamage,string worldHex){lock(Gate){
+            if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");
+            if(noDamage!=0&&noDamage!=1)throw new ArgumentException("Invalid boat option.");
+            Queue(player,6,worldHex);boatNoDamage=noDamage;
+        }}
+        public static string BoatStatus() { return BoatFunV5.Status; }
         public static string TamingCatalogue(){return TamingV1.Catalogue();}
         public static string TamingStatus(){return TamingV1.Status();}
         public static void StopTaming(){TamingV1.Stop();}
+        public static int SortingState(){return ChestSortingV1.Enabled;}
+        public static string SortingStatus(){return ChestSortingV1.Status;}
+        public static void StopSorting(){ChestSortingV1.Stop();}
         public static int ClearState(){return ClearViewV1.Enabled;}
         public static void StopClear(){ClearViewV1.Stop();}
         public static string HarvestStatus(){return HarvestLootV1.HarvestStatus;}
@@ -43,7 +54,7 @@ namespace ValheimSoloToolkit
         public static void StopPlant(){AutoPlanterV1.Stop();}
         public static void QueuePlant(Player player,string name,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");Queue(player,35,worldHex);spawnTarget=name;}}
         public static string SpawnCatalogue(){return SpawnCatalogueV1.Catalogue();}
-        public static void QueuePrefab(Player player,string name,int kind,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");if(kind<0||kind>3)throw new ArgumentException("Invalid spawn category.");Queue(player,33,worldHex);spawnTarget=name;spawnKind=kind;}}
+        public static void QueuePrefab(Player player,string name,int kind,int stars,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");if(kind<0||kind>3)throw new ArgumentException("Invalid spawn category.");if(stars<0||stars>2||((kind!=0&&kind!=3)&&stars!=0))throw new ArgumentException("Choose 0, 1 or 2 stars for creatures only.");Queue(player,33,worldHex);spawnTarget=name;spawnKind=kind;spawnStars=stars;}}
         public static void QueueItemQuality(Player player,ItemDrop.ItemData item,int quality,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");if(quality<1||quality>1000)throw new ArgumentException("Choose quality 1-1000.");Queue(player,34,worldHex);qualityItem=item;chosenQuality=quality;}}
         public static void QueueAnimal(Player player,string target,string worldHex){lock(Gate){if(state==1||state==2)throw new InvalidOperationException("Another action is pending.");Queue(player,28,worldHex);animalTarget=target;}}
         public static Inventory PrepareTransfer(Inventory target, Inventory source, ItemDrop.ItemData item) { return ReplenishV1.Prepare(target, source, item); }
@@ -53,11 +64,11 @@ namespace ValheimSoloToolkit
         {
             lock (Gate)
             {
-                if (mode < 1 || mode > 39 || mode == 5 || worldHex == null || worldHex.Length != 16) throw new ArgumentException("Invalid toolkit request");
+                if (mode < 1 || mode > 40 || mode == 5 || worldHex == null || worldHex.Length != 16) throw new ArgumentException("Invalid toolkit request");
                 byte[] bytes = new byte[8];
                 for (int i = 0; i < 8; ++i) bytes[i] = Convert.ToByte(worldHex.Substring(i * 2, 2), 16);
                 world = BitConverter.ToInt64(bytes, 0);
-                owner = player; action = mode; character = 0; index = 0; prefab = null; stones.Clear();
+                owner = player; action = mode;if(mode==6)boatNoDamage=1; character = 0; index = 0; prefab = null; stones.Clear();
                 status = "Queued: return to Valheim and unpause."; state = 1;
             }
         }
@@ -128,14 +139,15 @@ namespace ValheimSoloToolkit
                     }
                     if (p.IsTeleporting()) throw new InvalidOperationException("Finish the current teleport first.");
                     if (action == 5) { Summon(p); return; }
-                    if (action == 6) { BoatFunV4.Toggle(p); Finish(BoatFunV4.Status, true); return; }
+                    if (action == 6) { BoatFunV5.SetOptions(boatNoDamage);BoatFunV5.Toggle(p); Finish(BoatFunV5.Status, true); return; }
                     if(action==27){TamingV1.Refresh(p);Finish("Taming scan started. Results appear in the Taming window.",true);return;}
                     if(action==28){Finish(TamingV1.Bring(p,animalTarget,Landing(p)),true);return;}
                     if(action==29){Finish(TamingV1.TameAimed(p),true);return;}
                     if(action==30){TamingV1.Stop();Finish("Taming map markers hidden.",true);return;}
                     if(action==31){Finish(TamingV1.EnableHotkey(p),true);return;}
                     if(action==32){Finish(SpawnCatalogueV1.Refresh(),true);return;}
-                    if(action==33){Finish(SpawnCatalogueV1.Spawn(p,spawnTarget,spawnKind,spawnKind==2?p.transform.position:Landing(p)),true);return;}
+                    if(action==33){Finish(SpawnCatalogueV1.Spawn(p,spawnTarget,spawnKind,spawnKind==2?p.transform.position:Landing(p),spawnStars),true);return;}
+                    if(action==40){Finish(ChestSortingV1.Start(p),true);return;}
                     if(action==39){Finish(ClearViewV1.Toggle(p),true);return;}
                     if(action>=36&&action<=38){Finish(HarvestLootV1.Configure(p,action,lootRadius),true);return;}
                     if(action==35){Finish(AutoPlanterV1.Start(p,spawnTarget),true);return;}

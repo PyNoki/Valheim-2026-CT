@@ -18,3 +18,10 @@ assert(received=='call vhFixedHP1Original\ncall qword ptr [callback]\njne localL
 local before=calls;assert(not pcall(assemble,'alloc(test,4096,unsupported+10)') and calls==before,'Unsupported nearby syntax must fail before CE')
 assemble(original);local once=received;assemble(once);assert(received==once,'Transform must be stable for uninstall')
 print('PASS: all-distance calls/jumps, consecutive transfers, no near requests, fail-closed allocation syntax and disable-token forwarding')
+
+local checked,checkEnable,checkTarget
+function env.autoAssembleCheck(script,enable,target)checked=script;checkEnable=enable;checkTarget=target;return false,'native syntax failure' end
+local checkScript=assert(load(prefix..'return autoAssembleCheck','far-check','t',env))()
+local checkOK,checkError=checkScript(original,true,false)
+assert(not checkOK and checkError=='native syntax failure' and checked==once and checkEnable==true and checkTarget==false,'Preflight must normalize the same way as installation and preserve native errors/arguments')
+print('PASS: assembler preflight uses identical far-safe normalization')

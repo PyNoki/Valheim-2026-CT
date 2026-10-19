@@ -1,38 +1,7 @@
 param([string]$Managed = 'C:\Program Files (x86)\Steam\steamapps\common\Valheim\valheim_Data\Managed')
 $ErrorActionPreference='Stop'
 $compiler='C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-$references=@('assembly_valheim.dll','Splatform.dll','assembly_utils.dll','SoftReferenceableAssets.dll','UnityEngine.CoreModule.dll','UnityEngine.PhysicsModule.dll','UnityEngine.InputLegacyModule.dll','UnityEngine.ParticleSystemModule.dll','UnityEngine.dll','netstandard.dll') | ForEach-Object { '/r:'+(Join-Path $Managed $_) }
-& $compiler /nologo /target:library "/out:$pwd\outputs\ValheimRecoverySpawnBetaV23.dll" $references "$pwd\outputs\ValheimRecoverySpawnBeta.cs" "$pwd\outputs\ValheimTrophyBuffs.cs" "$pwd\outputs\ValheimTaming.cs" "$pwd\outputs\ValheimBoatFun.cs" "$pwd\outputs\ValheimBoatJumpInput.cs" "$pwd\outputs\ValheimBoatSupport.cs" "$pwd\outputs\ValheimReplenish.cs" "$pwd\outputs\ValheimSpawnCatalogue.cs" "$pwd\outputs\ValheimItemQuality.cs" "$pwd\outputs\ValheimAutoPlanter.cs" "$pwd\outputs\ValheimHarvestLoot.cs" "$pwd\outputs\ValheimLootPolicy.cs" "$pwd\outputs\ValheimClearView.cs"
+$references=@('assembly_valheim.dll','Splatform.dll','assembly_utils.dll','assembly_guiutils.dll','SoftReferenceableAssets.dll','UnityEngine.CoreModule.dll','UnityEngine.PhysicsModule.dll','UnityEngine.InputLegacyModule.dll','UnityEngine.ParticleSystemModule.dll','UnityEngine.IMGUIModule.dll','UnityEngine.TextRenderingModule.dll','UnityEngine.UIModule.dll','UnityEngine.UI.dll','Unity.TextMeshPro.dll','UnityEngine.dll','netstandard.dll') | ForEach-Object { '/r:'+(Join-Path $Managed $_) }
+& $compiler /nologo /target:library "/out:$pwd\outputs\ValheimRecoverySpawnBetaV42.dll" $references "$pwd\outputs\ValheimRecoverySpawnBeta.cs" "$pwd\outputs\ValheimTrophyBuffs.cs" "$pwd\outputs\ValheimRested.cs" "$pwd\outputs\ValheimTaming.cs" "$pwd\outputs\ValheimBoatFun.cs" "$pwd\outputs\ValheimBoatJumpInput.cs" "$pwd\outputs\ValheimBoatSupport.cs" "$pwd\outputs\ValheimReplenish.cs" "$pwd\outputs\ValheimSpawnCatalogue.cs" "$pwd\outputs\ValheimItemQuality.cs" "$pwd\outputs\ValheimAutoPlanter.cs" "$pwd\outputs\ValheimHarvestLoot.cs" "$pwd\outputs\ValheimLootPolicy.cs" "$pwd\outputs\ValheimClearView.cs" "$pwd\outputs\ValheimChestSorting.cs" "$pwd\outputs\ValheimChestSortingNetwork.cs" "$pwd\outputs\ValheimChestSortingUI.cs" "$pwd\outputs\ValheimChestSortingInventory.cs"
 if($LASTEXITCODE){throw 'Beta compilation failed'}
-& $compiler /nologo "/out:$pwd\work\test-boat-jump.exe" "$pwd\outputs\ValheimBoatJumpInput.cs" "$pwd\outputs\ValheimBoatSupport.cs" "$pwd\work\test-boat-jump.cs"
-if($LASTEXITCODE){throw 'Boat jump test compilation failed'}
-& "$pwd\work\test-boat-jump.exe"
-if($LASTEXITCODE){throw 'Boat jump tests failed'}
-& $compiler /nologo "/out:$pwd\work\test-boat-support.exe" "$pwd\outputs\ValheimBoatSupport.cs" "$pwd\work\test-boat-support.cs"
-if($LASTEXITCODE){throw 'Boat support test compilation failed'}
-& "$pwd\work\test-boat-support.exe"
-if($LASTEXITCODE){throw 'Boat support tests failed'}
-& $compiler /nologo "/out:$pwd\work\test-replenish.exe" "$pwd\outputs\ValheimReplenish.cs" "$pwd\work\test-replenish.cs"
-if($LASTEXITCODE){throw 'Replenish test compilation failed'}
-& "$pwd\work\test-replenish.exe"
-if($LASTEXITCODE){throw 'Replenish tests failed'}
-& $compiler /nologo "/out:$pwd\work\test-trophy-buffs.exe" "$pwd\outputs\ValheimTrophyBuffs.cs" "$pwd\work\test-trophy-buffs.cs"
-if($LASTEXITCODE){throw 'Trophy buff test compilation failed'}
-& "$pwd\work\test-trophy-buffs.exe"
-if($LASTEXITCODE){throw 'Trophy buff tests failed'}
-& $compiler /nologo "/out:$pwd\work\test-taming.exe" "$pwd\outputs\ValheimTaming.cs" "$pwd\work\test-taming.cs"
-if($LASTEXITCODE){throw 'Taming test compilation failed'}
-& "$pwd\work\test-taming.exe"
-if($LASTEXITCODE){throw 'Taming tests failed'}
-& $compiler /nologo "/out:$pwd\work\test-spawn-catalogue.exe" "$pwd\outputs\ValheimSpawnCatalogue.cs" "$pwd\work\test-spawn-catalogue.cs"
-if($LASTEXITCODE){throw 'Spawn catalogue test compilation failed'}
-& "$pwd\work\test-spawn-catalogue.exe"
-if($LASTEXITCODE){throw 'Spawn catalogue tests failed'}
-& $compiler /nologo "/out:$pwd\work\test-item-quality.exe" "$pwd\outputs\ValheimItemQuality.cs" "$pwd\work\test-item-quality.cs"
-if($LASTEXITCODE){throw 'Item quality test compilation failed'}
-& "$pwd\work\test-item-quality.exe"
-if($LASTEXITCODE){throw 'Item quality tests failed'}
-& $compiler /nologo "/out:$pwd\work\test-loot-policy.exe" "$pwd\outputs\ValheimLootPolicy.cs" "$pwd\work\test-loot-policy.cs"
-if($LASTEXITCODE){throw 'Loot policy test compilation failed'}
-& "$pwd\work\test-loot-policy.exe"
-if($LASTEXITCODE){throw 'Loot policy tests failed'}
+& (Join-Path $PSScriptRoot 'test-helpers.ps1')

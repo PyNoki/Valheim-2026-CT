@@ -7,13 +7,14 @@ root = Path(__file__).resolve().parent.parent
 lua = (root / 'outputs/ValheimBeta.lua').read_text(encoding='utf-8')
 assert ET.parse(root / 'Valheim 2026 CT.CT').findtext('LuaScript') == lua
 helpers = [
-    ('recoveryHelperHex', 'RecoverySpawnBetaV23', 'ValheimRecoverySpawnBetaV23.dll', 'ValheimRecoverySpawnBeta.cs'),
+    ('summonHelperHex', 'UnlimitedSummonsV1', 'ValheimUnlimitedSummonsV1.dll', 'ValheimUnlimitedSummons.cs'),
+    ('recoveryHelperHex', 'RecoverySpawnBetaV42', 'ValheimRecoverySpawnBetaV42.dll', 'ValheimRecoverySpawnBeta.cs'),
     ('helperHex', 'BowBeamV13', 'ValheimBowBeamV13.dll', 'ValheimBowBeam.cs'),
     ('deleteHelperHex', 'InventoryDeleteV1', 'ValheimInventoryDelete.dll', 'ValheimInventoryDelete.cs'),
-    ('minerHelperHex', 'RapidMinerV2', 'ValheimRapidMinerV2.dll', 'ValheimRapidMiner.cs'),
+    ('minerHelperHex', 'RapidMinerV5', 'ValheimRapidMinerV5.dll', 'ValheimRapidMiner.cs'),
     ('hoeHelperHex', 'RapidHoeV2', 'ValheimRapidHoeV2.dll', 'ValheimRapidHoe.cs'),
     ('dragHelperHex', 'DragBuildV6', 'ValheimDragBuildV6.dll', 'ValheimDragBuild.cs'),
-    ('enemyHelperHex', 'EnemyFormV9', 'ValheimEnemyFormV9.dll', 'ValheimEnemyForm.cs'),
+    ('enemyHelperHex', 'EnemyFormV12', 'ValheimEnemyFormV12.dll', 'ValheimEnemyForm.cs'),
 ]
 referenced = set(re.findall(r"mono_(?:findClass|image_findClass)\([^\n]*?'ValheimSoloToolkit','([^']+)'", lua))
 assert referenced == {item[1] for item in helpers}, referenced
@@ -36,8 +37,8 @@ for variable, classname, dllname, filename in helpers:
     marker = "local class=mono_findClass('ValheimSoloToolkit','" + classname + "')"
     assert marker in lua
     start = lua.index(marker)
-    section = lua[start:start+2500]
-    if classname == 'RecoverySpawnBetaV23':
+    section = lua[start:lua.index('\n  return ', lua.index('matchingMethod(class,', start))]
+    if classname == 'RecoverySpawnBetaV42':
         replenish = (root / 'outputs/ValheimReplenish.lua').read_text(encoding='utf-8')
         assert "pointer(h.class,'Replenish helper')" in replenish
         section += '\n' + replenish
@@ -50,3 +51,11 @@ for variable, classname, dllname, filename in helpers:
         total += 1
     print(f'PASS: {classname}: embedded DLL matches, {len(calls)} method signatures checked')
 print(f'PASS: {len(helpers)} helper classes, {total} bindings, and packaged table parity')
+
+# UI order must stay aligned with the native form indices.
+forms_source=(root / 'outputs/ValheimEnemyForm.cs').read_text(encoding='utf-8')
+forms=re.findall(r'"([^"\n]+)"', re.search(r'string\[\] Forms=\{([^}]+)\}', forms_source)[1])
+labels=re.findall(r"'([^'\n]+)'", re.search(r"local names=\{('Greydwarf'[^}]+)\}", lua)[1])
+assert len(forms)==len(labels)==48 and len(set(forms))==48
+assert 'choice<=48' in lua
+print('PASS: 48 unique native forms, 48 UI labels and matching selection bounds')

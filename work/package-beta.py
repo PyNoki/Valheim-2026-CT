@@ -7,7 +7,6 @@ import runpy
 s = Path('outputs/ValheimInventory.lua').read_text(encoding='utf-8')
 s = s.replace('local edit = createButton(form)', "local maxItemQualityButton=createButton(form)\nmaxItemQualityButton.Caption='Set quality...'\nlocal edit = createButton(form)")
 s = s.replace('{edit,cloneButton,freeze,refresh}', '{edit,cloneButton,maxItemQualityButton,freeze,refresh}')
-s = s.replace('local y=6+(row-1)*(buttonH+5)', 'local bw=row==1 and math.floor((iw-24-labelW-4*gap)/5) or bw\n      local y=6+(row-1)*(buttonH+5)')
 s = s.replace('if hook then stopTeleport();window.show() end', 'if hook then stopTeleport();if mode<=3 then window.show() end end')
 s = s.replace('pending=nil;poll.Enabled=false;window.show()', 'local trophyRequest=pending and pending.trophy;local spawnRequest=pending and pending.spawn;local boatRequest=pending and pending.boat;local tamingRequest=pending and pending.taming;local qualityRequest=pending and pending.itemQuality;pending=nil;poll.Enabled=false;if tamingRequest and tamingWindow then tamingWindow.show() elseif spawnRequest and spawnWindow then spawnWindow.show() elseif not trophyRequest and not boatRequest and not qualityRequest then window.show() end')
 s = s.replace("..(stopped and '' or (' Cleanup failed: '..tostring(stopError)))", "..(stopped and '' or (' Cleanup failed: '..tostring(stopError)))\n      if qualityRequest then status.Caption=teleportStatus.Caption elseif tamingRequest and tamingStatus then tamingStatus.Caption=teleportStatus.Caption elseif trophyRequest and trophyStatus then trophyStatus.Caption=teleportStatus.Caption elseif spawnRequest and spawnStatus then spawnStatus.Caption=teleportStatus.Caption end")
@@ -24,12 +23,12 @@ s = "if ValheimPortalItemsStop then pcall(ValheimPortalItemsStop) end\n"+s
 s = s.replace('b.OnClick=fn;return b', 'b.OnClick=fn;if styleToggle then styleToggle(b) end;return b')
 s = s.replace('b.OnClick=function() action(fn) end', 'b.OnClick=function() action(fn) end\n    if styleToggle then styleToggle(b) end')
 s = s.replace("rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)", "rowControl=button('Auto rows: OFF',18,169,function() activate(0,true) end)\n  if styleToggle then styleToggle(rowControl) end")
-s = s.replace('Enemy form v8','Enemy form v9')
-s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV23')
-s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v37 |")
+s = re.sub(r'Enemy form v[0-9]+', 'Enemy form v12', s)
+s = s.replace('DeathRecoveryV2', 'RecoverySpawnBetaV42')
+s = s.replace("form.Caption = 'Valheim Solo Toolkit |", "form.Caption = 'Valheim 2026 CT | v60 |")
 s = s.replace('Death Beam 16000/tick, 120m.', 'Death Beam 16000/tick, 2000m.')
 s = s.replace('Death Beam: hold bow attack. 80m terrain excavation;', 'Death Beam: hold bow attack. 2000m surface-contact terrain excavation;')
-s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV23.dll').read_bytes().hex() + "'", s)
+s = re.sub(r"local recoveryHelperHex='[0-9a-f]+'", "local recoveryHelperHex='" + Path('outputs/ValheimRecoverySpawnBetaV42.dll').read_bytes().hex() + "'", s)
 s = s.replace("queue=matchingMethod(class,'Queue',{18,8,14},1),", "queue=matchingMethod(class,'Queue',{18,8,14},1),summon=matchingMethod(class,'QueueSummon',{18,14,14},1),")
 s = s.replace("  button('Refresh players',refreshLocations)", """  button('Refresh players',refreshLocations)
   button('Summon selected player',function()
@@ -49,9 +48,10 @@ s = s.replace("local dragButton=createButton(form)", "local spawnButton=createBu
 s = s.replace("local spawnButton=createButton(form)", "local tamingButton=createButton(form)\ntamingButton.Caption='Taming...'\nlocal spawnButton=createButton(form)")
 s = s.replace("local spawnButton=createButton(form)", "local trophyButton=createButton(form)\ntrophyButton.Caption='Trophy buffs...'\nlocal spawnButton=createButton(form)")
 s = s.replace('local skillsH=26+12+4*(buttonH+6)+line*3+10', 'local skillsH=26+12+5*(buttonH+6)+line*3+10')
-s = s.replace('place(skillStatus,group,12,10+4*(buttonH+6),cw-24,line*3)', 'place(trophyButton,group,12,10+4*(buttonH+6),cw-24,buttonH)\n        place(skillStatus,group,12,10+5*(buttonH+6),cw-24,line*3)')
+s = s.replace('place(skillStatus,group,12,10+4*(buttonH+6),cw-24,line*3)', 'pair(minerButton,trophyButton,5)\n        place(skillStatus,group,12,10+5*(buttonH+6),cw-24,line*3)')
 s = s.replace('local tamingButton=createButton(form)', "local planterButton=createButton(form)\nplanterButton.Caption='Auto planter...'\nlocal tamingButton=createButton(form)")
-s = s.replace('{dragButton}}', '{dragButton,spawnButton,tamingButton,planterButton}}')
+s = s.replace('local tamingButton=createButton(form)', "local sortingButton=createButton(form)\nsortingButton.Caption='Chest sorting: OFF'\nlocal tamingButton=createButton(form)")
+s = s.replace('{dragButton}}', '{dragButton,spawnButton,tamingButton,planterButton,sortingButton}}')
 s = s.replace("local spawnButton=createButton(form)", "local boatButton=createButton(form)\nboatButton.Caption='Pixie boat...'\nlocal spawnButton=createButton(form)")
 s = s.replace("local minerButton=createButton(form)", "local rapidButton=createButton(form)\nrapidButton.Caption='Rapid tools: OFF'\nlocal minerButton=createButton(form)")
 s = s.replace('pair(minerButton,hoeButton,4)', 'pair(rapidButton,boatButton,4)')
@@ -95,58 +95,15 @@ If an item is flagged, use the inventory item-flag controls. Clearing an item fl
 
 ''')
 s = s.replace('label.Font.Color=0x75BDFF', 'label.Font.Color=0x00D7FF')
-s = s.replace("state=matchingMethod(class,'GetState',{},8)", "clearState=matchingMethod(class,'ClearState',{},8),clearStop=matchingMethod(class,'StopClear',{},1),loot=matchingMethod(class,'QueueLoot',{18,8,8,14},1),lootState=matchingMethod(class,'LootState',{},8),lootStop=matchingMethod(class,'StopLoot',{},1),harvestStop=matchingMethod(class,'StopHarvest',{},1),magnetStop=matchingMethod(class,'StopMagnet',{},1),harvestStatus=matchingMethod(class,'HarvestStatus',{},14),magnetStatus=matchingMethod(class,'MagnetStatus',{},14),plant=matchingMethod(class,'QueuePlant',{18,14,14},1),plantCatalogue=matchingMethod(class,'PlantCatalogue',{},14),plantStatus=matchingMethod(class,'PlantStatus',{},14),plantStop=matchingMethod(class,'StopPlant',{},1),quality=matchingMethod(class,'QueueItemQuality',{18,18,8,14},1),prefab=matchingMethod(class,'QueuePrefab',{18,14,8,14},1),spawnCatalogue=matchingMethod(class,'SpawnCatalogue',{},14),animal=matchingMethod(class,'QueueAnimal',{18,14,14},1),tameCatalogue=matchingMethod(class,'TamingCatalogue',{},14),tameStatus=matchingMethod(class,'TamingStatus',{},14),tameStop=matchingMethod(class,'StopTaming',{},1),boatStop=matchingMethod(class,'StopBoat',{},1),boatStatus=matchingMethod(class,'BoatStatus',{},14),state=matchingMethod(class,'GetState',{},8)")
+s = s.replace("state=matchingMethod(class,'GetState',{},8)", "sortState=matchingMethod(class,'SortingState',{},8),sortStop=matchingMethod(class,'StopSorting',{},1),sortStatus=matchingMethod(class,'SortingStatus',{},14),clearState=matchingMethod(class,'ClearState',{},8),clearStop=matchingMethod(class,'StopClear',{},1),loot=matchingMethod(class,'QueueLoot',{18,8,8,14},1),lootState=matchingMethod(class,'LootState',{},8),lootStop=matchingMethod(class,'StopLoot',{},1),harvestStop=matchingMethod(class,'StopHarvest',{},1),magnetStop=matchingMethod(class,'StopMagnet',{},1),harvestStatus=matchingMethod(class,'HarvestStatus',{},14),magnetStatus=matchingMethod(class,'MagnetStatus',{},14),plant=matchingMethod(class,'QueuePlant',{18,14,14},1),plantCatalogue=matchingMethod(class,'PlantCatalogue',{},14),plantStatus=matchingMethod(class,'PlantStatus',{},14),plantStop=matchingMethod(class,'StopPlant',{},1),quality=matchingMethod(class,'QueueItemQuality',{18,18,8,14},1),prefab=matchingMethod(class,'QueuePrefab',{18,14,8,8,14},1),spawnCatalogue=matchingMethod(class,'SpawnCatalogue',{},14),animal=matchingMethod(class,'QueueAnimal',{18,14,14},1),tameCatalogue=matchingMethod(class,'TamingCatalogue',{},14),tameStatus=matchingMethod(class,'TamingStatus',{},14),tameStop=matchingMethod(class,'StopTaming',{},1),boatQueue=matchingMethod(class,'QueueBoat',{18,8,14},1),boatOptions=matchingMethod(class,'SetBoatOptions',{8},1),boatProtected=matchingMethod(class,'BoatProtected',{18},2),boatStop=matchingMethod(class,'StopBoat',{},1),boatStatus=matchingMethod(class,'BoatStatus',{},14),state=matchingMethod(class,'GetState',{},8)")
 s = s.replace("local window, destinations, teleportStatus, locationLabel, poll", "local window, destinations, teleportStatus, locationLabel, poll, spawnWindow, spawnStatus, trophyStatus, tamingWindow, tamingStatus")
 s = s.replace("teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))", "teleportStatus.Caption=type(text)=='string' and text or stringValue(pointer(text,'Recovery status'))\n    if pending.itemQuality then status.Caption=teleportStatus.Caption elseif pending.taming and tamingStatus then tamingStatus.Caption=teleportStatus.Caption elseif pending.trophy and trophyStatus then trophyStatus.Caption=teleportStatus.Caption elseif pending.spawn and spawnStatus then spawnStatus.Caption=teleportStatus.Caption end")
 s = s.replace("if window then window.hide() end\nend\nValheimTeleportStop", "if window then window.hide() end\n  if spawnWindow then spawnWindow.hide() end\nend\nValheimTeleportStop")
 s = s.replace("if window then window.destroy();window=nil end;oldDestroy()", "if spawnWindow then spawnWindow.destroy();spawnWindow=nil end;if window then window.destroy();window=nil end;oldDestroy()")
 marker = "teleportButton.OnClick=function() action(openTeleportWindow) end"
-s = s.replace(marker, marker+'\n'+Path('outputs/ValheimReplenish.lua').read_text(encoding='utf-8')+'\n;(function()\n'+Path('outputs/ValheimSpawn.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimTaming.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimItemQuality.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimClearView.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimLootMagnet.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimAutoPlanter.lua').read_text(encoding='utf-8')+'\nend)()\n')
+s = s.replace(marker, marker+'\n;(function()\n'+Path('outputs/ValheimReplenish.lua').read_text(encoding='utf-8')+'\nend)()\n;(function()\n'+Path('outputs/ValheimSpawn.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimTaming.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimItemQuality.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimClearView.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimLootMagnet.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimAutoPlanter.lua').read_text(encoding='utf-8')+'\n'+Path('outputs/ValheimChestSorting.lua').read_text(encoding='utf-8')+'\nend)()\n')
+s = s.replace(marker, marker+'\n'+Path('outputs/ValheimPixieBoat.lua').read_text(encoding='utf-8')+'\n')
 s = s.replace(marker, marker + '''
-local boatWindow,boatTimer,boatHelper
-local function stopBoatUI()
-  boatButton.Caption='Pixie boat: OFF'
-  if boatTimer then boatTimer.Enabled=false end
-  if boatHelper and getOpenedProcessID()==boatHelper.pid and getProcessIDFromProcessName('valheim.exe')==boatHelper.pid then
-    if pending and pending.boat then pcall(function() invoke(boatHelper.cancel,0,{}) end);pending=nil;poll.Enabled=false end
-    pcall(function() invoke(boatHelper.boatStop,0,{}) end)
-  end
-  if boatWindow then boatWindow.hide() end
-end
-local boatClose,boatDestroy=form.OnClose,form.OnDestroy
-form.OnClose=function() stopBoatUI();return boatClose() end
-form.OnDestroy=function() stopBoatUI();if boatWindow then boatWindow.destroy();boatWindow=nil end;boatDestroy() end
-boatButton.OnClick=function() action(function()
-  if not window then openTeleportWindow();window.hide() end
-  if boatWindow then boatWindow.show();return end
-  boatWindow=createForm(false);boatWindow.Caption='Valheim | Pixie boat v4';boatWindow.Width=610;boatWindow.Height=300;boatWindow.Position='poScreenCenter'
-  local guide=createLabel(boatWindow);guide.Left=16;guide.Top=16;guide.Width=560;guide.Height=90;guide.AutoSize=false;guide.WordWrap=true
-  guide.Caption='Enable, return to Valheim, unpause and take the helm. W/S: normal throttle settings. A/D: steer. Left Ctrl: one jump per tap (no cooldown; repeat taps allowed). Shift: boost. Land driving adds lift above terrain; rocks and buildings still collide. Only affects the boat you steer and own.'
-  local toggle=createButton(boatWindow);toggle.Left=16;toggle.Top=115;toggle.Width=260;toggle.Caption='Toggle pixie boat'
-  local stop=createButton(boatWindow);stop.Left=290;stop.Top=115;stop.Width=260;stop.Caption='Stop / restore boat'
-  local text=createLabel(boatWindow);text.Left=16;text.Top=165;text.Width=560;text.Height=80;text.AutoSize=false;text.WordWrap=true;text.Caption='Pixie boat: OFF'
-  toggle.OnClick=function() action(function() queueRecovery(6);pending.boat=true;boatHelper=hook.recovery;boatTimer.Enabled=true;text.Caption='Queued: return to Valheim and unpause.' end) end
-  stop.OnClick=function() action(function()
-    if pending and not pending.recovery then error('Finish or cancel the pending teleport first.') end
-    if pending then cancelQueued() end
-    if boatHelper then invoke(boatHelper.boatStop,0,{}) end
-    boatButton.Caption='Pixie boat: OFF'
-    text.Caption='Stopped. Return to Valheim and unpause to restore boat physics.'
-  end) end
-  boatTimer=createTimer(boatWindow,false);boatTimer.Interval=500
-  boatTimer.OnTimer=function()
-    if not boatHelper or getOpenedProcessID()~=boatHelper.pid or getProcessIDFromProcessName('valheim.exe')~=boatHelper.pid then boatTimer.Enabled=false;text.Caption='Game changed; reload the toolkit.';return end
-    local ok,result=pcall(function() return invoke(boatHelper.boatStatus,0,{}) end)
-    if ok then
-      text.Caption=type(result)=='string' and result or stringValue(pointer(result,'Boat status'))
-      local inactive=text.Caption:find('OFF',1,true) or text.Caption:find('stopped',1,true) or text.Caption:find('wait one game frame',1,true)
-      boatButton.Caption=inactive and 'Pixie boat: OFF' or 'Pixie boat: ON'
-    else boatTimer.Enabled=false;text.Caption=tostring(result) end
-  end
-  if styleToggle then styleToggle(toggle,false);styleToggle(stop,false) end
-  boatWindow.OnClose=function() stopBoatUI();return caHide end
-  boatWindow.show()
-end) end
 local trophyWindow
 local trophyClose,trophyDestroy=form.OnClose,form.OnDestroy
 form.OnClose=function() if trophyWindow then trophyWindow.hide() end;return trophyClose() end
@@ -157,7 +114,7 @@ trophyButton.OnClick=function() action(function()
   local buffs=createForm(false);buffs.Caption='Valheim | Trophy buffs';buffs.Width=600;buffs.Height=340;buffs.Position='poScreenCenter'
   trophyWindow=buffs
   local info=createLabel(buffs);info.Left=16;info.Top=16;info.Width=555;info.Height=58;info.AutoSize=false;info.WordWrap=true
-  info.Caption='Activate a selected trophy power or all available powers together. Automatically shares with players within 10m, using native buff requests. Native durations apply; your selected forsaken power is unchanged.'
+  info.Caption='Activate trophy powers and refresh your Rested to maximum build-piece comfort duration. Shares powers and Rested within 10m. Friends use their own comfort duration; trophy powers keep native durations.'
   local choice=createComboBox(buffs);choice.Left=16;choice.Top=85;choice.Width=555;choice.Style='csDropDownList'
   for _,name in ipairs({'Eikthyr','The Elder','Bonemass','Moder','Yagluth','The Queen','Fader / Ashlands','Deep North trophy power'}) do choice.Items.add(name) end;choice.ItemIndex=0
   local function queue(mode)
@@ -168,7 +125,7 @@ trophyButton.OnClick=function() action(function()
   local all=createButton(buffs);all.Left=201;all.Top=132;all.Width=175;all.Caption='Activate all';all.OnClick=function() queue(18) end
   local remove=createButton(buffs);remove.Left=386;remove.Top=132;remove.Width=175;remove.Caption='Remove trophy buffs';remove.OnClick=function() queue(19) end
   local note=createLabel(buffs);note.Left=16;note.Top=183;note.Width=555;note.Height=45;note.AutoSize=false;note.WordWrap=true
-  note.Caption='Nearby friends do not need the toolkit. Activate all skips unavailable powers. Remove affects only your own trophy buffs; food and other effects remain.'
+  note.Caption='Friends need no toolkit. Activate all skips unavailable powers. Remove affects your trophy powers only; Rested and food remain. This applies through these activation buttons.'
   trophyStatus=createLabel(buffs);trophyStatus.Left=16;trophyStatus.Top=235;trophyStatus.Width=555;trophyStatus.Height=65;trophyStatus.AutoSize=false;trophyStatus.WordWrap=true;trophyStatus.Caption='Ready.'
   if styleToggle then styleToggle(selected,false);styleToggle(all,false);styleToggle(remove,false) end
   buffs.OnClose=function() return caHide end;buffs.show()
@@ -177,9 +134,9 @@ end) end
 s += '''
 -- The original controls retain their helpers; one visible button coordinates both.
 do
-minerButton.Visible=false;hoeButton.Visible=false
-hint(rapidButton,'Toggle rapid pickaxe, axe, hoe and cultivator actions together. Axes receive faster swings, stamina protection and durability refill. Normal material costs apply. Building mode disables the hoe/cultivator helper, so Rapid tools also turns off.')
-hint(boatButton,'Open Pixie boat controls: faster travel, land driving and Left Ctrl jumps.')
+hoeButton.Visible=false
+hint(rapidButton,'Toggle Fast attacks and rapid hoe/cultivator actions together. Fast attacks covers melee weapons, bows, crossbows, magic weapons and pickaxes with stamina and durability refill. Normal material costs apply. Building mode disables the hoe/cultivator helper, so Rapid tools also turns off.')
+hint(boatButton,'Take the boat helm: W/S throttle, A/D steer, Shift boost, tap Left Ctrl to jump. No durability loss defaults ON. Stop restores normal boat behavior.')
 local enabled=false
 local monitor=createTimer(form,false);monitor.Interval=250
 local function stopBoth()
@@ -190,15 +147,15 @@ local function stopBoth()
 end
 rapidButton.OnClick=function()
   local ok,err=pcall(function()
-    if enabled or minerButton.Caption=='Rapid miner: ON' or hoeButton.Caption=='Rapid hoe: ON' then
-      stopBoth();playerStatus.Caption='Rapid mining and rapid hoe disabled.';return
+    if enabled or hoeButton.Caption=='Rapid hoe: ON' then
+      stopBoth();playerStatus.Caption='Fast attacks and rapid hoe disabled.';return
     end
-    minerButton.OnClick()
-    assert(minerButton.Caption=='Rapid miner: ON','Rapid mining did not enable. Check the reported error.')
+    if minerButton.Caption~='Fast attacks: ON' then minerButton.OnClick() end
+    assert(minerButton.Caption=='Fast attacks: ON','Fast attacks did not enable. Check the reported error.')
     hoeButton.OnClick()
     assert(hoeButton.Caption=='Rapid hoe: ON','Rapid hoe did not enable. Check the reported error.')
     enabled=true;monitor.Enabled=true;rapidButton.Caption='Rapid tools: ON'
-    playerStatus.Caption='Rapid tools enabled. Equip a pickaxe, axe, hoe or cultivator. Normal planting/material costs apply.'
+    playerStatus.Caption='Rapid tools enabled: Fast attacks plus rapid hoe/cultivator actions. Normal planting/material costs apply.'
   end)
   if not ok then
     local stopped,stopError=pcall(stopBoth)
@@ -206,7 +163,7 @@ rapidButton.OnClick=function()
   end
 end
 monitor.OnTimer=function()
-  if enabled and (minerButton.Caption~='Rapid miner: ON' or hoeButton.Caption~='Rapid hoe: ON') then
+  if enabled and (minerButton.Caption~='Fast attacks: ON' or hoeButton.Caption~='Rapid hoe: ON') then
     local ok,err=pcall(stopBoth)
     playerStatus.Caption=ok and 'Rapid tools stopped: a tool was disabled or the player changed.' or tostring(err)
   end
@@ -272,6 +229,9 @@ s=s.replace('999/999 Food timers', '999/999. Food timers')
 s=re.sub(r"  \{godButton,'Block local player damage\.[^\n]*\n", '', s)
 s=s.replace('Cannot be combined with God Mode. Other cheat features and flagged items can still trigger item flags; fixed-HP item-flag behavior needs in-game verification.\n\nGod mode blocks local player damage. See the item-flag notice above.', '')
 s += Path('outputs/ValheimFixedHealth.lua').read_text(encoding='utf-8')
+s = 'if ValheimUnlimitedResourcesStop then ValheimUnlimitedResourcesStop() end\n'+s
+s=s.replace('Unlimited stamina replenishes stamina while active.', 'Unlimited resources covers stamina, eitr, adrenaline, ability health costs and summon-control limits, including Dead raiser. It works without eitr food. Normal incoming damage, ammo, materials and ability cooldowns remain. Disabling restores normal costs; refilled pools remain.')
+s += Path('outputs/ValheimUnlimitedResources.lua').read_text(encoding='utf-8')
 s += Path('outputs/ValheimToggleStyle.lua').read_text(encoding='utf-8').replace('spawnButton,tamingButton,trophyButton','spawnButton,tamingButton,planterButton,trophyButton').replace('resetMovementButton,teleportButton','lootMagnetButton,resetMovementButton,teleportButton').replace('staminaButton,craftingButton','fixedHealthButton,clearViewButton,staminaButton,craftingButton')
 s=re.sub(r'[ \t]+\n','\n',s)
 Path('outputs/ValheimBeta.lua').write_text(s, encoding='utf-8')

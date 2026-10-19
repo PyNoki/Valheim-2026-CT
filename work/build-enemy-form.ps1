@@ -2,7 +2,7 @@ param([string]$Managed = 'C:\Program Files (x86)\Steam\steamapps\common\Valheim\
 $ErrorActionPreference = 'Stop'
 $compiler = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $references = @('assembly_valheim.dll','assembly_utils.dll','UnityEngine.CoreModule.dll','UnityEngine.UIModule.dll','UnityEngine.PhysicsModule.dll','UnityEngine.InputLegacyModule.dll','SoftReferenceableAssets.dll','UnityEngine.dll','netstandard.dll') | ForEach-Object { '/r:' + (Join-Path $Managed $_) }
-& $compiler /nologo /target:library "/out:$pwd\outputs\ValheimEnemyFormV9.dll" $references "$pwd\outputs\ValheimEnemyForm.cs"
+& $compiler /nologo /target:library "/out:$pwd\outputs\ValheimEnemyFormV12.dll" $references "$pwd\outputs\ValheimEnemyForm.cs"
 if ($LASTEXITCODE) { throw 'Game assembly compilation failed' }
 & $compiler /nologo "/out:$pwd\work\test-enemy-form.exe" "$pwd\outputs\ValheimEnemyForm.cs" "$pwd\work\test-enemy-form.cs"
 if ($LASTEXITCODE) { throw 'Mock test compilation failed' }

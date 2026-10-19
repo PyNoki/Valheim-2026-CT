@@ -16,6 +16,7 @@ namespace ValheimSoloToolkit {
     else if(choice!=8)throw new InvalidOperationException("This trophy power is unavailable in the loaded game: "+Powers[i]);
    }
    if(effects.Count==0)throw new InvalidOperationException("No trophy powers found in the loaded game.");
+   float rested=TrophyRestedV1.Apply(p);
    int added=0;
    foreach(var effect in effects)if(manager.AddStatusEffect(effect.name.GetStableHashCode(),true,0,0f,(short)-1))added++;
    if(added!=effects.Count)throw new InvalidOperationException("Applied "+added+"/"+effects.Count+" powers; the game declined the remainder.");
@@ -27,9 +28,10 @@ namespace ValheimSoloToolkit {
     // Match ActivateGuardianPower: hash-based AddStatusEffect routes the
     // request to a remote player's owning client. A remote null return is normal.
     foreach(var effect in effects)targetManager.AddStatusEffect(effect.name.GetStableHashCode(),true,0,0f,(short)-1);
+    TrophyRestedV1.Share(target);
     shared++;
    }
-   return "Activated "+added+" trophy buff"+(added==1?".":"s together.")+" Shared with "+shared+" nearby player(s) within 10m via native buff requests. Native durations apply.";
+   return "Activated "+added+" trophy buff"+(added==1?".":"s together.")+" Rested refreshed to max build-piece comfort ("+Math.Round(rested/60f,1)+" min). Shared powers and Rested with "+shared+" nearby player(s) within 10m; allies use their own comfort duration.";
   }
  }
 }

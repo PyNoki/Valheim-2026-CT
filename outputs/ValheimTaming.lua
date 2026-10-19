@@ -61,12 +61,13 @@ tamingButton.OnClick=function() action(function()
   button('Enable wheel taming',404,function() queue(31) end)
   button('Stop / hide markers',598,function() queue(30) end)
   local spawnLabel=createLabel(tamingWindow);spawnLabel.Left=16;spawnLabel.Top=145;spawnLabel.Caption='Spawn a native tameable creature (wheel-click to tame if needed)'
-  spawnChoice=createComboBox(tamingWindow);spawnChoice.Left=16;spawnChoice.Top=168;spawnChoice.Width=470;spawnChoice.Style='csDropDownList'
+  spawnChoice=createComboBox(tamingWindow);spawnChoice.Left=16;spawnChoice.Top=168;spawnChoice.Width=325;spawnChoice.Style='csDropDownList'
+  local stars=createSpawnStars(tamingWindow,355,168,135)
   local spawn=createButton(tamingWindow);spawn.Left=505;spawn.Top=168;spawn.Width=272;spawn.Height=30;spawn.Caption='Spawn selected tameable'
   spawn.OnClick=function()
     local ok,err=pcall(function()
       local name=spawnNames[4][spawnChoice.ItemIndex+1];assert(name,'Refresh the spawn list, unpause Valheim, then select a creature.')
-      helper=queueSpawnAction(3,name,'taming');timer.Enabled=true;tamingWindow.show()
+      helper=queueSpawnAction(3,name,'taming',stars.ItemIndex);timer.Enabled=true;tamingWindow.show()
     end)
     tamingStatus.Caption=ok and 'Creature spawn queued. Return to Valheim and unpause.' or tostring(err)
   end
